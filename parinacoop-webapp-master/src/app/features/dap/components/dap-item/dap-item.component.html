@@ -1,0 +1,43 @@
+<article
+  [ngClass]="[
+    'grid grid-cols-[repeat(5,minmax(0,1fr))_8.3%] place-items-center',
+    'rounded-lg border border-[#dcdcdc] bg-nav-color py-2 text-sm',
+    '[&>div]:flex [&>div]:flex-col',
+  ]"
+>
+  <div>
+    <span class="font-medium">Depósito a Plazo</span>
+    <span>{{ dap.id | idPad }} </span>
+  </div>
+  <div>
+    <span class="font-medium">Tipo de depósito</span
+    ><span>
+      {{ dap.type | dapType }}
+    </span>
+  </div>
+  <div>
+    <span class="font-medium">Vencimiento</span>
+    <span>
+      {{ dap.dueDate | date: 'dd-MM-yyyy' }}
+    </span>
+  </div>
+  <div>
+    <span class="font-medium">Monto a recibir</span>
+    <span>
+      {{ dap.finalAmount | currency: 'CLP' : 'symbol' }}
+    </span>
+  </div>
+  <div>
+    <span class="font-medium">Estado depósito</span>
+    <span>
+      {{ dap.status | dapStatus }}
+    </span>
+  </div>
+  <button
+    type="button"
+    class="content-center text-primary-600 hover:underline"
+    (click)="openDialog(dap)"
+  >
+    Ver detalle
+  </button>
+</article>

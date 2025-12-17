@@ -1,0 +1,144 @@
+<section class="flex flex-col items-center gap-5 place-self-center py-5">
+  <!-- max-w-[42rem] -->
+  <h1 class="text-2xl">Mi perfil</h1>
+  <form
+    [formGroup]="profileForm"
+    (submit)="onSubmit()"
+    class="flex flex-col items-center gap-5"
+  >
+    <div class="flex gap-2">
+      @if (isEditing) {
+        <button
+          [ngClass]="[
+            'flex items-center rounded-full border h-[3.25rem] border-secondary-500 bg-secondary-500 px-4 py-2 text-white transition-colors duration-150',
+            'hover:border-secondary-600 hover:bg-secondary-600',
+            'disabled:border-secondary-100 disabled:bg-secondary-100 disabled:text-secondary-400',
+          ]"
+          type="button"
+          (click)="toggleEdit()"
+          [disabled]="isSubmitting"
+        >
+          Cancelar
+        </button>
+        <button
+          [ngClass]="[
+            'flex items-center justify-center rounded-full border h-[3.25rem] w-48 border-primary-500 bg-primary-500 px-4 py-2 text-white transition-colors duration-150',
+            'hover:border-primary-600 hover:bg-primary-600',
+            'disabled:border-primary-100 disabled:bg-primary-100 disabled:text-primary-400',
+          ]"
+          type="submit"
+          [disabled]="profileForm.invalid || isSubmitting"
+        >
+          @if (isSubmitting) {
+            <app-spinner />
+          } @else {
+            Guardar cambios
+            <mat-icon fontIcon="save" class="text-base" />
+          }
+        </button>
+      } @else {
+        <button
+          [ngClass]="[
+            'flex items-center rounded-full border h-[3.25rem] border-primary-600 px-4 py-2 text-primary-600 transition-colors duration-150',
+            'hover:border-primary-700 hover:text-primary-700',
+          ]"
+          type="button"
+          (click)="toggleEdit()"
+        >
+          Modificar perfil
+          <mat-icon fontIcon="edit" class="text-base" />
+        </button>
+      }
+    </div>
+    <fieldset class="grid grid-cols-2 gap-2 rounded-lg border p-4">
+      <legend>Datos personales</legend>
+      <par-form-field
+        [formCtrl]="fc('run')"
+        format="run"
+        label="RUN"
+        [errors]="{
+          required: 'Debe ingresar su RUN',
+          runValidator: 'RUN inválido',
+        }"
+      />
+      <par-form-field
+        [formCtrl]="fc('documentNumber')"
+        label="Número de documento"
+        [errors]="{
+          required: 'Debe ingresar su número de documento',
+        }"
+      />
+      <par-form-field
+        [formCtrl]="fc('names')"
+        label="Nombres"
+        [errors]="{ required: 'Debe ingresar su nombre completo' }"
+      />
+      <par-form-field
+        [formCtrl]="fc('firstLastName')"
+        label="Primer apellido"
+        [errors]="{ required: 'Debe ingresar su primer apellido' }"
+      />
+      <par-form-field
+        [formCtrl]="fc('secondLastName')"
+        label="Segundo apellido"
+        [errors]="{ required: 'Debe ingresar su segundo apellido' }"
+      />
+    </fieldset>
+    <fieldset class="grid grid-cols-2 gap-2 rounded-lg border p-4">
+      <legend>Información de contacto</legend>
+      <par-form-field
+        [formCtrl]="fc('email')"
+        label="Correo electrónico"
+        [errors]="{
+          required: 'Debe ingresar un correo',
+          email: 'Correo no válido',
+        }"
+      />
+      <par-form-field
+        [formCtrl]="fc('cellphone')"
+        label="Número telefónico"
+        [errors]="{ required: 'Debe ingresar un número' }"
+      />
+    </fieldset>
+    <fieldset class="grid grid-cols-3 gap-2 rounded-lg border p-4">
+      <legend>Dirección particular</legend>
+
+      <par-form-field
+        [formCtrl]="fc('street')"
+        label="Calle"
+        [errors]="{ required: 'Debe ingresar una dirección' }"
+      />
+
+      <par-form-field [formCtrl]="fc('number')" label="Número" />
+      <par-form-field [formCtrl]="fc('detail')" label="Detalles" />
+      <mat-form-field hideRequiredMarker>
+        <mat-label>Región</mat-label>
+        <mat-select
+          required
+          formControlName="regionId"
+          (selectionChange)="getCommunes($event.value)"
+        >
+          <mat-option [value]="0">Seleccione una región</mat-option>
+          @for (region of regions$ | async; track region.id) {
+            <mat-option [value]="region.id">{{ region.name }}</mat-option>
+          }
+        </mat-select>
+        @if (fc('regionId').hasError('min')) {
+          <mat-error>Debe elegir una región</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field hideRequiredMarker>
+        <mat-label>Comuna</mat-label>
+        <mat-select required formControlName="communeId">
+          <mat-option [value]="0">Seleccione una comuna</mat-option>
+          @for (commune of communes$ | async; track commune.id) {
+            <mat-option [value]="commune.id">{{ commune.name }}</mat-option>
+          }
+        </mat-select>
+        @if (fc('communeId').hasError('min')) {
+          <mat-error>Debe elegir una región</mat-error>
+        }
+      </mat-form-field>
+    </fieldset>
+  </form>
+</section>

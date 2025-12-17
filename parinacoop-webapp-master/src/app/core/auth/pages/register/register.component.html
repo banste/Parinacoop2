@@ -1,0 +1,71 @@
+<main class="flex h-full flex-col items-center gap-5">
+  <h1 class="mt-20 w-80 text-pretty text-center text-2xl">
+    Nuevo cliente de Parinacoop
+  </h1>
+  <div
+    class="flex h-[33rem] w-96 flex-col items-center justify-evenly rounded-xl bg-[#F6F6F6]"
+  >
+    <h2 class="w-72 text-pretty text-center font-medium">
+      Para asociarse con Parinacoop debe ingresar los siguientes datos
+    </h2>
+    <form
+      class="flex flex-col items-center justify-center gap-6"
+      (ngSubmit)="onDataSubmit()"
+      [formGroup]="dataForm"
+    >
+      <!-- <app-form-field label="Run" type="text" formControlName="run" />
+      <app-form-field
+        label="N° de documento"
+        type="text"
+        formControlName="documentNumber"
+      />
+      <app-form-field label="Correo" type="email" formControlName="email" />
+      <app-form-field
+        label="Teléfono celular"
+        type="number"
+        formControlName="cellphone"
+      /> -->
+
+      <button
+        [ngClass]="[
+          'col-span-2 h-10 w-72 justify-self-center rounded-full bg-primary-500 text-white transition-colors duration-100',
+          'disabled:bg-primary-100 disabled:text-primary-400',
+          'hover:bg-primary-600',
+        ]"
+        type="submit"
+        [disabled]="dataForm.invalid"
+      >
+        Registrarse como cliente
+      </button>
+    </form>
+    <!-- <form [formGroup]="passwordForm">
+      <app-form-field
+        label="Clave"
+        type="password"
+        formControlName="password"
+      />
+      <app-form-field
+        label="Confirmar clave"
+        type="password"
+        formControlName="confirmPassword"
+      />
+      <label class="col-span-2 flex items-center gap-2 justify-self-center">
+        <input type="checkbox" formControlName="terms" class="h-5 w-5" />
+        <span class="text-sm"
+          >Al hacerme cliente de Parinacoop, estoy de acuerdo con ...</span
+        >
+      </label>
+      <button
+        [ngClass]="[
+          'col-span-2 h-10 w-72 justify-self-center rounded-full bg-primary-500 text-white transition-colors duration-100',
+          'disabled:bg-primary-100 disabled:text-primary-400',
+          'hover:bg-primary-600',
+        ]"
+        type="submit"
+        [disabled]="passwordForm.invalid"
+      >
+        Registrarse como cliente
+      </button>
+    </form> -->
+  </div>
+</main>

@@ -1,0 +1,31 @@
+<footer class="flex h-full items-center bg-black text-white">
+  <div class="flex flex-1 items-center justify-center gap-10">
+    <span class="text-center text-xl uppercase">Parinacoop</span>
+    <span class="w-64 text-pretty text-sm"
+      >Cooperativa de Ahorro y Crédito regulada por la división de Asociatividad
+      y Cooperativas del Ministerio de Economía.</span
+    >
+  </div>
+  <div class="flex flex-1 justify-evenly text-sm">
+    <div class="flex items-center gap-1">
+      <div>
+        <app-svg-icon icon="marker" />
+      </div>
+      <div class="flex flex-col">
+        @for (address of addresses; track $index) {
+          <span>{{ address }}</span>
+        }
+      </div>
+    </div>
+    <div class="flex items-center gap-1">
+      <app-svg-icon icon="WhatsApp" />
+      <a href="tel:{{ cellphone }}">{{ cellphone }}</a>
+    </div>
+    <div class="flex items-center gap-1">
+      <app-svg-icon icon="mail" />
+      <a href="mailto:{{ mail }}">
+        {{ mail }}
+      </a>
+    </div>
+  </div>
+</footer>

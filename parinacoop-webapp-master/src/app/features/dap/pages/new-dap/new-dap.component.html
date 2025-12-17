@@ -1,0 +1,83 @@
+@let termOptionResolved = termOptions$ | async;
+<section class="flex flex-col items-center gap-5 p-5">
+  <h1 class="text-2xl">Nuevo depósito a plazo</h1>
+  <form
+    class="flex gap-5"
+    [formGroup]="simulateFirstForm"
+    (submit)="getTermOptions()"
+  >
+    <mat-form-field [hideRequiredMarker]="true">
+      <mat-label>Tipo de inversión</mat-label>
+      <mat-select formControlName="type">
+        <mat-option value="">Seleccione el tipo de depósito</mat-option>
+        <mat-option value="DPF">Depósito a plazo fijo</mat-option>
+        <mat-option value="DPR">Depósito a plazo renovable</mat-option>
+      </mat-select>
+      @if (fs('type').hasError('required')) {
+        <mat-error>Debe elegir un tipo de depósito</mat-error>
+      }
+    </mat-form-field>
+    <par-form-field
+      [formCtrl]="fs('initialAmount')"
+      type="number"
+      label="Monto a invertir"
+      [errors]="{
+        required: 'El monto no puede estar vacío',
+        min: 'El monto mínimo es de 50000',
+      }"
+    />
+    <button
+      class="mt-[7px]"
+      appButtonSolid
+      type="submit"
+      [disabled]="simulateFirstForm.invalid"
+    >
+      Simular
+    </button>
+  </form>
+  <h2 class="text-2xl">Opciones para Depósitos a Plazo</h2>
+  @if (firstFormSubmitted) {
+    @if (termOptionResolved) {
+      <form
+        class="inline-flex w-[62.5rem] flex-col items-center gap-5"
+        [formGroup]="simulateSecondForm"
+        (submit)="handleSubmit()"
+      >
+        <section class="flex max-w-screen-xl flex-wrap gap-5">
+          @for (termOpt of termOptionResolved; track termOpt.days) {
+            <app-term-option
+              [termOption]="termOpt"
+              [selected]="selectedTermOption?.days === termOpt.days"
+              (emitTermOption)="selectTermOption($event)"
+            />
+          }
+        </section>
+        <p class="text-wrap text-[#8693A2]">
+          Para que su depósito a plazo se haga efectivo deberá realizar un pago
+          por transferencia por medio de Servipag a Cooperativa Parinacoop
+          durante las próximas 8 horas desde la realización del depósito a plazo
+        </p>
+        <p>
+          <mat-checkbox formControlName="accept">
+            Acepto las condiciones que conllevan a la operación exitosa del
+            depósito a plazo planificado en esta sección
+          </mat-checkbox>
+        </p>
+        <button
+          [ngClass]="[
+            'h-10 w-72 rounded-full bg-primary-500 text-white transition-colors duration-100',
+            'disabled:bg-primary-100 disabled:text-primary-400',
+            'hover:bg-primary-600',
+            'active:bg-primary-700',
+          ]"
+          [disabled]="simulateSecondForm.invalid || isSubmitting"
+          type="submit"
+        >
+          Contratar depósito a plazo
+        </button>
+      </form>
+    } @else {
+      <mat-spinner></mat-spinner>
+    }
+  }
+</section>

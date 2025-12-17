@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>Detalles Depósitos a plazo</h2>
+<mat-dialog-content>
+  <article class="flex w-full flex-col items-center gap-4">
+    <div class="flex items-center gap-4 text-center">
+      <div
+        class="flex h-28 flex-col items-center justify-center rounded-xl text-center font-medium"
+      >
+        <span class="text-xl text-primary-950">Monto invertido</span>
+        <span class="text-3xl text-primary-600">
+          {{ currentDap.initialAmount | currency: 'CLP' : 'symbol' }}
+        </span>
+      </div>
+      <mat-icon class="text-primary-950" fontIcon="double_arrow" />
+      <div
+        class="flex h-28 flex-col items-center justify-center rounded-xl text-center font-medium"
+      >
+        <span class="text-xl text-primary-950">Monto a recibir</span>
+        <span class="text-3xl text-primary-600">
+          {{ currentDap.finalAmount | currency: 'CLP' : 'symbol' }}
+        </span>
+      </div>
+    </div>
+    <div
+      class="flex flex-col rounded-md border border-primary-300 bg-primary-50 p-4"
+      [ngClass]="{ 'animate-pulse': !currentDap }"
+    >
+      <dap-detail label="Número de depósito" value="{{ currentDap.id | idPad }}" />
+      <dap-detail
+        label="Tipo de moneda"
+        value="{{ currentDap.currencyType }}"
+      />
+      <dap-detail
+        label="Tipo de depósito"
+        value="{{ currentDap.type | dapType }}"
+      />
+      <dap-detail
+        label="Vencimiento"
+        value="{{ currentDap.dueDate | date: 'dd-MM-yyyy' }}"
+      />
+      <dap-detail
+        label="Estado depósito"
+        value="{{ currentDap.status | dapStatus }}"
+      />
+      <dap-detail
+        label="Fecha inicial"
+        value="{{ currentDap.initialDate | date: 'dd-MM-yyyy' }}"
+      />
+      <dap-detail label="Días del periodo" value="{{ currentDap.days }}" />
+      <dap-detail
+        label="Tasa de interés mensual"
+        value="{{ currentDap.interestRateInMonth | percent: '1.2-4' }}"
+      />
+      <dap-detail
+        label="Tasa de interés del periodo"
+        value="{{ currentDap.interestRateInPeriod | percent: '1.2-4' }}"
+      />
+      <dap-detail label="Ganancia" value="{{ currentDap.profit }}" />
+    </div>
+  </article>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-button mat-dialog-close>Volver</button>
+</mat-dialog-actions>

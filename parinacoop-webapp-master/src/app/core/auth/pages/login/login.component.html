@@ -1,0 +1,52 @@
+<section class="flex h-full flex-col items-center justify-center gap-5">
+  <h1 class="w-80 text-pretty text-center text-2xl">
+    Bienvenido a Parinacoop Cooperativa en Línea
+  </h1>
+  <div
+    class="flex flex-col items-center justify-center gap-5 rounded-xl bg-[#F6F6F6] px-10 py-5"
+  >
+    <form
+      class="flex flex-col items-center justify-center gap-5"
+      (ngSubmit)="onSubmit()"
+      [formGroup]="loginForm"
+    >
+      <par-form-field
+        label="RUN"
+        format="run"
+        [formCtrl]="fc('run')"
+        [errors]="{
+          required: 'Debe ingresar su RUN',
+          runValidator: 'RUN inválido',
+        }"
+      />
+      <par-form-field
+        label="Clave"
+        type="password"
+        [formCtrl]="fc('password')"
+        [errors]="{ required: 'Debe ingresar su clave' }"
+      />
+      <button
+        [ngClass]="[
+          'h-10 w-72 rounded-full bg-primary-500 text-white transition-colors duration-100',
+          'disabled:bg-primary-100 disabled:text-primary-400',
+          'hover:bg-primary-600',
+        ]"
+        type="submit"
+        [disabled]="loginForm.invalid || isSubmitting"
+      >
+        @if (isSubmitting) {
+          <app-spinner />
+        } @else {
+          Ingresar
+        }
+      </button>
+    </form>
+    <ul
+      class="w-72 list-disc rounded-md border border-red-300 bg-red-50 px-8 py-2 text-sm text-red-400"
+      [ngClass]="{ invisible: !loginErrorMsg }"
+    >
+      <li class="">{{ loginErrorMsg }}</li>
+    </ul>
+    <a class="italic" href="#">Olvidé mi clave</a>
+  </div>
+</section>

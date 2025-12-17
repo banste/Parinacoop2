@@ -1,0 +1,52 @@
+<div
+  [ngClass]="[
+    'flex w-80 select-none flex-col items-center rounded-2xl border-2 p-5 transition-transform duration-150',
+    selected
+      ? 'border-primary-500'
+      : 'cursor-pointer border-[#8693A2] hover:scale-105',
+  ]"
+  (click)="selected ? undefined : emitTermOption.emit(termOption)"
+>
+  <h4 class="text-lg">{{ termOption.days }} días</h4>
+  <span class="text-body">
+    {{ termOption.dueDate | date: 'dd-MM-yyyy' }}
+  </span>
+  <div class="inline-grid grid-cols-2">
+    <span class="text-left">Tasa de interés del periodo</span>
+    <span class="text-right">
+      {{ termOption.interestRateInPeriod | percent: '1.2-4' }}
+    </span>
+    <span class="text-left">Tasa de interés base (30 días)</span>
+    <span class="text-right">
+      {{ termOption.interestRateInMonth | percent: '1.2-4' }}
+    </span>
+    <span class="text-left">Ganancia</span>
+    <span class="text-right">
+      {{ termOption.profit | currency: 'CLP' : 'symbol' }}
+    </span>
+    <span class="text-left"> Monto a recibir </span>
+    <span class="text-right">
+      {{ termOption.finalAmount | currency: 'CLP' : 'symbol' }}
+    </span>
+  </div>
+  @if (selected) {
+    <button
+      class="mt-10 w-32 rounded-xl bg-primary-100 py-1 text-primary-400"
+      disabled
+      type="button"
+    >
+      Seleccionado
+    </button>
+  } @else {
+    <button
+      [ngClass]="[
+        'mt-10 w-32 rounded-full bg-primary-500 py-1 text-white',
+        'hover:bg-primary-600',
+        'active:bg-primary-700',
+      ]"
+      type="button"
+    >
+      Seleccionar
+    </button>
+  }
+</div>

@@ -1,0 +1,19 @@
+<mat-form-field
+  [ngClass]="{
+    'w-80': size === 'large',
+    'w-60': size === 'medium',
+  }"
+  hideRequiredMarker
+>
+  <mat-label>{{ label }}</mat-label>
+  <input
+    [type]="type"
+    matInput
+    [placeholder]="placeholder"
+    [formControl]="formCtrl"
+    (blur)="onBlur()"
+    (focus)="onFocus()"
+    (keypress)="onKeyPress($event)"
+  />
+  <mat-error [textContent]="errorMsg" />
+</mat-form-field>
