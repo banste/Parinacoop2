@@ -25,6 +25,7 @@ export default class DapComponent implements OnInit, OnDestroy {
   totals$!: Observable<{ profit: number; activeDaps: number }>;
   totalProfit: number = 0;
   totalDaps: number = 0;
+  optionSelected: 'ver' | null = null;
   private onDestroy$ = new Subject<void>();
 
   isLoading = false;

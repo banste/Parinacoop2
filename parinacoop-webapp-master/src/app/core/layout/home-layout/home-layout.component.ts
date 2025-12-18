@@ -51,8 +51,7 @@ export default class HomeLayoutComponent implements AfterViewInit, OnDestroy {
     },
     {
       label: 'Cuentas de Ahorro',
-      link: 'cuentas-de-ahorro',
-      disabled: true,
+      link: ROUTE_TOKENS.CUENTA_AHORRO,
     },
     {
       label: 'Créditos de Consumo',
