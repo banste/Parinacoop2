@@ -10,6 +10,8 @@ export const ROUTE_TOKENS = {
   DAP_DETAIL: ':id',
   NEW_DAP: 'nuevo-deposito',
   PROFILE: 'perfil',
+
+  CUENTA_AHORRO: 'cuentas-de-ahorro',
   
   ADMIN_PATH: 'admin',
   ADMIN_HOME: 'inicio',

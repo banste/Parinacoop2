@@ -1,163 +1,288 @@
-import { Migration } from 'kysely';
+import { Migration, sql } from 'kysely';
+import { regions_communes } from '../seed/regions';
 
 export const up: Migration['up'] = async (db) => {
+  // =========================
   // REGION
+  // =========================
   await db.schema
     .createTable('region')
-    .addColumn('id_region', 'serial', (col) => col.primaryKey())
-    .addColumn('nombre', 'varchar(100)', (col) => col.notNull())
-    .addColumn('numero_romano', 'varchar(10)', (col) => col.notNull())
-    .addColumn('numero', 'integer', (col) => col.notNull())
-    .addColumn('abreviacion', 'varchar(10)', (col) => col.notNull())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('name', 'varchar(50)', (col) => col.notNull())
+    .addColumn('roman_number', 'varchar(10)', (col) => col.notNull())
+    .addColumn('number', 'smallint', (col) => col.notNull())
+    .addColumn('abbreviation', 'varchar(10)', (col) => col.notNull())
     .execute();
 
-  // COMUNA
+  // =========================
+  // COMMUNE
+  // =========================
   await db.schema
-    .createTable('comuna')
-    .addColumn('id_comuna', 'serial', (col) => col.primaryKey())
-    .addColumn('nombre', 'varchar(100)', (col) => col.notNull())
-    .addColumn('codigo_postal', 'varchar(20)', (col) => col.notNull())
-    .addColumn('id_region', 'integer', (col) => col.notNull())
+    .createTable('commune')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('name', 'varchar(100)', (col) => col.notNull())
+    .addColumn('postal_code', 'integer', (col) => col.notNull())
+    .addColumn('region_id', 'integer', (col) => col.notNull())
     .addForeignKeyConstraint(
-      'fk_comuna_region',
-      ['id_region'],
+      'fk_region_commune',
+      ['region_id'],
       'region',
-      ['id_region'],
+      ['id'],
       (cb) => cb.onDelete('cascade'),
     )
     .execute();
 
-  // DIRECCION
+  // ✅ SEED REGIONS + COMMUNES desde tu regions.ts
+  for (const r of regions_communes) {
+    const inserted = await db
+      .insertInto('region')
+      .values({
+        name: r.name,
+        roman_number: r.roman_number,
+        number: r.number,
+        abbreviation: r.abbreviation,
+      })
+      .returning('id')
+      .executeTakeFirst();
+
+    const regionId = inserted!.id;
+
+    if (r.communes?.length) {
+      await db
+        .insertInto('commune')
+        .values(
+          r.communes.map((c) => ({
+            name: c.name,
+            postal_code: c.postal_code,
+            region_id: regionId,
+          })),
+        )
+        .execute();
+    }
+  }
+
+  // =========================
+  // PARAMETER (DAP)
+  // =========================
   await db.schema
-    .createTable('direccion')
-    .addColumn('id_direccion', 'serial', (col) => col.primaryKey())
-    .addColumn('tipo_direccion', 'varchar(50)', (col) => col.notNull())
-    .addColumn('numero', 'varchar(20)', (col) => col.notNull())
-    .addColumn('calle', 'varchar(150)', (col) => col.notNull())
-    .addColumn('detalle', 'varchar(255)', (col) => col.notNull())
-    .addColumn('id_comuna', 'integer', (col) => col.notNull())
-    .addForeignKeyConstraint(
-      'fk_direccion_comuna',
-      ['id_comuna'],
-      'comuna',
-      ['id_comuna'],
-      (cb) => cb.onDelete('cascade'),
-    )
+    .createTable('parameter')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('minimum_days', 'integer', (col) => col.notNull())
+    .addColumn('maximum_days', 'integer', (col) => col.notNull())
+    .addColumn('interest_rate_base', 'decimal(7, 4)', (col) => col.notNull())
     .execute();
 
-  // USUARIO
+  // ✅ SEED PARAMETER (según tu parameters.ts)
+  await db
+    .insertInto('parameter')
+    .values([
+      { minimum_days: 30, maximum_days: 90, interest_rate_base: 0.4 },
+      { minimum_days: 91, maximum_days: 180, interest_rate_base: 0.39 },
+      { minimum_days: 181, maximum_days: 365, interest_rate_base: 0.39 },
+      { minimum_days: 366, maximum_days: 9999, interest_rate_base: 5 },
+    ])
+    .execute();
+
+  // =========================
+  // USER (AUTH)
+  // =========================
   await db.schema
-    .createTable('usuario')
-    // 👇 run ahora es texto, soporta K, puntos, guion, etc.
-    .addColumn('run', 'varchar(12)', (col) => col.primaryKey())
-    .addColumn('primer_apellido', 'varchar(20)', (col) => col.notNull())
-    .addColumn('segundo_apellido', 'varchar(20)', (col) => col.notNull())
-    .addColumn('celular', 'varchar(20)', (col) => col.notNull())
-    .addColumn('contrasena', 'varchar(255)', (col) => col.notNull())
-    .addColumn('fecha_creacion', 'date', (col) => col.notNull())
-    .addColumn('fecha_actualizacion', 'date', (col) => col.notNull())
-    .addColumn('nombres', 'varchar(150)', (col) => col.notNull())
-    .addColumn('email', 'varchar(255)', (col) => col.notNull().unique())
-    .addColumn('id_direccion', 'integer', (col) => col.notNull())
+    .createTable('user')
+    .addColumn('run', 'integer', (col) => col.primaryKey())
+    .addColumn('role', 'varchar(20)', (col) => col.notNull())
+    .addColumn('password', 'varchar(255)', (col) => col.notNull())
+    .addColumn('password_attempts', 'smallint', (col) =>
+      col.notNull().defaultTo(3),
+    )
+    .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
+    .addColumn('updated_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
+    .execute();
+
+  // =========================
+  // CLIENT_PROFILE
+  // =========================
+  await db.schema
+    .createTable('client_profile')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.notNull().unique())
+    .addColumn('document_number', 'integer', (col) => col.notNull().unique())
+    .addColumn('email', 'varchar(100)', (col) => col.notNull().unique())
+    .addColumn('cellphone', 'varchar(20)', (col) => col.notNull())
+    .addColumn('names', 'varchar(100)')
+    .addColumn('first_last_name', 'varchar(50)')
+    .addColumn('second_last_name', 'varchar(50)')
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
+    .addColumn('updated_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
     .addForeignKeyConstraint(
-      'fk_usuario_direccion',
-      ['id_direccion'],
-      'direccion',
-      ['id_direccion'],
+      'fk_user_client_profile',
+      ['user_run'],
+      'user',
+      ['run'],
       (cb) => cb.onDelete('cascade'),
     )
     .execute();
 
+  // =========================
+  // ADDRESS
+  // =========================
+  await db.schema
+    .createTable('address')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.notNull())
+    .addColumn('type_address', 'varchar(20)', (col) => col.notNull())
+    .addColumn('street', 'varchar(100)', (col) => col.notNull())
+    .addColumn('number', 'integer', (col) => col.notNull())
+    .addColumn('detail', 'varchar(100)')
+    .addColumn('commune_id', 'integer')
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
+    .addColumn('updated_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
+    .addForeignKeyConstraint(
+      'fk_user_address',
+      ['user_run'],
+      'user',
+      ['run'],
+      (cb) => cb.onDelete('cascade'),
+    )
+    .addForeignKeyConstraint(
+      'fk_commune_address',
+      ['commune_id'],
+      'commune',
+      ['id'],
+      (cb) => cb.onDelete('set null'),
+    )
+    .execute();
+
+  // =========================
+  // PASSWORD_RESET
+  // =========================
+  await db.schema
+    .createTable('password_reset')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.notNull())
+    .addColumn('token', 'varchar(255)', (col) => col.notNull())
+    .addColumn('expires_at', 'timestamp', (col) => col.notNull())
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
+    .addForeignKeyConstraint(
+      'fk_user_password_reset',
+      ['user_run'],
+      'user',
+      ['run'],
+      (cb) => cb.onDelete('cascade'),
+    )
+    .execute();
+
+  // =========================
   // DAP
+  // =========================
   await db.schema
     .createTable('dap')
-    .addColumn('id_dap', 'serial', (col) => col.primaryKey())
-    .addColumn('tipo', 'varchar(50)', (col) => col.notNull())
-    .addColumn('tipo_moneda', 'varchar(20)', (col) => col.notNull())
-    .addColumn('estado', 'varchar(50)', (col) => col.notNull())
-    .addColumn('dias', 'integer', (col) => col.notNull())
-    .addColumn('fecha_inicial', 'date', (col) => col.notNull())
-    .addColumn('monto_inicial', 'numeric(12, 2)', (col) => col.notNull())
-    .addColumn('fecha_vencimiento', 'date', (col) => col.notNull())
-    .addColumn('monto_final', 'numeric(12, 2)', (col) => col.notNull())
-    .addColumn('tasa_interes', 'numeric(5, 2)', (col) => col.notNull())
-    // 👇 FK también como texto
-    .addColumn('run', 'varchar(12)', (col) => col.notNull())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.notNull())
+    .addColumn('type', 'varchar(20)', (col) => col.notNull())
+    .addColumn('currency_type', 'varchar(10)', (col) => col.notNull())
+    .addColumn('status', 'varchar(20)', (col) => col.notNull())
+    .addColumn('days', 'smallint', (col) => col.notNull())
+    .addColumn('initial_date', 'date', (col) => col.notNull())
+    .addColumn('initial_amount', 'integer', (col) =>
+      col.notNull().check(sql`initial_amount >= 50000`),
+    )
+    .addColumn('due_date', 'date', (col) => col.notNull())
+    .addColumn('final_amount', 'integer', (col) => col.notNull())
+    .addColumn('profit', 'integer', (col) => col.notNull())
+    .addColumn('interest_rate_in_period', 'decimal(7, 4)', (col) =>
+      col.notNull(),
+    )
+    .addColumn('interest_rate_in_month', 'decimal(7, 4)', (col) =>
+      col.notNull(),
+    )
     .addForeignKeyConstraint(
-      'fk_dap_usuario',
-      ['run'],
-      'usuario',
+      'fk_user_dap',
+      ['user_run'],
+      'user',
       ['run'],
       (cb) => cb.onDelete('cascade'),
     )
     .execute();
 
-  // CAMBIAR_PASSWORD
+  // =========================
+  // SAVINGS_ACCOUNT
+  // =========================
   await db.schema
-    .createTable('cambiar_password')
-    .addColumn('id_passwordreset', 'serial', (col) => col.primaryKey())
-    .addColumn('token', 'varchar(255)', (col) => col.notNull())
-    .addColumn('expiration', 'date', (col) => col.notNull())
-    .addColumn('fecha_creacion', 'date', (col) => col.notNull())
-    // 👇 también texto
-    .addColumn('run', 'varchar(12)', (col) => col.notNull())
+    .createTable('savings_account')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.notNull())
+    .addColumn('initial_amount', 'decimal(12, 2)', (col) => col.notNull())
+    .addColumn('currency_type', 'varchar(20)', (col) => col.notNull())
+    .addColumn('interest_rate', 'decimal(7, 4)', (col) => col.notNull())
+    .addColumn('initial_date', 'date', (col) => col.notNull())
+    .addColumn('close_date', 'date')
+    .addColumn('contract_url', 'varchar(255)')
+    .addColumn('contract_hash', 'varchar(128)')
+    .addColumn('contract_signed', 'boolean', (col) =>
+      col.notNull().defaultTo(false),
+    )
+    .addColumn('contract_date', 'date')
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
+    .addColumn('updated_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
+    )
     .addForeignKeyConstraint(
-      'fk_password_usuario',
-      ['run'],
-      'usuario',
+      'fk_user_savings_account',
+      ['user_run'],
+      'user',
       ['run'],
       (cb) => cb.onDelete('cascade'),
     )
     .execute();
 
-  // CUENTA_AHORRO
+  // =========================
+  // WITHDRAWAL
+  // =========================
   await db.schema
-    .createTable('cuenta_ahorro')
-    .addColumn('id_cuentaahorro', 'serial', (col) => col.primaryKey())
-    .addColumn('monto_inicial', 'numeric(12, 2)', (col) => col.notNull())
-    .addColumn('tipo_moneda', 'varchar(20)', (col) => col.notNull())
-    .addColumn('tasa_de_interes', 'numeric(5, 2)', (col) => col.notNull())
-    .addColumn('fecha_inicial', 'date', (col) => col.notNull())
-    .addColumn('fecha_cierre', 'date')
-    // 👇 FK texto
-    .addColumn('run', 'varchar(12)', (col) => col.notNull())
-    .addColumn('contrato_url', 'varchar(255)')
-    .addColumn('contrato_hash', 'varchar(128)')
-    .addColumn('contrato_firmado', 'boolean', (col) => col.defaultTo(false))
-    .addColumn('fecha_contrato', 'date')
-    .addForeignKeyConstraint(
-      'fk_cahorro_usuario',
-      ['run'],
-      'usuario',
-      ['run'],
-      (cb) => cb.onDelete('cascade'),
+    .createTable('withdrawal')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('savings_account_id', 'integer', (col) => col.notNull())
+    .addColumn('amount', 'decimal(12, 2)', (col) => col.notNull())
+    .addColumn('date', 'date', (col) => col.notNull())
+    .addColumn('created_at', 'timestamp', (col) =>
+      col.defaultTo(sql`now()`).notNull(),
     )
-    .execute();
-
-  // RETIRO
-  await db.schema
-    .createTable('retiro')
-    .addColumn('id_retiro', 'serial', (col) => col.primaryKey())
-    .addColumn('monto', 'numeric(12, 2)', (col) => col.notNull())
-    .addColumn('fecha', 'date', (col) => col.notNull())
-    .addColumn('id_cuentaahorro', 'integer', (col) => col.notNull())
     .addForeignKeyConstraint(
-      'fk_retiro_cahorro',
-      ['id_cuentaahorro'],
-      'cuenta_ahorro',
-      ['id_cuentaahorro'],
+      'fk_withdrawal_savings_account',
+      ['savings_account_id'],
+      'savings_account',
+      ['id'],
       (cb) => cb.onDelete('cascade'),
     )
     .execute();
 };
 
 export const down: Migration['down'] = async (db) => {
-  await db.schema.dropTable('retiro').execute();
-  await db.schema.dropTable('cuenta_ahorro').execute();
-  await db.schema.dropTable('cambiar_password').execute();
+  await db.schema.dropTable('withdrawal').execute();
+  await db.schema.dropTable('savings_account').execute();
   await db.schema.dropTable('dap').execute();
-  await db.schema.dropTable('usuario').execute();
-  await db.schema.dropTable('direccion').execute();
-  await db.schema.dropTable('comuna').execute();
+  await db.schema.dropTable('password_reset').execute();
+  await db.schema.dropTable('address').execute();
+  await db.schema.dropTable('client_profile').execute();
+  await db.schema.dropTable('user').execute();
+  await db.schema.dropTable('parameter').execute();
+  await db.schema.dropTable('commune').execute();
   await db.schema.dropTable('region').execute();
 };

@@ -15,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 
 import { Commune } from '@features/profile/models/Commune';
 import { runValidator } from '@shared/validators/runValidator';
+import { rutToNumber } from '@shared/utils/rut-utils';
 import { FormFieldComponent, SpinnerComponent } from '@shared/components';
 
 import { ProfileService } from './services/profile.service';
@@ -120,7 +121,7 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     const profileValue = this.profileForm.value;
 
     const newData: UpdateProfileDto = {
-      run: +getRutDigits(this.fc('run').value),
+      run: rutToNumber(this.profileForm.value.run!),
       documentNumber: profileValue.documentNumber!,
       names: profileValue.names!,
       firstLastName: profileValue.firstLastName!,

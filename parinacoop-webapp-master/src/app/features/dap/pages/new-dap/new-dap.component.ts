@@ -127,4 +127,8 @@ export default class NewDapComponent implements OnInit, OnDestroy {
   fs(name: string): FormControl {
     return this.simulateFirstForm.get(name) as FormControl;
   }
+
+  volver() {
+  this.router.navigate(['/cliente/depositos-a-plazo']); 
+  }
 }

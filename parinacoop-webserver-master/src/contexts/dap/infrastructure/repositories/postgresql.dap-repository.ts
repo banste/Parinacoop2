@@ -28,11 +28,13 @@ export class PostgreSqlDapRepository implements DapRepository {
         final_amount: data.initialAmount + data.profit,
         initial_date: data.initialDate,
       })
+      .returning(['id'])
       .executeTakeFirstOrThrow();
+      console.log('Resultado del INSERT:', result);
 
     const newDap = await this.db
       .selectFrom('dap')
-      .where('id', '=', Number(result.insertId))
+      .where('id', '=', result.id)
       .select([
         'id',
         'user_run as userRun',

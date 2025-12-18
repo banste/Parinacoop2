@@ -19,6 +19,7 @@ import { FormFieldComponent } from '@shared/components/form-field/form-field.com
 import { LoginService } from './login.service';
 import { ROUTE_TOKENS } from '@app/route-tokens';
 import { runValidator } from '@shared/validators/runValidator';
+import { rutToNumber } from '@shared/utils/rut-utils';
 
 type LoginForm = FormGroupTypeBuilder<{
   run: string;
@@ -57,9 +58,11 @@ export default class LoginComponent implements OnInit, OnDestroy {
     this.isSubmitting = true;
     this.loginForm.disable();
     const credentials = {
-      run: +getRutDigits(this.loginForm.value.run!),
+      run: rutToNumber(this.loginForm.value.run!),
       password: this.loginForm.value.password!,
     };
+
+    console.log('RUN que se está enviando:', credentials.run);
 
     this.loginErrorMsg = '';
     this.loginService.login(credentials).subscribe({

@@ -10,7 +10,9 @@ export class GetProfileUseCase {
   constructor(private clientRepository: ClientRepository) {}
 
   async execute(dto: GetProfileDto): Promise<{ profile: PrimitiveClient }> {
+    console.log('Buscando perfil por run:', dto.run);
     const client = await this.clientRepository.getProfileByRun(dto.run);
+    console.log('Resultado:', client);
 
     if (!client) {
       throw new ClientNotFoundError(dto.run);
