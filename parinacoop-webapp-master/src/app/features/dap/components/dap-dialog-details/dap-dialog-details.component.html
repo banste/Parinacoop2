@@ -1,63 +1,125 @@
-<h2 mat-dialog-title>Detalles Depósitos a plazo</h2>
-<mat-dialog-content>
-  <article class="flex w-full flex-col items-center gap-4">
-    <div class="flex items-center gap-4 text-center">
-      <div
-        class="flex h-28 flex-col items-center justify-center rounded-xl text-center font-medium"
-      >
-        <span class="text-xl text-primary-950">Monto invertido</span>
-        <span class="text-3xl text-primary-600">
-          {{ currentDap.initialAmount | currency: 'CLP' : 'symbol' }}
-        </span>
+<section class="p-6 min-w-[22rem]">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-xl font-semibold text-primary-950">
+      Detalle del Depósito a Plazo
+    </h2>
+
+    <button mat-button (click)="close()">Cerrar</button>
+  </div>
+
+  <!-- Resumen / Estado -->
+  <div class="rounded-xl border border-[#dcdcdc] bg-nav-color p-4 mb-5">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-sm text-primary-700">Depósito a Plazo</div>
+        <div class="text-lg font-semibold text-primary-950">
+          N° {{ currentDap.id | idPad }}
+        </div>
       </div>
-      <mat-icon class="text-primary-950" fontIcon="double_arrow" />
-      <div
-        class="flex h-28 flex-col items-center justify-center rounded-xl text-center font-medium"
-      >
-        <span class="text-xl text-primary-950">Monto a recibir</span>
-        <span class="text-3xl text-primary-600">
-          {{ currentDap.finalAmount | currency: 'CLP' : 'symbol' }}
-        </span>
+
+      <div class="text-right">
+        <div class="text-sm text-primary-700">Estado</div>
+
+        <!-- ✅ Colores según tu enum real -->
+        <div
+          class="font-semibold"
+          [ngClass]="{
+            'text-green-700':
+              currentDap.status === DapStatus.ACTIVE ||
+              currentDap.status === DapStatus.PAID,
+
+            'text-orange-700':
+              currentDap.status === DapStatus.PENDING ||
+              currentDap.status === DapStatus.EXPIRED_PENDING,
+
+            'text-red-700': currentDap.status === DapStatus.EXPIRED
+          }"
+        >
+          {{ currentDap.status | dapStatus }}
+        </div>
       </div>
     </div>
-    <div
-      class="flex flex-col rounded-md border border-primary-300 bg-primary-50 p-4"
-      [ngClass]="{ 'animate-pulse': !currentDap }"
-    >
-      <dap-detail label="Número de depósito" value="{{ currentDap.id | idPad }}" />
-      <dap-detail
-        label="Tipo de moneda"
-        value="{{ currentDap.currencyType }}"
-      />
-      <dap-detail
-        label="Tipo de depósito"
-        value="{{ currentDap.type | dapType }}"
-      />
-      <dap-detail
-        label="Vencimiento"
-        value="{{ currentDap.dueDate | date: 'dd-MM-yyyy' }}"
-      />
-      <dap-detail
-        label="Estado depósito"
-        value="{{ currentDap.status | dapStatus }}"
-      />
-      <dap-detail
-        label="Fecha inicial"
-        value="{{ currentDap.initialDate | date: 'dd-MM-yyyy' }}"
-      />
-      <dap-detail label="Días del periodo" value="{{ currentDap.days }}" />
-      <dap-detail
-        label="Tasa de interés mensual"
-        value="{{ currentDap.interestRateInMonth | percent: '1.2-4' }}"
-      />
-      <dap-detail
-        label="Tasa de interés del periodo"
-        value="{{ currentDap.interestRateInPeriod | percent: '1.2-4' }}"
-      />
-      <dap-detail label="Ganancia" value="{{ currentDap.profit }}" />
+  </div>
+
+  <!-- Detalles -->
+  <div class="rounded-xl border border-[#dcdcdc] p-4 mb-5">
+    <h3 class="font-semibold text-primary-950 mb-2">Datos del depósito</h3>
+
+    <dap-detail label="Tipo" [value]="currentDap.type | dapType"></dap-detail>
+    <dap-detail label="Moneda" [value]="currentDap.currencyType"></dap-detail>
+    <dap-detail
+      label="Plazo (días)"
+      [value]="currentDap.days.toString()"
+    ></dap-detail>
+
+    <dap-detail
+      label="Fecha ingreso"
+      [value]="(currentDap.initialDate | date:'dd-MM-yyyy') || '-'"
+    ></dap-detail>
+
+    <dap-detail
+      label="Vencimiento"
+      [value]="(currentDap.dueDate | date:'dd-MM-yyyy') || '-'"
+    ></dap-detail>
+
+    <dap-detail
+      label="Monto capital"
+      [value]="(currentDap.initialAmount | currency:'CLP':'symbol':'1.0-0') || ''"
+    ></dap-detail>
+
+    <dap-detail
+      label="Monto a recibir"
+      [value]="(currentDap.finalAmount | currency:'CLP':'symbol':'1.0-0') || ''"
+    ></dap-detail>
+
+    <dap-detail
+      label="Intereses"
+      [value]="(currentDap.profit | currency:'CLP':'symbol':'1.0-0') || ''"
+    ></dap-detail>
+
+    <dap-detail
+      label="Tasa mensual"
+      [value]="(currentDap.interestRateInMonth | percent:'1.2-2') || ''"
+    ></dap-detail>
+
+    <dap-detail
+      label="Tasa período"
+      [value]="(currentDap.interestRateInPeriod | percent:'1.2-2') || ''"
+    ></dap-detail>
+  </div>
+
+  <!-- ✅ Documentos del depósito -->
+  <div class="rounded-xl border border-[#dcdcdc] bg-nav-color p-4">
+    <h3 class="font-semibold text-primary-950 mb-2">Documentos del depósito</h3>
+
+    <div class="flex flex-wrap gap-3">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="descargarSolicitudPdf()"
+        [disabled]="isDownloadingSolicitud"
+      >
+        <mat-icon>download</mat-icon>
+        <span class="ml-2">
+          {{ isDownloadingSolicitud ? 'Descargando...' : 'Descargar Solicitud (PDF)' }}
+        </span>
+      </button>
+
+      <button
+        mat-stroked-button
+        color="primary"
+        (click)="descargarInstructivoPdf()"
+        [disabled]="isDownloadingInstructivo"
+      >
+        <mat-icon>download</mat-icon>
+        <span class="ml-2">
+          {{ isDownloadingInstructivo ? 'Descargando...' : 'Descargar Instructivo (PDF)' }}
+        </span>
+      </button>
     </div>
-  </article>
-</mat-dialog-content>
-<mat-dialog-actions>
-  <button mat-button mat-dialog-close>Volver</button>
-</mat-dialog-actions>
+
+    <p class="mt-3 text-sm text-primary-700">
+      Descarga la solicitud, fírmala y sigue el instructivo para realizar el depósito en la cuenta correspondiente.
+    </p>
+  </div>
+</section>

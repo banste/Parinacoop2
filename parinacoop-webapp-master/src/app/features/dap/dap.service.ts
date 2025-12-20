@@ -41,4 +41,18 @@ export class DapService {
     
     this.totalsSubject.next(totals);
   }
+  downloadSolicitudPdf(dapId: number, userRun: number) {
+  return this.httpClient.get(
+    `clients/${userRun}/daps/${dapId}/solicitud-pdf`,
+    { responseType: 'blob' },
+  );
+}
+
+downloadInstructivoPdf(userRun: number) {
+  return this.httpClient.get(
+    `clients/${userRun}/daps/instructivo-pdf`,
+    { responseType: 'blob' },
+  );
+}
+
 }

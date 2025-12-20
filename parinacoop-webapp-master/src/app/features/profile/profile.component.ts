@@ -1,33 +1,35 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AsyncPipe, NgClass } from '@angular/common';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { AsyncPipe, NgClass } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
-import { filter, Observable, Subject, takeUntil } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
+import { Observable, Subject, filter, takeUntil } from 'rxjs';
 
-import { Commune } from '@features/profile/models/Commune';
 import { runValidator } from '@shared/validators/runValidator';
 import { FormFieldComponent, SpinnerComponent } from '@shared/components';
 
+import { AuthService } from '@app/core/auth/services/auth.service';
+import { LocationService } from './services/location.service';
 import { ProfileService } from './services/profile.service';
 import { Region } from './models/Region';
-import { LocationService } from './services/location.service';
+import { Commune } from '@features/profile/models/Commune';
+
 import {
   formatRut,
   getRutDigits,
   RutFormat,
   calculateRutVerifier,
 } from '@fdograph/rut-utilities';
+
 import { UpdateProfileDto } from './interfaces/update-profile.dto';
-import { AuthService } from '@app/core/auth/services/auth.service';
 
 @Component({
   selector: 'app-profile',
@@ -48,23 +50,23 @@ import { AuthService } from '@app/core/auth/services/auth.service';
 })
 export default class ProfileComponent implements OnInit, OnDestroy {
   profileForm = new FormGroup({
-    run: new FormControl('', [Validators.required, runValidator]),
-    names: new FormControl('', Validators.required),
-    firstLastName: new FormControl('', Validators.required),
-    secondLastName: new FormControl('', Validators.required),
-    email: new FormControl('', [Validators.required, Validators.email]),
-    documentNumber: new FormControl(0, Validators.required),
-    cellphone: new FormControl('', Validators.required),
-    street: new FormControl('', Validators.required),
-    number: new FormControl(0, Validators.required),
-    detail: new FormControl(''),
-    regionId: new FormControl(0, [Validators.min(1)]),
-    communeId: new FormControl(0, [Validators.min(1)]),
+    run: new FormControl<string>('', [Validators.required, runValidator]),
+    names: new FormControl<string>('', Validators.required),
+    firstLastName: new FormControl<string>('', Validators.required),
+    secondLastName: new FormControl<string>('', Validators.required),
+    email: new FormControl<string>('', [Validators.required, Validators.email]),
+    documentNumber: new FormControl<number>(0, Validators.required),
+    cellphone: new FormControl<string>('', Validators.required),
+    street: new FormControl<string>('', Validators.required),
+    number: new FormControl<number>(0, Validators.required),
+    detail: new FormControl<string>(''),
+    regionId: new FormControl<number>(0, [Validators.min(1)]),
+    communeId: new FormControl<number>(0, [Validators.min(1)]),
   });
 
   regions$?: Observable<Region[]>;
   communes$?: Observable<Commune[]>;
-  onDestroy$ = new Subject<void>();
+  private onDestroy$ = new Subject<void>();
 
   loading = false;
   isEditing = false;
@@ -79,32 +81,54 @@ export default class ProfileComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.profileForm.disable();
     this.loading = true;
+
     this.regions$ = this.locationService.regions$;
     this.communes$ = this.locationService.communes$;
 
+    // 1) Pedir perfil con el run del usuario logueado
     this.authService.currentUser$
-      .pipe(
-        takeUntil(this.onDestroy$),
-        filter((user) => user !== null),
-      )
-      .subscribe((user) => this.profileService.getCurrentProfile(user.run));
+  .pipe(
+    takeUntil(this.onDestroy$),
+    filter((user) => !!user),
+  )
+  .subscribe((user) => {
+    const runNumber = Number((user as any).run);
 
+    if (Number.isNaN(runNumber)) {
+      this.loading = false;
+      alert('RUN inválido en sesión');
+      return;
+    }
+
+    this.profileService.getCurrentProfile(runNumber).subscribe({
+      next: () => {},
+      error: () => {
+        this.loading = false;
+        alert('No se pudo cargar el perfil (revisa Network/Console).');
+      },
+    });
+  });
+
+
+    // 2) Cuando llega el perfil, rellenar formulario
     this.profileService.userProfile$
       .pipe(takeUntil(this.onDestroy$))
-      .subscribe({
-        next: (data) => {
-          if (data) {
-            console.log(data.run);
-            const runDigits = `${data.run}${calculateRutVerifier(data.run.toString())}`;
-            this.profileForm.patchValue({
-              ...data,
-              run: formatRut(runDigits, RutFormat.DOTS_DASH),
-            });
-            this.loading = false;
-            this.getRegions();
-            this.getCommunes(data.regionId);
-          }
-        },
+      .subscribe((data) => {
+        if (!data) return;
+
+        const runNumber = Number(data.run);
+        const runDigits = `${runNumber}${calculateRutVerifier(String(runNumber))}`;
+
+        this.profileForm.patchValue({
+          ...data,
+          run: formatRut(runDigits, RutFormat.DOTS_DASH),
+        });
+
+        this.loading = false;
+
+        // Cargar combos
+        this.getRegions();
+        if (data.regionId) this.getCommunes(Number(data.regionId));
       });
   }
 
@@ -113,50 +137,74 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     this.onDestroy$.complete();
   }
 
+  toggleEdit(): void {
+    if (this.isEditing) {
+      this.profileForm.disable();
+      // opcional: recargar perfil para “cancelar cambios”
+      const run = Number(getRutDigits(String(this.fc('run').value ?? '')));
+      if (!Number.isNaN(run)) this.profileService.getCurrentProfile(run).subscribe();
+    } else {
+      this.profileForm.enable();
+      // Mantener RUN deshabilitado si no quieres que lo editen
+      this.fc('run').disable();
+    }
+    this.isEditing = !this.isEditing;
+  }
+
   onSubmit(): void {
     if (this.profileForm.invalid) return;
+
     this.isSubmitting = true;
     this.profileForm.disable();
-    const profileValue = this.profileForm.value;
+
+    const run = Number(getRutDigits(String(this.fc('run').value ?? '')));
+
+    const documentNumber = Number(this.fc('documentNumber').value);
+    const number = Number(this.fc('number').value);
+    const regionId = Number(this.fc('regionId').value);
+    const communeId = Number(this.fc('communeId').value);
+
+    if ([run, documentNumber, number, regionId, communeId].some(Number.isNaN)) {
+      alert('Hay campos numéricos inválidos (NaN).');
+      this.isSubmitting = false;
+      this.profileForm.enable();
+      this.fc('run').disable();
+      return;
+    }
 
     const newData: UpdateProfileDto = {
-      run: +getRutDigits(this.fc('run').value),
-      documentNumber: profileValue.documentNumber!,
-      names: profileValue.names!,
-      firstLastName: profileValue.firstLastName!,
-      secondLastName: profileValue.secondLastName!,
-      email: profileValue.email!,
-      cellphone: profileValue.cellphone!,
-      street: profileValue.street!,
-      number: profileValue.number!,
-      detail: profileValue.detail!,
-      regionId: profileValue.regionId!,
-      communeId: profileValue.communeId!,
+      run,
+      documentNumber,
+      names: String(this.fc('names').value ?? ''),
+      firstLastName: String(this.fc('firstLastName').value ?? ''),
+      secondLastName: String(this.fc('secondLastName').value ?? ''),
+      email: String(this.fc('email').value ?? ''),
+      cellphone: String(this.fc('cellphone').value ?? ''),
+      street: String(this.fc('street').value ?? ''),
+      number,
+      detail: String(this.fc('detail').value ?? ''),
+      regionId,
+      communeId,
     };
+
+    console.log('PATCH body:', newData);
 
     this.profileService.updateProfile(newData).subscribe({
       next: (response) => {
         alert(response.msg);
         this.isSubmitting = false;
         this.isEditing = false;
+        // Recargar perfil para reflejar cambios
+        this.profileService.getCurrentProfile(run).subscribe();
       },
       error: (error) => {
-        alert('Error al actualizar el perfil');
         console.error(error);
+        alert('Error al actualizar el perfil');
         this.isSubmitting = false;
         this.profileForm.enable();
+        this.fc('run').disable();
       },
     });
-  }
-
-  toggleEdit(): void {
-    if (this.isEditing) {
-      this.profileForm.disable();
-      this.profileService.resetProfile();
-    } else {
-      this.profileForm.enable();
-    }
-    this.isEditing = !this.isEditing;
   }
 
   getRegions(): void {
@@ -164,7 +212,6 @@ export default class ProfileComponent implements OnInit, OnDestroy {
   }
 
   getCommunes(regionId: number): void {
-    console.log(regionId);
     this.locationService.getCommunesByRegionId(regionId);
   }
 

@@ -1,5 +1,4 @@
 export interface UpdateProfileDto {
-  run: number;
   documentNumber: number;
   names: string;
   firstLastName: string;

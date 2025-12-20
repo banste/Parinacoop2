@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
-
 import { Database } from '@/database/database';
-
 import { Dap } from '@/contexts/dap/domain/models/Dap';
 import { DapRepository } from '@/contexts/dap/domain/ports/dap.repository';
 
@@ -12,28 +10,54 @@ export class PostgreSqlDapRepository implements DapRepository {
   async create(dap: Dap): Promise<Dap> {
     const data = dap.toValue();
 
-    const result = await this.db
+    // 🔒 Conversión segura a número
+    const userRun = Number(data.userRun);
+    const days = Number(data.days);
+    const initialAmount = Number(data.initialAmount);
+    const profit = Number(data.profit);
+    const interestRateInMonth = Number(data.interestRateInMonth);
+    const interestRateInPeriod = Number(data.interestRateInPeriod);
+    const finalAmount = initialAmount + profit;
+
+    // 🚨 Validación anti-NaN
+    const numeric = {
+      userRun,
+      days,
+      initialAmount,
+      profit,
+      interestRateInMonth,
+      interestRateInPeriod,
+      finalAmount,
+    };
+
+    const invalid = Object.entries(numeric).filter(
+      ([, v]) => Number.isNaN(v),
+    );
+
+    if (invalid.length > 0) {
+      throw new Error(
+        `DAP inválido (NaN): ${invalid.map(([k]) => k).join(', ')}`
+      );
+    }
+
+    // ✅ UN SOLO INSERT (correcto en Postgres)
+    const inserted = await this.db
       .insertInto('dap')
       .values({
-        user_run: data.userRun,
+        user_run: userRun,
         type: data.type,
         currency_type: data.currencyType,
-        days: data.days,
-        initial_amount: data.initialAmount,
+        days,
+        initial_amount: initialAmount,
         due_date: data.dueDate,
-        profit: data.profit,
-        interest_rate_in_month: data.interestRateInMonth,
-        interest_rate_in_period: data.interestRateInPeriod,
+        profit,
+        interest_rate_in_month: interestRateInMonth,
+        interest_rate_in_period: interestRateInPeriod,
         status: data.status,
-        final_amount: data.initialAmount + data.profit,
+        final_amount: finalAmount,
         initial_date: data.initialDate,
       })
-      .executeTakeFirstOrThrow();
-
-    const newDap = await this.db
-      .selectFrom('dap')
-      .where('id', '=', Number(result.insertId))
-      .select([
+      .returning([
         'id',
         'user_run as userRun',
         'type',
@@ -45,17 +69,18 @@ export class PostgreSqlDapRepository implements DapRepository {
         'due_date as dueDate',
         'profit',
         'interest_rate_in_period as interestRateInPeriod',
-        'dap.interest_rate_in_month as interestRateInMonth',
+        'interest_rate_in_month as interestRateInMonth',
         'final_amount as finalAmount',
       ])
       .executeTakeFirstOrThrow();
 
-    return new Dap(newDap);
+    return new Dap(inserted);
   }
+
   async getDapsByUserRun(run: number): Promise<Dap[]> {
     const result = await this.db
       .selectFrom('dap')
-      .where('user_run', '=', run)
+      .where('user_run', '=', Number(run))
       .select([
         'id',
         'user_run as userRun',
