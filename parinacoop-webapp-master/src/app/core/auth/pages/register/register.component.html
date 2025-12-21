@@ -13,32 +13,13 @@
       (ngSubmit)="onDataSubmit()"
       [formGroup]="dataForm"
     >
-      <!-- <app-form-field label="Run" type="text" formControlName="run" />
-      <app-form-field
-        label="N° de documento"
-        type="text"
-        formControlName="documentNumber"
-      />
-      <app-form-field label="Correo" type="email" formControlName="email" />
-      <app-form-field
-        label="Teléfono celular"
-        type="number"
-        formControlName="cellphone"
-      /> -->
+    <par-form-field label="Run" placeholder="Run" [formCtrl]="runCtrl"></par-form-field>
+    <par-form-field label="N° de documento" placeholder="N° de documento" [formCtrl]="documentNumberCtrl"></par-form-field>
+    <par-form-field label="Correo" placeholder="Correo" [formCtrl]="emailCtrl"></par-form-field>
+    <par-form-field label="Teléfono celular" placeholder="Teléfono celular" [formCtrl]="cellphoneCtrl"></par-form-field>
 
-      <button
-        [ngClass]="[
-          'col-span-2 h-10 w-72 justify-self-center rounded-full bg-primary-500 text-white transition-colors duration-100',
-          'disabled:bg-primary-100 disabled:text-primary-400',
-          'hover:bg-primary-600',
-        ]"
-        type="submit"
-        [disabled]="dataForm.invalid"
-      >
-        Registrarse como cliente
-      </button>
     </form>
-    <!-- <form [formGroup]="passwordForm">
+    <form [formGroup]="passwordForm">
       <app-form-field
         label="Clave"
         type="password"
@@ -66,6 +47,6 @@
       >
         Registrarse como cliente
       </button>
-    </form> -->
+    </form>
   </div>
 </main>

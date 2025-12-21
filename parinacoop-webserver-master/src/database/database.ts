@@ -8,6 +8,7 @@ import { PasswordResetTable } from './tables/passwordresetTable';
 import { DapTable } from './tables/dapTable';
 import { ParameterTable } from './tables/parameterTable';
 import { UsuarioTable } from './tables/usuarioTable'; // 👈 nuevo
+import { CuentaAhorroTable } from './tables/cuentaAhorroTable';
 
 export interface Tables {
   region: RegionTable;
@@ -19,6 +20,7 @@ export interface Tables {
   password_reset: PasswordResetTable;
   dap: DapTable;
   parameter: ParameterTable;
+  cuenta_ahorro: CuentaAhorroTable;
 
   // 👇 tu nueva tabla real de usuarios
   usuario: UsuarioTable;

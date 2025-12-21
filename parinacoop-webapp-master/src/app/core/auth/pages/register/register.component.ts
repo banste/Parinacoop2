@@ -1,6 +1,6 @@
 import { NgClass } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 
 import { FormGroupTypeBuilder } from '@shared/types';
 import { FormFieldComponent } from '@app/shared/components';
@@ -21,7 +21,7 @@ type PasswordForm = FormGroupTypeBuilder<{
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [ReactiveFormsModule, NgClass],
+  imports: [ReactiveFormsModule, NgClass, FormFieldComponent],
   templateUrl: './register.component.html',
 })
 export default class RegisterComponent implements OnInit {
@@ -47,5 +47,18 @@ export default class RegisterComponent implements OnInit {
 
   onDataSubmit(): void {
     console.log(this.dataForm.value);
+  }
+
+  get runCtrl(): FormControl {
+  return this.dataForm.get('run') as FormControl;
+  }
+  get documentNumberCtrl(): FormControl {
+  return this.dataForm.get('documentNumber') as FormControl;
+  }
+  get emailCtrl(): FormControl {
+  return this.dataForm.get('email') as FormControl;
+  }
+  get cellphoneCtrl(): FormControl {
+  return this.dataForm.get('cellphone') as FormControl;
   }
 }

@@ -10,6 +10,7 @@ import { ClientProfileModule } from './contexts/client-profile/infrastructure/cl
 import { DapModule } from './contexts/dap/infrastructure/dap.module';
 import { ConfigModule } from './config/config.module';
 import { AdminModule } from './contexts/admin/infrastructure/admin.module';
+import { CuentaAhorroModule } from './contexts/cuenta-ahorro/infrastructure/cuenta-ahorro.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AdminModule } from './contexts/admin/infrastructure/admin.module';
     DapModule,
     LocationModule,
     SharedModule,
+    CuentaAhorroModule,
   ],
 })
 export class AppModule {}

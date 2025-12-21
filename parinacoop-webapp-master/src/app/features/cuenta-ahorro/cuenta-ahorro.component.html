@@ -1,1 +1,58 @@
-<p>cuenta-ahorro works!</p>
+
+@let savingTotals = savingTotals$ | async;
+@let savingAccounts = savingAccounts$ | async;
+@let perfil = perfil$ | async;
+
+<section class="flex flex-col items-center gap-5 pt-5">
+  <h1 class="text-2xl">Inversiones: Cuenta de Ahorro</h1>
+  
+  <!-- Validación de datos usuario -->
+  @if (!perfil?.run || !perfil?.street || !perfil?.number) {
+    <div class="w-full max-w-[40rem] bg-red-100 text-red-700 rounded-xl border border-red-400 p-4 mb-5 text-center">
+      <h3 class="font-bold mb-2">¡Atención!</h3>
+      <p>Para operar con tu cuenta de ahorro, debes tener registrados tu RUN y dirección.</p>
+      <a [routerLink]="['/cliente/perfil']" class="underline text-red-600">Completar mis datos</a>
+    </div>
+  } @else {
+    @if (savingTotals) {
+      <div class="grid w-full max-w-[40rem] grid-cols-2 gap-10">
+        <div class="grid grid-rows-3 place-items-center rounded-xl border border-[#dcdcdc] bg-nav-color p-4 text-center">
+          <h3 class="text-pretty">Saldo total de ahorro</h3>
+          <span class="text-lg font-bold">
+            {{ savingTotals.total | currency: 'CLP' : 'symbol' }}
+          </span>
+          <span class="text-base">Pesos chilenos (CLP)</span>
+        </div>
+        <div class="grid grid-rows-3 place-items-center rounded-xl border border-[#dcdcdc] bg-nav-color p-4 text-center">
+          <h3 class="text-pretty">Intereses generados</h3>
+          <span class="text-lg font-bold">
+            {{ savingTotals.interests | currency: 'CLP' : 'symbol' }}
+          </span>
+          <span class="text-base">Pesos chilenos (CLP)</span>
+        </div>
+      </div>
+    }
+    <section class="flex w-full max-w-[75rem] flex-col items-center gap-2">
+      <h2 class="text-2xl">Mis cuentas de ahorro</h2>
+      <a [routerLink]="['nuevo-aporte-ahorro']" class="flex items-center gap-2 self-end text-primary-600 hover:underline">
+        <span>Realizar aporte</span>
+        <app-svg-icon icon="plus" />
+      </a>
+      <div class="flex w-full flex-col gap-5 text-center">
+        @if (savingAccounts && savingAccounts.length) {
+          @for (account of savingAccounts; track account.id) {
+            <app-saving-item [account]="account"/>
+            <!-- Ejemplo de pipe personalizado -->
+            <span class="block text-sm text-gray-400">
+              Tipo: {{ account.tipo | tipoAhorro }}
+            </span>
+          } @empty {
+            <div>No tienes cuentas de ahorro todavía</div>
+          }
+        } @else {
+          <div>cargando</div>
+        }
+      </div>
+    </section>
+  }
+</section>
