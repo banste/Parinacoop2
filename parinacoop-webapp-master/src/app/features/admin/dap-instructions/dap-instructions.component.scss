@@ -1,0 +1,89 @@
+.page {
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.title {
+  margin: 0 0 6px 0;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.subtitle {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #f08a24;
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.state {
+  padding: 10px 0;
+  opacity: 0.8;
+}
+
+.error {
+  padding: 10px 12px;
+  border: 1px solid rgba(255,0,0,.25);
+  background: rgba(255,0,0,.06);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.card {
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+
+.card-title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.label {
+  display: block;
+  margin: 10px 0 6px 0;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.input, .textarea {
+  width: 100%;
+  border: 1px solid rgba(0,0,0,.18);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.hint {
+  display: inline-block;
+  margin-top: 10px;
+  opacity: 0.75;
+}

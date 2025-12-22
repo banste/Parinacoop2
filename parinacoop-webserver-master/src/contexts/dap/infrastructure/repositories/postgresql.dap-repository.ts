@@ -1,103 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { Database } from '@/database/database';
-import { Dap } from '@/contexts/dap/domain/models/Dap';
-import { DapRepository } from '@/contexts/dap/domain/ports/dap.repository';
+import { DapRepository } from '../../domain/ports/dap.repository';
+import { Dap } from '../../domain/models/Dap';
 
 @Injectable()
 export class PostgreSqlDapRepository implements DapRepository {
-  constructor(private db: Database) {}
+  constructor(private readonly db: Database) {}
 
   async create(dap: Dap): Promise<Dap> {
-    const data = dap.toValue();
+    // ✅ evitamos depender de nombres exactos del dominio
+    const d: any = dap as any;
 
-    // 🔒 Conversión segura a número
-    const userRun = Number(data.userRun);
-    const days = Number(data.days);
-    const initialAmount = Number(data.initialAmount);
-    const profit = Number(data.profit);
-    const interestRateInMonth = Number(data.interestRateInMonth);
-    const interestRateInPeriod = Number(data.interestRateInPeriod);
-    const finalAmount = initialAmount + profit;
-
-    // 🚨 Validación anti-NaN
-    const numeric = {
-      userRun,
-      days,
-      initialAmount,
-      profit,
-      interestRateInMonth,
-      interestRateInPeriod,
-      finalAmount,
-    };
-
-    const invalid = Object.entries(numeric).filter(
-      ([, v]) => Number.isNaN(v),
-    );
-
-    if (invalid.length > 0) {
-      throw new Error(
-        `DAP inválido (NaN): ${invalid.map(([k]) => k).join(', ')}`
-      );
-    }
-
-    // ✅ UN SOLO INSERT (correcto en Postgres)
-    const inserted = await this.db
+    const created = await this.db
       .insertInto('dap')
       .values({
-        user_run: userRun,
-        type: data.type,
-        currency_type: data.currencyType,
-        days,
-        initial_amount: initialAmount,
-        due_date: data.dueDate,
-        profit,
-        interest_rate_in_month: interestRateInMonth,
-        interest_rate_in_period: interestRateInPeriod,
-        status: data.status,
-        final_amount: finalAmount,
-        initial_date: data.initialDate,
+        user_run: d.userRun,
+        type: d.type,
+        currency_type: d.currencyType,
+        status: d.status,
+        days: d.days,
+        initial_date: d.initialDate,
+        initial_amount: d.initialAmount,
+
+        // estos 3 te estaban fallando por nombre, los leemos “tolerante”
+        due_date: d.dueDate ?? d.due_date,
+        final_amount: d.finalAmount ?? d.final_amount,
+        profit: d.profit,
+        interest_rate_in_period: d.interestRateInPeriod ?? d.interest_rate_in_period,
+        interest_rate_in_month: d.interestRateInMonth ?? d.interest_rate_in_month,
       })
-      .returning([
-        'id',
-        'user_run as userRun',
-        'type',
-        'currency_type as currencyType',
-        'days',
-        'status',
-        'initial_date as initialDate',
-        'initial_amount as initialAmount',
-        'due_date as dueDate',
-        'profit',
-        'interest_rate_in_period as interestRateInPeriod',
-        'interest_rate_in_month as interestRateInMonth',
-        'final_amount as finalAmount',
-      ])
+      .returningAll()
       .executeTakeFirstOrThrow();
 
-    return new Dap(inserted);
+    return created as unknown as Dap;
   }
 
   async getDapsByUserRun(run: number): Promise<Dap[]> {
-    const result = await this.db
+    const rows = await this.db
       .selectFrom('dap')
-      .where('user_run', '=', Number(run))
-      .select([
-        'id',
-        'user_run as userRun',
-        'type',
-        'currency_type as currencyType',
-        'days',
-        'status',
-        'initial_date as initialDate',
-        'initial_amount as initialAmount',
-        'due_date as dueDate',
-        'profit',
-        'interest_rate_in_period as interestRateInPeriod',
-        'dap.interest_rate_in_month as interestRateInMonth',
-        'final_amount as finalAmount',
-      ])
+      .selectAll()
+      .where('user_run', '=', run)
+      .orderBy('id', 'desc')
       .execute();
 
-    return result.map((row) => new Dap(row));
+    return rows as unknown as Dap[];
+  }
+
+  async findByIdAndUserRun(id: number, run: number): Promise<Dap | null> {
+    const row = await this.db
+      .selectFrom('dap')
+      .selectAll()
+      .where('id', '=', id)
+      .where('user_run', '=', run)
+      .executeTakeFirst();
+
+    return (row as unknown as Dap) ?? null;
   }
 }

@@ -1,0 +1,59 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <h1 class="title">DAP - Instrucciones y cuenta destino</h1>
+      <p class="subtitle">Esto se verá reflejado en el flujo de descarga/instructivo del cliente.</p>
+    </div>
+
+    <button class="btn" type="button" (click)="save()" [disabled]="saving || loading">
+      {{ saving ? 'Guardando...' : 'Guardar' }}
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="state">Cargando...</div>
+  <div *ngIf="errorMsg" class="error">{{ errorMsg }}</div>
+
+  <form class="grid" [formGroup]="form" *ngIf="!loading">
+    <div class="card">
+      <h2 class="card-title">Cuenta destino</h2>
+
+      <label class="label">Banco</label>
+      <input class="input" formControlName="bankName" placeholder="Ej: Banco Estado" />
+
+      <label class="label">Tipo de cuenta</label>
+      <input class="input" formControlName="accountType" placeholder="Ej: Cuenta Corriente" />
+
+      <label class="label">N° de cuenta</label>
+      <input class="input" formControlName="accountNumber" placeholder="Ej: 123456789" />
+
+      <label class="label">Titular</label>
+      <input class="input" formControlName="accountHolderName" placeholder="Ej: PARINACOOP" />
+
+      <label class="label">RUT titular</label>
+      <input class="input" formControlName="accountHolderRut" placeholder="Ej: 76.123.456-7" />
+
+      <label class="label">Correo (opcional)</label>
+      <input class="input" formControlName="email" placeholder="correo@dominio.cl" />
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Instructivo (texto editable)</h2>
+
+      <label class="label">Descripción / Instrucciones</label>
+      <textarea
+        class="textarea"
+        formControlName="description"
+        rows="14"
+        placeholder="Ej:
+1) Descarga la solicitud.
+2) Firma la solicitud.
+3) Realiza transferencia a la cuenta destino...
+"
+      ></textarea>
+
+      <small class="hint">
+        Tip: aquí pon el paso a paso que quieres que luego aparezca en el PDF instructivo.
+      </small>
+    </div>
+  </form>
+</div>

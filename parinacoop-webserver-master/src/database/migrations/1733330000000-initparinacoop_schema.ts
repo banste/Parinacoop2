@@ -48,7 +48,7 @@ export const up: Migration['up'] = async (db) => {
   // USUARIO
   await db.schema
     .createTable('usuario')
-    // 👇 run ahora es texto, soporta K, puntos, guion, etc.
+    // run ahora es texto, soporta K, puntos, guion, etc.
     .addColumn('run', 'varchar(12)', (col) => col.primaryKey())
     .addColumn('primer_apellido', 'varchar(20)', (col) => col.notNull())
     .addColumn('segundo_apellido', 'varchar(20)', (col) => col.notNull())
@@ -81,7 +81,7 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('fecha_vencimiento', 'date', (col) => col.notNull())
     .addColumn('monto_final', 'numeric(12, 2)', (col) => col.notNull())
     .addColumn('tasa_interes', 'numeric(5, 2)', (col) => col.notNull())
-    // 👇 FK también como texto
+    // FK también como texto
     .addColumn('run', 'varchar(12)', (col) => col.notNull())
     .addForeignKeyConstraint(
       'fk_dap_usuario',
@@ -92,6 +92,23 @@ export const up: Migration['up'] = async (db) => {
     )
     .execute();
 
+  // ✅ DAP_INSTRUCTIONS (config admin para cuenta destino + instructivo)
+  await db.schema
+    .createTable('dap_instructions')
+    .addColumn('id_dap_instructions', 'serial', (col) => col.primaryKey())
+    .addColumn('bank_name', 'varchar(100)', (col) => col.notNull())
+    .addColumn('account_type', 'varchar(50)', (col) => col.notNull())
+    .addColumn('account_number', 'varchar(50)', (col) => col.notNull())
+    .addColumn('account_holder_name', 'varchar(100)', (col) => col.notNull())
+    // si quieres permitir "76.123.456-7", cambia a varchar(15)
+    .addColumn('account_holder_rut', 'varchar(12)', (col) => col.notNull())
+    .addColumn('email', 'varchar(255)')
+    .addColumn('description', 'text', (col) => col.notNull())
+    .addColumn('updated_at', 'timestamp', (col) =>
+      col.notNull().defaultTo(db.fn('current_timestamp')),
+    )
+    .execute();
+
   // CAMBIAR_PASSWORD
   await db.schema
     .createTable('cambiar_password')
@@ -99,7 +116,7 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('token', 'varchar(255)', (col) => col.notNull())
     .addColumn('expiration', 'date', (col) => col.notNull())
     .addColumn('fecha_creacion', 'date', (col) => col.notNull())
-    // 👇 también texto
+    // también texto
     .addColumn('run', 'varchar(12)', (col) => col.notNull())
     .addForeignKeyConstraint(
       'fk_password_usuario',
@@ -119,7 +136,7 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('tasa_de_interes', 'numeric(5, 2)', (col) => col.notNull())
     .addColumn('fecha_inicial', 'date', (col) => col.notNull())
     .addColumn('fecha_cierre', 'date')
-    // 👇 FK texto
+    // FK texto
     .addColumn('run', 'varchar(12)', (col) => col.notNull())
     .addColumn('contrato_url', 'varchar(255)')
     .addColumn('contrato_hash', 'varchar(128)')
@@ -155,6 +172,7 @@ export const down: Migration['down'] = async (db) => {
   await db.schema.dropTable('retiro').execute();
   await db.schema.dropTable('cuenta_ahorro').execute();
   await db.schema.dropTable('cambiar_password').execute();
+  await db.schema.dropTable('dap_instructions').execute(); // ✅ nuevo
   await db.schema.dropTable('dap').execute();
   await db.schema.dropTable('usuario').execute();
   await db.schema.dropTable('direccion').execute();

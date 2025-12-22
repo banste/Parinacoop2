@@ -20,11 +20,13 @@
       </div>
     </div>
   </div>
+
   <nav class="relative">
     <div
       #linkBackdrop
       class="absolute bottom-0 left-[var(--left)] h-[2px] w-44 bg-primary-500 transition-all duration-200"
     ></div>
+
     <ul class="flex text-black">
       @for (navItem of navItems; track $index) {
         <li>
@@ -32,20 +34,20 @@
             [ngClass]="[
               'inline-block h-8 w-44 select-none content-center rounded-b text-center transition-colors duration-200',
               'hover:text-primary-500',
-              navItem.disabled
-                ? 'pointer-events-none cursor-default text-gray-400'
-                : '',
+              navItem.disabled ? 'pointer-events-none cursor-default text-gray-400' : ''
             ]"
             [routerLink]="navItem.disabled ? null : [navItem.link]"
             routerLinkActive="text-primary-500"
-            aria-current="page"
-            >{{ navItem.label }}</a
+            [routerLinkActiveOptions]="{ exact: navItem.link === ROUTE_TOKENS.ADMIN_HOME }"
           >
+            {{ navItem.label }}
+          </a>
         </li>
       }
     </ul>
   </nav>
 </header>
+
 <main class="overflow-y-auto">
   <router-outlet />
 </main>

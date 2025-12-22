@@ -5,9 +5,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { Dap } from '../../models/dap.model';
 import { DapStatusPipe } from '../../pipes/dap-status.pipe';
 import { DapTypePipe } from '../../pipes/dap-type.pipe';
+import { IdPadPipe } from '../../pipes/id-pad.pipe';
 
 import { DapDialogDetailsComponent } from '../dap-dialog-details/dap-dialog-details.component';
-import { IdPadPipe } from '../../pipes/id-pad.pipe';
 
 @Component({
   selector: 'app-dap-item',
@@ -22,7 +22,11 @@ export class DapItemComponent {
 
   openDialog(data: Dap): void {
     this.dialog.open(DapDialogDetailsComponent, {
-      data,
+      width: '680px',
+      autoFocus: true,
+      restoreFocus: true,
+      data, // se envía el dap tal cual
     });
   }
 }
+

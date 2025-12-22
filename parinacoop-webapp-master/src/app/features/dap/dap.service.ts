@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+
 import { Dap } from './models/dap.model';
 import { DapStatus } from './models/dap-status.enum';
-import { HttpClient } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class DapService {
@@ -16,14 +17,26 @@ export class DapService {
   }>(this.initialTotals);
   public totals$ = this.totalsSubject.asObservable();
 
+  // ✅ NUEVO: guardamos el RUN actual
+  private currentRunSubject = new BehaviorSubject<number | null>(null);
+
   constructor(private httpClient: HttpClient) {}
 
+  // ✅ Getter simple para que lo use el diálogo
+  getCurrentRun(): number | null {
+    return this.currentRunSubject.value;
+  }
+
   getDapList(run: number): void {
+    // ✅ guardamos el run usado para cargar la lista
+    this.currentRunSubject.next(run);
+
     this.httpClient.get<{ daps: Dap[] }>(`clients/${run}/daps`).subscribe({
       next: (response) => {
         this.dapsSubject.next(response.daps.sort((a, b) => b.id - a.id));
         this.getTotals(response.daps);
       },
+      error: (err) => console.error(err),
     });
   }
 
@@ -37,22 +50,23 @@ export class DapService {
       },
       { profit: 0, activeDaps: 0 },
     );
-    console.log(totals);
-    
+
     this.totalsSubject.next(totals);
   }
-  downloadSolicitudPdf(dapId: number, userRun: number) {
-  return this.httpClient.get(
-    `clients/${userRun}/daps/${dapId}/solicitud-pdf`,
-    { responseType: 'blob' },
-  );
-}
 
-downloadInstructivoPdf(userRun: number) {
-  return this.httpClient.get(
-    `clients/${userRun}/daps/instructivo-pdf`,
-    { responseType: 'blob' },
-  );
-}
+  // ✅ GET /api/clients/:run/daps/:dapId/solicitud-pdf
+  downloadSolicitudPdf(userRun: number, dapId: number) {
+    return this.httpClient.get(
+      `clients/${userRun}/daps/${dapId}/solicitud-pdf`,
+      { responseType: 'blob' },
+    );
+  }
 
+  // ✅ GET /api/clients/:run/daps/:dapId/instructivo-pdf
+  downloadInstructivoPdf(userRun: number, dapId: number) {
+    return this.httpClient.get(
+      `clients/${userRun}/daps/${dapId}/instructivo-pdf`,
+      { responseType: 'blob' },
+    );
+  }
 }

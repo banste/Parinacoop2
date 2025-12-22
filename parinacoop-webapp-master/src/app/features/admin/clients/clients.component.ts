@@ -1,12 +1,11 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-clients',
+  selector: 'app-admin-clients',
   standalone: true,
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './clients.component.html',
-  styleUrl: './clients.component.scss'
+  styleUrls: ['./clients.component.scss'],
 })
-export default class ClientsComponent {
-
-}
+export class ClientsComponent {}

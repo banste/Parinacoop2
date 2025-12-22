@@ -4,7 +4,8 @@
       Detalle del Depósito a Plazo
     </h2>
 
-    <button mat-button (click)="close()">Cerrar</button>
+    <!-- Puedes dejar tu close() o usar mat-dialog-close (más simple) -->
+    <button type="button" mat-button (click)="close()">Cerrar</button>
   </div>
 
   <!-- Resumen / Estado -->
@@ -20,18 +21,15 @@
       <div class="text-right">
         <div class="text-sm text-primary-700">Estado</div>
 
-        <!-- ✅ Colores según tu enum real -->
         <div
           class="font-semibold"
           [ngClass]="{
             'text-green-700':
               currentDap.status === DapStatus.ACTIVE ||
               currentDap.status === DapStatus.PAID,
-
             'text-orange-700':
               currentDap.status === DapStatus.PENDING ||
               currentDap.status === DapStatus.EXPIRED_PENDING,
-
             'text-red-700': currentDap.status === DapStatus.EXPIRED
           }"
         >
@@ -46,54 +44,54 @@
     <h3 class="font-semibold text-primary-950 mb-2">Datos del depósito</h3>
 
     <dap-detail label="Tipo" [value]="currentDap.type | dapType"></dap-detail>
+
     <dap-detail label="Moneda" [value]="currentDap.currencyType"></dap-detail>
-    <dap-detail
-      label="Plazo (días)"
-      [value]="currentDap.days.toString()"
-    ></dap-detail>
+
+    <dap-detail label="Plazo (días)" [value]="currentDap.days.toString()"></dap-detail>
 
     <dap-detail
       label="Fecha ingreso"
-      [value]="(currentDap.initialDate | date:'dd-MM-yyyy') || '-'"
+      [value]="$any(currentDap.initialDate | date:'dd-MM-yyyy') || '-'"
     ></dap-detail>
 
     <dap-detail
       label="Vencimiento"
-      [value]="(currentDap.dueDate | date:'dd-MM-yyyy') || '-'"
+      [value]="$any(currentDap.dueDate | date:'dd-MM-yyyy') || '-'"
     ></dap-detail>
 
     <dap-detail
       label="Monto capital"
-      [value]="(currentDap.initialAmount | currency:'CLP':'symbol':'1.0-0') || ''"
+      [value]="$any(currentDap.initialAmount | currency:'CLP':'symbol':'1.0-0') || '-'"
     ></dap-detail>
 
     <dap-detail
       label="Monto a recibir"
-      [value]="(currentDap.finalAmount | currency:'CLP':'symbol':'1.0-0') || ''"
+      [value]="$any(currentDap.finalAmount | currency:'CLP':'symbol':'1.0-0') || '-'"
     ></dap-detail>
 
     <dap-detail
       label="Intereses"
-      [value]="(currentDap.profit | currency:'CLP':'symbol':'1.0-0') || ''"
+      [value]="$any(currentDap.profit | currency:'CLP':'symbol':'1.0-0') || '-'"
     ></dap-detail>
 
     <dap-detail
       label="Tasa mensual"
-      [value]="(currentDap.interestRateInMonth | percent:'1.2-2') || ''"
+      [value]="$any(currentDap.interestRateInMonth | percent:'1.2-2') || '-'"
     ></dap-detail>
 
     <dap-detail
       label="Tasa período"
-      [value]="(currentDap.interestRateInPeriod | percent:'1.2-2') || ''"
+      [value]="$any(currentDap.interestRateInPeriod | percent:'1.2-2') || '-'"
     ></dap-detail>
   </div>
 
-  <!-- ✅ Documentos del depósito -->
+  <!-- Documentos -->
   <div class="rounded-xl border border-[#dcdcdc] bg-nav-color p-4">
     <h3 class="font-semibold text-primary-950 mb-2">Documentos del depósito</h3>
 
     <div class="flex flex-wrap gap-3">
       <button
+        type="button"
         mat-raised-button
         color="primary"
         (click)="descargarSolicitudPdf()"
@@ -106,6 +104,7 @@
       </button>
 
       <button
+        type="button"
         mat-stroked-button
         color="primary"
         (click)="descargarInstructivoPdf()"

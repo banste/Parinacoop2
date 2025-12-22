@@ -7,24 +7,31 @@ import { adminGuard } from '@layout/admin-layout/guards/admin.guard';
 import { homeGuard } from '@layout/home-layout/guards/home.guard';
 
 export const routes: Routes = [
+  // AUTH
   {
-    path: '',
+    path: ROUTE_TOKENS.AUTH_PATH, // ''
     canActivate: [() => !inject(AuthService).isAuthenticated()],
     canMatch: [() => !inject(AuthService).isAuthenticated()],
     loadChildren: () => import('./core/auth/auth.routes'),
   },
+
+  // HOME / CLIENT
   {
-    path: '',
+    path: ROUTE_TOKENS.CLIENT_PATH, // 'cliente'
     canActivate: [homeGuard],
     canMatch: [homeGuard],
     loadChildren: () => import('@layout/home-layout/home.routes'),
   },
+
+  // ADMIN
   {
-    path: '',
+    path: ROUTE_TOKENS.ADMIN_PATH, // 'admin'
     canActivate: [adminGuard],
     canMatch: [adminGuard],
     loadChildren: () => import('@layout/admin-layout/admin.routes'),
   },
+
+  // FALLBACK
   {
     path: '**',
     redirectTo: ROUTE_TOKENS.AUTH_PATH,

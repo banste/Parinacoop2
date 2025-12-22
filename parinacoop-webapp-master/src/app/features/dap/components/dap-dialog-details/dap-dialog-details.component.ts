@@ -7,6 +7,8 @@ import {
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { finalize } from 'rxjs/operators';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { Dap } from '../../models/dap.model';
 import { DapService } from '../../dap.service';
@@ -17,6 +19,7 @@ import { IdPadPipe } from '../../pipes/id-pad.pipe';
 import { DetailComponent } from '../detail.component';
 
 @Component({
+  selector: 'app-dap-dialog-details',
   standalone: true,
   imports: [
     NgClass,
@@ -34,7 +37,6 @@ import { DetailComponent } from '../detail.component';
   templateUrl: './dap-dialog-details.component.html',
 })
 export class DapDialogDetailsComponent {
-  // ✅ para usar en el HTML sin comparar strings
   readonly DapStatus = DapStatus;
 
   isDownloadingSolicitud = false;
@@ -43,7 +45,7 @@ export class DapDialogDetailsComponent {
   constructor(
     @Inject(MAT_DIALOG_DATA) public currentDap: Dap,
     private dialogRef: MatDialogRef<DapDialogDetailsComponent>,
-    private dapService: DapService,
+    private dapService: DapService
   ) {}
 
   close(): void {
@@ -51,39 +53,68 @@ export class DapDialogDetailsComponent {
   }
 
   descargarSolicitudPdf(): void {
-    if (!this.currentDap?.id) return;
+    const run = this.dapService.getCurrentRun?.() ?? (this.currentDap as any)?.userRun;
+    const dapId = this.currentDap?.id;
 
+    if (!run || !dapId) {
+      alert(`Falta RUN o ID.\nrun=${run}\ndapId=${dapId}`);
+      return;
+    }
+
+    if (this.isDownloadingSolicitud) return;
     this.isDownloadingSolicitud = true;
+
     this.dapService
-      .downloadSolicitudPdf(this.currentDap.id, this.currentDap.userRun)
+      .downloadSolicitudPdf(Number(run), Number(dapId))
+      .pipe(finalize(() => (this.isDownloadingSolicitud = false)))
       .subscribe({
-        next: (blob) => {
-          this.saveBlob(blob, `Solicitud_DAP_${this.currentDap.id}.pdf`);
-          this.isDownloadingSolicitud = false;
-        },
-        error: (err) => {
-          console.error(err);
-          this.isDownloadingSolicitud = false;
-          alert('No se pudo descargar la Solicitud (PDF).');
-        },
+        next: (blob: Blob) => this.saveBlob(blob, `Solicitud_DAP_${dapId}.pdf`),
+        error: (err: unknown) => this.showHttpError('Solicitud', err),
       });
   }
 
   descargarInstructivoPdf(): void {
-    if (!this.currentDap?.userRun) return;
+    const run = this.dapService.getCurrentRun?.() ?? (this.currentDap as any)?.userRun;
+    const dapId = this.currentDap?.id;
 
+    if (!run || !dapId) {
+      alert(`Falta RUN o ID.\nrun=${run}\ndapId=${dapId}`);
+      return;
+    }
+
+    if (this.isDownloadingInstructivo) return;
     this.isDownloadingInstructivo = true;
-    this.dapService.downloadInstructivoPdf(this.currentDap.userRun).subscribe({
-      next: (blob) => {
-        this.saveBlob(blob, `Instructivo_Deposito_DAP.pdf`);
-        this.isDownloadingInstructivo = false;
-      },
-      error: (err) => {
-        console.error(err);
-        this.isDownloadingInstructivo = false;
-        alert('No se pudo descargar el Instructivo (PDF).');
-      },
-    });
+
+    this.dapService
+      .downloadInstructivoPdf(Number(run), Number(dapId))
+      .pipe(finalize(() => (this.isDownloadingInstructivo = false)))
+      .subscribe({
+        next: (blob: Blob) => this.saveBlob(blob, `Instructivo_DAP_${dapId}.pdf`),
+        error: (err: unknown) => this.showHttpError('Instructivo', err),
+      });
+  }
+
+  private showHttpError(tipo: string, err: unknown): void {
+    if (err instanceof HttpErrorResponse) {
+      console.error(`[${tipo}] HTTP Error`, err);
+
+      // Si backend manda JSON con "message"
+      const msg =
+        (typeof err.error === 'object' && err.error?.message) ||
+        (typeof err.error === 'string' ? err.error : null) ||
+        err.message;
+
+      alert(
+        `${tipo} falló.\n` +
+          `Status: ${err.status} ${err.statusText}\n` +
+          `URL: ${err.url}\n` +
+          `Mensaje: ${msg}`
+      );
+      return;
+    }
+
+    console.error(`[${tipo}] Error`, err);
+    alert(`${tipo} falló. Revisa consola.`);
   }
 
   private saveBlob(blob: Blob, filename: string): void {
@@ -91,6 +122,7 @@ export class DapDialogDetailsComponent {
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
+    a.rel = 'noopener';
     a.click();
     window.URL.revokeObjectURL(url);
   }
