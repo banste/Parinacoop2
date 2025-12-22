@@ -45,7 +45,7 @@ export default class CuentaAhorroComponent implements OnInit, OnDestroy {
       )
       .subscribe(user => {
         this.perfil$ = this.cuentaAhorroService.getClientProfile(user.run);
-        this.cuentaAhorroService.getAhorroList(user.run); // si necesitas las cuentas de ahorro
+        this.cuentaAhorroService.getAhorroList(user.run); 
       });
   }
 
