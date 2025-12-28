@@ -74,6 +74,17 @@ export default class ProfileComponent implements OnInit, OnDestroy {
 
   private lastProfileSnapshot: any = null; // para restaurar al cancelar edición
 
+  // Campos que permitimos editar (contacto y dirección)
+  private readonly editableFields = [
+    'email',
+    'cellphone',
+    'street',
+    'number',
+    'detail',
+    'regionId',
+    'communeId',
+  ];
+
   constructor(
     private authService: AuthService,
     private profileService: ProfileService,
@@ -107,7 +118,8 @@ export default class ProfileComponent implements OnInit, OnDestroy {
             // guardamos snapshot para restaurar si el usuario cancela la edición
             this.lastProfileSnapshot = profile;
             this.patchForm(profile);
-            this.profileForm.disable();
+            // siempre mostrar en modo lectura por defecto
+            this.disableAllControls();
             this.loading = false;
             this.isEditing = false;
           });
@@ -121,10 +133,10 @@ export default class ProfileComponent implements OnInit, OnDestroy {
           error: (err) => {
             this.loading = false;
             if (err?.status === 404) {
-              // Perfil no existe -> permitir crear desde UI
-              this.profileForm.enable();
+              // Perfil no existe -> permitir crear desde UI pero SOLO campos editables
+              this.enableEditableFields();
               this.isEditing = true;
-              this.profileForm.controls['run'].setValue(String(runNumber));
+              this.profileForm.get('run')?.setValue(String(runNumber));
               return;
             }
             alert('No se pudo cargar el perfil (revisa Network/Console).');
@@ -144,19 +156,50 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     return this.profileForm.get(name) as FormControl;
   }
 
-  // Toggle edit mode: si activamos edición habilitamos form; si cancelamos, restauramos valores
+  // Habilita SOLO los campos de contacto/dirección
+  private enableEditableFields(): void {
+    // Habilitamos temporalmente todo para poder manipular controles
+    this.profileForm.enable();
+
+    // Deshabilitamos todos para controlarlos de forma explícita
+    Object.keys(this.profileForm.controls).forEach((key) => {
+      const c = this.profileForm.get(key);
+      c?.disable();
+    });
+
+    // Habilitamos sólo los editables (contacto + dirección)
+    this.editableFields.forEach((f) => {
+      const ctrl = this.profileForm.get(f) as FormControl | null;
+      if (ctrl) ctrl.enable();
+    });
+
+    // Por seguridad, mantener ineditables los datos personales
+    this.profileForm.get('run')?.disable();
+    this.profileForm.get('names')?.disable();
+    this.profileForm.get('firstLastName')?.disable();
+    this.profileForm.get('secondLastName')?.disable();
+    this.profileForm.get('documentNumber')?.disable();
+  }
+
+  // Deshabilita todos los controles (modo lectura total)
+  private disableAllControls(): void {
+    Object.keys(this.profileForm.controls).forEach((key) => {
+      const c = this.profileForm.get(key);
+      c?.disable();
+    });
+  }
+
+  // Toggle edit mode: al entrar habilitamos solo campos editables
   toggleEdit(): void {
     if (!this.isEditing) {
-      this.profileForm.enable();
-      // proteger el campo run para que no sea editable (si prefieres que sea editable, quita la línea)
-      this.profileForm.controls['run'].disable();
+      this.enableEditableFields();
       this.isEditing = true;
       return;
     }
 
-    // Si ya estaba en edición -> salir y restaurar valores previos
+    // si ya estaba en edición -> cancelar y restaurar snapshot
     this.isEditing = false;
-    this.profileForm.disable();
+    this.disableAllControls();
     if (this.lastProfileSnapshot) {
       this.patchForm(this.lastProfileSnapshot);
     }
@@ -172,34 +215,34 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     this.isSubmitting = true;
 
     const dto: UpdateProfileDto = {
-      run: Number(this.profileForm.value.run),
-      documentNumber: Number(this.profileForm.value.documentNumber),
-      names: String(this.profileForm.value.names),
-      firstLastName: String(this.profileForm.value.firstLastName),
-      secondLastName: String(this.profileForm.value.secondLastName),
-      email: String(this.profileForm.value.email),
-      cellphone: String(this.profileForm.value.cellphone),
-      street: String(this.profileForm.value.street),
-      number: Number(this.profileForm.value.number),
-      detail: String(this.profileForm.value.detail ?? ''),
-      regionId: Number(this.profileForm.value.regionId),
-      communeId: Number(this.profileForm.value.communeId),
+      run: Number(this.profileForm.get('run')?.value),
+      documentNumber: Number(this.profileForm.get('documentNumber')?.value ?? 0),
+      names: String(this.profileForm.get('names')?.value ?? ''),
+      firstLastName: String(this.profileForm.get('firstLastName')?.value ?? ''),
+      secondLastName: String(this.profileForm.get('secondLastName')?.value ?? ''),
+      email: String(this.profileForm.get('email')?.value ?? ''),
+      cellphone: String(this.profileForm.get('cellphone')?.value ?? ''),
+      street: String(this.profileForm.get('street')?.value ?? ''),
+      number: Number(this.profileForm.get('number')?.value ?? 0),
+      detail: String(this.profileForm.get('detail')?.value ?? ''),
+      regionId: Number(this.profileForm.get('regionId')?.value ?? 0),
+      communeId: Number(this.profileForm.get('communeId')?.value ?? 0),
     };
 
     this.profileService.updateProfile(dto).subscribe({
-      next: (res) => {
+      next: () => {
         alert('Perfil actualizado correctamente');
         // refrescar el perfil desde backend
         this.profileService.getCurrentProfile(dto.run).subscribe({
           next: () => {
             this.isSubmitting = false;
-            this.profileForm.disable();
+            this.disableAllControls();
             this.isEditing = false;
           },
           error: (err) => {
             console.warn('No se pudo refrescar perfil tras actualizar', err);
             this.isSubmitting = false;
-            this.profileForm.disable();
+            this.disableAllControls();
             this.isEditing = false;
           },
         });
@@ -215,14 +258,12 @@ export default class ProfileComponent implements OnInit, OnDestroy {
   // Llama al LocationService para cargar comunas de una región seleccionada
   getCommunes(regionId: number): void {
     if (!regionId) return;
-    // Intentamos dos nombres comunes de método en LocationService por compatibilidad:
     const svc: any = this.locationService as any;
     if (typeof svc.getCommunesByRegionId === 'function') {
       svc.getCommunesByRegionId(regionId);
     } else if (typeof svc.getCommunes === 'function') {
       svc.getCommunes(regionId);
     } else {
-      // último recurso: intentar exponer al observable communes$ para rellenar
       console.warn('LocationService no expone getCommunesByRegionId/getCommunes');
     }
   }

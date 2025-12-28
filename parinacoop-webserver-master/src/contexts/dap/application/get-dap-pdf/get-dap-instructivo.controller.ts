@@ -27,7 +27,7 @@ export class GetDapInstructivoController {
 
     doc.fontSize(16).text('INSTRUCTIVO DEPÓSITO A PLAZO', { align: 'center' });
     doc.moveDown(1);
-
+ 
     doc.fontSize(11).list([
       'Descargue la Solicitud de Depósito a Plazo.',
       'Firme la solicitud.',

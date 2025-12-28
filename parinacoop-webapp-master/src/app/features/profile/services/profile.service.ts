@@ -36,7 +36,7 @@ export class ProfileService {
    * entonces esto quedará bien: http://localhost:3000/api/profile/...
    */
   getCurrentProfile(run: number): Observable<ProfileResponse['profile']> {
-    return this.http.get<ProfileResponse>(`/profile/${run}`).pipe(
+    return this.http.get<ProfileResponse>(`profile/${run}`).pipe(
       map((res) => res.profile),
       tap((profile) => this.userProfileSubject.next(profile)),
       catchError((err) => {
@@ -48,7 +48,7 @@ export class ProfileService {
 
   updateProfile(dto: UpdateProfileDto): Observable<{ msg: string }> {
     // URL RELATIVA también
-    return this.http.patch<{ msg: string }>(`/profile/${dto.run}`, {
+    return this.http.patch<{ msg: string }>(`profile/${dto.run}`, {
       documentNumber: dto.documentNumber,
       names: dto.names,
       firstLastName: dto.firstLastName,
