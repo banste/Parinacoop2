@@ -1,59 +1,113 @@
 import { Injectable } from '@nestjs/common';
+
 import { Database } from '@/database/database';
-import { DapRepository } from '../../domain/ports/dap.repository';
-import { Dap } from '../../domain/models/Dap';
+
+import { Dap } from '@/contexts/dap/domain/models/Dap';
+import { DapRepository } from '@/contexts/dap/domain/ports/dap.repository';
 
 @Injectable()
 export class PostgreSqlDapRepository implements DapRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private db: Database) {}
 
+  // Crear un DAP y devolver la entidad creada
   async create(dap: Dap): Promise<Dap> {
-    // ✅ evitamos depender de nombres exactos del dominio
-    const d: any = dap as any;
+    const data = dap.toValue();
 
-    const created = await this.db
+    // En Postgres debemos usar returning('id') para obtener el id insertado
+    const insertResult = await this.db
       .insertInto('dap')
       .values({
-        user_run: d.userRun,
-        type: d.type,
-        currency_type: d.currencyType,
-        status: d.status,
-        days: d.days,
-        initial_date: d.initialDate,
-        initial_amount: d.initialAmount,
-
-        // estos 3 te estaban fallando por nombre, los leemos “tolerante”
-        due_date: d.dueDate ?? d.due_date,
-        final_amount: d.finalAmount ?? d.final_amount,
-        profit: d.profit,
-        interest_rate_in_period: d.interestRateInPeriod ?? d.interest_rate_in_period,
-        interest_rate_in_month: d.interestRateInMonth ?? d.interest_rate_in_month,
+        user_run: data.userRun,
+        type: data.type,
+        currency_type: data.currencyType,
+        days: data.days,
+        initial_amount: data.initialAmount,
+        due_date: data.dueDate,
+        profit: data.profit,
+        interest_rate_in_month: data.interestRateInMonth,
+        interest_rate_in_period: data.interestRateInPeriod,
+        status: data.status,
+        final_amount: data.initialAmount + data.profit,
+        initial_date: data.initialDate,
       })
-      .returningAll()
+      .returning('id')
       .executeTakeFirstOrThrow();
 
-    return created as unknown as Dap;
+    // insertResult suele ser { id: number }
+    const newId = (insertResult as any).id;
+
+    const newDap = await this.db
+      .selectFrom('dap')
+      .where('id', '=', Number(newId))
+      .select([
+        'id',
+        'user_run as userRun',
+        'type',
+        'currency_type as currencyType',
+        'days',
+        'status',
+        'initial_date as initialDate',
+        'initial_amount as initialAmount',
+        'due_date as dueDate',
+        'profit',
+        'interest_rate_in_period as interestRateInPeriod',
+        'dap.interest_rate_in_month as interestRateInMonth',
+        'final_amount as finalAmount',
+      ])
+      .executeTakeFirstOrThrow();
+
+    return new Dap(newDap);
   }
 
+  // Obtener todos los DAP de un usuario
   async getDapsByUserRun(run: number): Promise<Dap[]> {
-    const rows = await this.db
+    const result = await this.db
       .selectFrom('dap')
-      .selectAll()
       .where('user_run', '=', run)
-      .orderBy('id', 'desc')
+      .select([
+        'id',
+        'user_run as userRun',
+        'type',
+        'currency_type as currencyType',
+        'days',
+        'status',
+        'initial_date as initialDate',
+        'initial_amount as initialAmount',
+        'due_date as dueDate',
+        'profit',
+        'interest_rate_in_period as interestRateInPeriod',
+        'dap.interest_rate_in_month as interestRateInMonth',
+        'final_amount as finalAmount',
+      ])
       .execute();
 
-    return rows as unknown as Dap[];
+    return result.map((row) => new Dap(row));
   }
 
+  // Implementación añadida: buscar un DAP por id y run de usuario.
+  // Esto satisface el contrato si DapRepository define findByIdAndUserRun.
   async findByIdAndUserRun(id: number, run: number): Promise<Dap | null> {
     const row = await this.db
       .selectFrom('dap')
-      .selectAll()
       .where('id', '=', id)
       .where('user_run', '=', run)
+      .select([
+        'id',
+        'user_run as userRun',
+        'type',
+        'currency_type as currencyType',
+        'days',
+        'status',
+        'initial_date as initialDate',
+        'initial_amount as initialAmount',
+        'due_date as dueDate',
+        'profit',
+        'interest_rate_in_period as interestRateInPeriod',
+        'dap.interest_rate_in_month as interestRateInMonth',
+        'final_amount as finalAmount',
+      ])
       .executeTakeFirst();
 
-    return (row as unknown as Dap) ?? null;
+    return row ? new Dap(row) : null;
   }
 }

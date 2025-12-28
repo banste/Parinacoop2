@@ -22,7 +22,7 @@ import { GetDapPdfsController } from './controller/get-dap-pdfs.controller';
 
 import { DapInstructionsRepository } from '@/database/repositories/dap-instructions.repository';
 import { DapPdfService } from '@/archives/pdf/dap-pdf.service';
-import { DapInstructionsStore } from './dap-instructions.store';
+import { DapInstructionsStore } from '../infrastructure/dap-instructions.store';
 
 @Module({
   controllers: [
@@ -44,8 +44,8 @@ import { DapInstructionsStore } from './dap-instructions.store';
       useClass: MySqlParameterRepository,
     },
     DapInstructionsRepository,
-    DapPdfService,
     DapInstructionsStore,
+    DapPdfService,
   ],
 })
 export class DapModule {}
