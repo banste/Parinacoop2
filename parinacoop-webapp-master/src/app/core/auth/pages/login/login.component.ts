@@ -1,11 +1,9 @@
 import { NgClass } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
-  AbstractControl,
   FormBuilder,
   FormControl,
   ReactiveFormsModule,
-  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -65,9 +63,17 @@ export default class LoginComponent implements OnInit, OnDestroy {
     this.loginService.login(credentials).subscribe({
       next: (response) => {
         console.log(response.accessToken);
-        response.isClient
-          ? this.router.navigate([ROUTE_TOKENS.CLIENT_PATH])
-          : this.router.navigate([ROUTE_TOKENS.ADMIN_PATH]);
+
+        // Navegación absoluta para evitar duplicados relativos
+        const clientTarget = `/${ROUTE_TOKENS.CLIENT_PATH}`;
+        const adminTarget = `/${ROUTE_TOKENS.ADMIN_PATH}`;
+
+        if (response.isClient) {
+          this.router.navigateByUrl(clientTarget);
+        } else {
+          this.router.navigateByUrl(adminTarget);
+        }
+
         this.isSubmitting = false;
         this.loginForm.enable();
       },

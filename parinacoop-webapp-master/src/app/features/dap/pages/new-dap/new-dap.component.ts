@@ -1,4 +1,4 @@
-import { filter, Observable, Subject, takeUntil } from 'rxjs';
+import { take, Observable, Subject } from 'rxjs';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   FormControl,
@@ -19,6 +19,7 @@ import { AuthService } from '@app/core/auth/services/auth.service';
 import { ROUTE_TOKENS } from '@app/route-tokens';
 
 import { NewDapService } from './new-dap.service';
+import { DapService } from '../../dap.service';
 import { TermOption } from './models/TermOption';
 import { TermOptionComponent } from './components/term-option/term-option.component';
 import { ButtonSolidDirective } from '@app/shared/directives/buttons/button-solid.directive';
@@ -67,19 +68,20 @@ export default class NewDapComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
     private newDapService: NewDapService,
+    private dapService: DapService,
   ) {}
 
   ngOnInit(): void {
     this.termOptions$ = this.newDapService.termOptions$;
-    this.authService.currentUser$
-      .pipe(
-        takeUntil(this.onDestroy$),
-        filter((user) => user !== null),
-      )
-      .subscribe((user) => {
+
+    // Tomar el user una sola vez al iniciar (evita bloquear si ya hay token)
+    this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
+      if (user) {
         this.userRun = user.run;
-      });
+      }
+    });
   }
+
   ngOnDestroy(): void {
     this.onDestroy$.next();
     this.onDestroy$.complete();
@@ -97,10 +99,14 @@ export default class NewDapComponent implements OnInit, OnDestroy {
   }
 
   handleSubmit(): void {
+    if (this.simulateFirstForm.invalid || this.simulateSecondForm.invalid) {
+      return;
+    }
+
     this.isSubmitting = true;
     const { initialAmount, type } = this.simulateFirstForm.value;
-
     const days = +this.simulateSecondForm.value.termOption!.days;
+
     this.newDapService
       .createDap({
         userRun: this.userRun,
@@ -111,15 +117,38 @@ export default class NewDapComponent implements OnInit, OnDestroy {
       })
       .subscribe({
         next: (response) => {
-          alert('DAP creado correctamente');
-          console.log(response);
-          this.router.navigate([ROUTE_TOKENS.CLIENT_PATH, ROUTE_TOKENS.DAP]);
+          console.log('DAP creado correctamente', response);
+
+          // Refrescar la lista en el servicio para que el componente destino
+          // que usa daps$ reciba el nuevo valor.
+          try {
+            if (this.userRun) {
+              this.dapService.getDapList(this.userRun);
+            }
+          } catch (err) {
+            console.warn('No se pudo refrescar lista de DAPs:', err);
+          }
+
+          // Navegación absoluta para evitar duplicar /cliente
+          const target = `/${ROUTE_TOKENS.CLIENT_PATH}/${ROUTE_TOKENS.DAP}`;
+
+          // Pequeño retraso para asegurar que el subject emite antes de renderizar
+          setTimeout(() => {
+            this.router.navigateByUrl(target).then((ok) => {
+              console.log('Navigation result:', ok, 'to', target);
+              if (!ok) {
+                console.warn('Navigation failed, forcing full reload to', target);
+                window.location.href = target;
+              }
+            });
+          }, 150);
+
           this.isSubmitting = false;
         },
         error: (error) => {
           alert('Ha ocurrido un error');
           this.isSubmitting = false;
-          console.error(error);
+          console.error('Error creando DAP:', error);
         },
       });
   }

@@ -17,12 +17,26 @@ export class AuthService {
   private accessToken: string = '';
  
 
-  constructor(
-    private httpClient: HttpClient,
-    private readonly jwtService: JwtService,
-  ) {
-    this.accessToken = localStorage.getItem('access_token') || '';
+ constructor(
+  private httpClient: HttpClient,
+  private readonly jwtService: JwtService,
+) {
+  // Leer token desde localStorage
+  this.accessToken = localStorage.getItem('access_token') || '';
+
+  // Si existe token, decodificarlo y emitir currentUser de forma síncrona
+  try {
+    if (this.accessToken) {
+      const user = jwtDecode<User>(this.accessToken);
+      this.currentUser = user;
+      this.currentUserSubject.next(user);
+    }
+  } catch (err) {
+    // Si el token está corrupto simplemente lo ignoramos
+    console.warn('Token inválido al inicializar AuthService', err);
+    this.accessToken = '';
   }
+}
 
   saveAccessToken(token: string): void {
     this.accessToken = token;

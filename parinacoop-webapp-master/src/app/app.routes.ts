@@ -7,7 +7,15 @@ import { adminGuard } from '@layout/admin-layout/guards/admin.guard';
 import { homeGuard } from '@layout/home-layout/guards/home.guard';
 
 export const routes: Routes = [
-  // AUTH
+  // Si ya está autenticado y pide la raíz, redirigir a cliente
+  {
+    path: '',
+    canMatch: [() => inject(AuthService).isAuthenticated()],
+    redirectTo: ROUTE_TOKENS.CLIENT_PATH,
+    pathMatch: 'full',
+  },
+
+  // AUTH (solo si NO está autenticado)
   {
     path: ROUTE_TOKENS.AUTH_PATH, // ''
     canActivate: [() => !inject(AuthService).isAuthenticated()],

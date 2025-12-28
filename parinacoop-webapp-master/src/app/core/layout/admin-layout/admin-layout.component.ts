@@ -26,7 +26,6 @@ type NavItem = {
   styleUrl: './admin-layout.component.scss',
 })
 export default class AdminLayoutComponent {
-  // ✅ para poder usar ROUTE_TOKENS en el HTML
   readonly ROUTE_TOKENS = ROUTE_TOKENS;
 
   navItems: NavItem[] = [
@@ -48,7 +47,7 @@ export default class AdminLayoutComponent {
 
     this.routerSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationStart))
-      .subscribe((event) => this.locateLinkBackdrop(event.url));
+      .subscribe((event) => this.locateLinkBackdrop((event as NavigationStart).url));
   }
 
   locateLinkBackdrop(path: string): void {
@@ -67,6 +66,6 @@ export default class AdminLayoutComponent {
 
   logout(): void {
     this.authService.logout();
-    this.router.navigate([ROUTE_TOKENS.AUTH_PATH]);
+    this.router.navigateByUrl('/');
   }
 }

@@ -12,7 +12,7 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
-import { filter, max, Subscription } from 'rxjs';
+import { filter, Subscription } from 'rxjs';
 
 import { AuthService } from '@app/core/auth/services/auth.service';
 import { SvgIconComponent } from '@app/shared/components';
@@ -40,6 +40,8 @@ type NavItem = {
   styleUrl: './home-layout.component.scss',
 })
 export default class HomeLayoutComponent implements AfterViewInit, OnDestroy {
+  readonly ROUTE_TOKENS = ROUTE_TOKENS;
+
   navItems: NavItem[] = [
     {
       label: 'Inicio',
@@ -84,14 +86,12 @@ export default class HomeLayoutComponent implements AfterViewInit, OnDestroy {
     this.locateLinkBackdrop(this.router.url);
     this.routerSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationStart))
-      .subscribe((event) => this.locateLinkBackdrop(event.url));
+      .subscribe((event) => this.locateLinkBackdrop((event as NavigationStart).url));
 
     // this.profileService.getCurrentProfile();
   }
 
   locateLinkBackdrop(path: string): void {
-    // const url = path.replace(`/${ROUTE_TOKENS.CLIENT_PATH}`, '');
-
     const index = this.navItems.findIndex((item) => path.includes(item.link));
 
     if (this.linkBackdrop) {
@@ -108,6 +108,6 @@ export default class HomeLayoutComponent implements AfterViewInit, OnDestroy {
 
   logout(): void {
     this.authService.logout();
-    this.router.navigate([ROUTE_TOKENS.AUTH_PATH]);
+    this.router.navigateByUrl('/');
   }
 }
