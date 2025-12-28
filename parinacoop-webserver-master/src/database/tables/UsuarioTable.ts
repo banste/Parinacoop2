@@ -1,14 +1,14 @@
-import { Role } from '@/contexts/shared/enums/roles.enum';
-
-export interface UsuarioTable {
-  run: string;                // PK, ej: "12.345.678-5"
-  primer_apellido: string;
-  segundo_apellido: string;
-  celular: string;
-  contrasena: string;         // hash bcrypt
-  fecha_creacion: Date;
-  fecha_actualizacion: Date;
-  nombres: string;
-  email: string;
-  id_direccion: number;
+export interface UserTable {
+  // Ajusta si tus migraciones usan otros nombres, pero estos son los campos básicos
+  run: number;
+  role: string;
+  password?: string | null;
+  nombres?: string | null;
+  primer_apellido?: string | null;
+  segundo_apellido?: string | null;
+  email?: string | null;
+  celular?: string | null;
+  fecha_creacion?: Date | string | null;
+  fecha_actualizacion?: Date | string | null;
+  id_direccion?: number | null;
 }

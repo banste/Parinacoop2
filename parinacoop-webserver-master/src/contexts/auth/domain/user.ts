@@ -1,22 +1,21 @@
-import { Role } from '@/contexts/shared/enums/roles.enum';
-
-export interface PrimitiveUser {
+export interface PrimitiveAuthUser {
   run: number;
-  role: Role;
-  password: string;
+  role: string;
+  password?: string;
+  // agrega campos que necesites
 }
-export class User {
-  constructor(private attributes: PrimitiveUser) {}
 
-  static create({ run, password, role }: PrimitiveUser) {
-    return new User({
-      run,
-      role,
-      password,
-    });
+export class User {
+  constructor(private props: PrimitiveAuthUser) {}
+
+  toValue(): PrimitiveAuthUser {
+    return this.props;
   }
 
-  toValue(): PrimitiveUser {
-    return this.attributes;
+  get run(): number {
+    return this.props.run;
+  }
+  get role(): string {
+    return this.props.role;
   }
 }

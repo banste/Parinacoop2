@@ -11,29 +11,31 @@ export class PostgreSqlUserRepository implements UserRepository {
   async getByRun(run: number): Promise<User | null> {
     const result = await this.db
       .selectFrom('user')
-      .where('run', '=', run)
-      .select(['run', 'role'])
+      .selectAll()
+      .where('user.run', '=', run as any) // temporal si Kysely aún pide cast
       .executeTakeFirst();
 
-    return result ? new User(result) : null;
+    return result ? new User(result as any) : null;
   }
 
   async getByRole(role: Role): Promise<User[]> {
-    const result = await this.db
+    const results = await this.db
       .selectFrom('user')
-      .where('role', '=', role)
-      .select(['run', 'role'])
+      .selectAll()
+      .where('user.role', '=', role as any) // temporal si Kysely aún pide cast
       .execute();
-    return result.map((user) => new User(user));
+
+    return results.map((r) => new User(r as any));
   }
 
   async create(user: User): Promise<User> {
     const { run, role, password, address, profile } = user.toValue();
+
     await this.db
       .insertInto('user')
       .values({
-        run,
-        role,
+        run,           // usar number, no string
+        role,          // role (enum/string) directamente
         password: password!,
       })
       .executeTakeFirstOrThrow();
@@ -41,7 +43,7 @@ export class PostgreSqlUserRepository implements UserRepository {
     const userClient = new User({ run, role });
 
     if (profile) {
-      const profileResult = await this.db
+      await this.db
         .insertInto('client_profile')
         .values({
           user_run: run,
@@ -53,11 +55,10 @@ export class PostgreSqlUserRepository implements UserRepository {
           document_number: profile.documentNumber,
         })
         .executeTakeFirstOrThrow();
-      console.log(profileResult);
     }
 
     if (address) {
-      const addressResult = await this.db
+      await this.db
         .insertInto('address')
         .values({
           user_run: run,
@@ -68,7 +69,6 @@ export class PostgreSqlUserRepository implements UserRepository {
           commune_id: address.communeId,
         })
         .executeTakeFirstOrThrow();
-      console.log(addressResult);
     }
 
     return userClient;

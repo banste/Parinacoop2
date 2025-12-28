@@ -72,6 +72,8 @@ export default class ProfileComponent implements OnInit, OnDestroy {
   isEditing = false;
   isSubmitting = false;
 
+  private lastProfileSnapshot: any = null; // para restaurar al cancelar edición
+
   constructor(
     private authService: AuthService,
     private profileService: ProfileService,
@@ -87,48 +89,48 @@ export default class ProfileComponent implements OnInit, OnDestroy {
 
     // 1) Pedir perfil con el run del usuario logueado
     this.authService.currentUser$
-  .pipe(
-    takeUntil(this.onDestroy$),
-    filter((user) => !!user),
-  )
-  .subscribe((user) => {
-    const runNumber = Number((user as any).run);
+      .pipe(takeUntil(this.onDestroy$), filter((user) => !!user))
+      .subscribe((user) => {
+        const runNumber = Number((user as any).run);
 
-    if (Number.isNaN(runNumber)) {
-      this.loading = false;
-      alert('RUN inválido en sesión');
-      return;
-    }
+        if (Number.isNaN(runNumber)) {
+          this.loading = false;
+          alert('RUN inválido en sesión');
+          return;
+        }
 
-    this.profileService.getCurrentProfile(runNumber).subscribe({
-      next: () => {},
-      error: () => {
-        this.loading = false;
-        alert('No se pudo cargar el perfil (revisa Network/Console).');
-      },
-    });
-  });
+        // Subscribe local para rellenar formulario cuando ProfileService actualice userProfile$
+        this.profileService.userProfile$
+          .pipe(takeUntil(this.onDestroy$))
+          .subscribe((profile) => {
+            if (!profile) return;
+            // guardamos snapshot para restaurar si el usuario cancela la edición
+            this.lastProfileSnapshot = profile;
+            this.patchForm(profile);
+            this.profileForm.disable();
+            this.loading = false;
+            this.isEditing = false;
+          });
 
-
-    // 2) Cuando llega el perfil, rellenar formulario
-    this.profileService.userProfile$
-      .pipe(takeUntil(this.onDestroy$))
-      .subscribe((data) => {
-        if (!data) return;
-
-        const runNumber = Number(data.run);
-        const runDigits = `${runNumber}${calculateRutVerifier(String(runNumber))}`;
-
-        this.profileForm.patchValue({
-          ...data,
-          run: formatRut(runDigits, RutFormat.DOTS_DASH),
+        // Intentar cargar desde backend
+        this.profileService.getCurrentProfile(runNumber).subscribe({
+          next: () => {
+            // getCurrentProfile actualizará userProfile$ y el subscriber lo rellenará
+            this.loading = false;
+          },
+          error: (err) => {
+            this.loading = false;
+            if (err?.status === 404) {
+              // Perfil no existe -> permitir crear desde UI
+              this.profileForm.enable();
+              this.isEditing = true;
+              this.profileForm.controls['run'].setValue(String(runNumber));
+              return;
+            }
+            alert('No se pudo cargar el perfil (revisa Network/Console).');
+            console.error(err);
+          },
         });
-
-        this.loading = false;
-
-        // Cargar combos
-        this.getRegions();
-        if (data.regionId) this.getCommunes(Number(data.regionId));
       });
   }
 
@@ -137,85 +139,115 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     this.onDestroy$.complete();
   }
 
-  toggleEdit(): void {
-    if (this.isEditing) {
-      this.profileForm.disable();
-      // opcional: recargar perfil para “cancelar cambios”
-      const run = Number(getRutDigits(String(this.fc('run').value ?? '')));
-      if (!Number.isNaN(run)) this.profileService.getCurrentProfile(run).subscribe();
-    } else {
-      this.profileForm.enable();
-      // Mantener RUN deshabilitado si no quieres que lo editen
-      this.fc('run').disable();
-    }
-    this.isEditing = !this.isEditing;
+  // Helper para obtener FormControl en plantilla
+  fc(name: string): FormControl {
+    return this.profileForm.get(name) as FormControl;
   }
 
-  onSubmit(): void {
-    if (this.profileForm.invalid) return;
-
-    this.isSubmitting = true;
-    this.profileForm.disable();
-
-    const run = Number(getRutDigits(String(this.fc('run').value ?? '')));
-
-    const documentNumber = Number(this.fc('documentNumber').value);
-    const number = Number(this.fc('number').value);
-    const regionId = Number(this.fc('regionId').value);
-    const communeId = Number(this.fc('communeId').value);
-
-    if ([run, documentNumber, number, regionId, communeId].some(Number.isNaN)) {
-      alert('Hay campos numéricos inválidos (NaN).');
-      this.isSubmitting = false;
+  // Toggle edit mode: si activamos edición habilitamos form; si cancelamos, restauramos valores
+  toggleEdit(): void {
+    if (!this.isEditing) {
       this.profileForm.enable();
-      this.fc('run').disable();
+      // proteger el campo run para que no sea editable (si prefieres que sea editable, quita la línea)
+      this.profileForm.controls['run'].disable();
+      this.isEditing = true;
       return;
     }
 
-    const newData: UpdateProfileDto = {
-      run,
-      documentNumber,
-      names: String(this.fc('names').value ?? ''),
-      firstLastName: String(this.fc('firstLastName').value ?? ''),
-      secondLastName: String(this.fc('secondLastName').value ?? ''),
-      email: String(this.fc('email').value ?? ''),
-      cellphone: String(this.fc('cellphone').value ?? ''),
-      street: String(this.fc('street').value ?? ''),
-      number,
-      detail: String(this.fc('detail').value ?? ''),
-      regionId,
-      communeId,
+    // Si ya estaba en edición -> salir y restaurar valores previos
+    this.isEditing = false;
+    this.profileForm.disable();
+    if (this.lastProfileSnapshot) {
+      this.patchForm(this.lastProfileSnapshot);
+    }
+  }
+
+  // Maneja el submit del formulario: arma DTO y llama al servicio
+  onSubmit(): void {
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    const dto: UpdateProfileDto = {
+      run: Number(this.profileForm.value.run),
+      documentNumber: Number(this.profileForm.value.documentNumber),
+      names: String(this.profileForm.value.names),
+      firstLastName: String(this.profileForm.value.firstLastName),
+      secondLastName: String(this.profileForm.value.secondLastName),
+      email: String(this.profileForm.value.email),
+      cellphone: String(this.profileForm.value.cellphone),
+      street: String(this.profileForm.value.street),
+      number: Number(this.profileForm.value.number),
+      detail: String(this.profileForm.value.detail ?? ''),
+      regionId: Number(this.profileForm.value.regionId),
+      communeId: Number(this.profileForm.value.communeId),
     };
 
-    console.log('PATCH body:', newData);
-
-    this.profileService.updateProfile(newData).subscribe({
-      next: (response) => {
-        alert(response.msg);
-        this.isSubmitting = false;
-        this.isEditing = false;
-        // Recargar perfil para reflejar cambios
-        this.profileService.getCurrentProfile(run).subscribe();
+    this.profileService.updateProfile(dto).subscribe({
+      next: (res) => {
+        alert('Perfil actualizado correctamente');
+        // refrescar el perfil desde backend
+        this.profileService.getCurrentProfile(dto.run).subscribe({
+          next: () => {
+            this.isSubmitting = false;
+            this.profileForm.disable();
+            this.isEditing = false;
+          },
+          error: (err) => {
+            console.warn('No se pudo refrescar perfil tras actualizar', err);
+            this.isSubmitting = false;
+            this.profileForm.disable();
+            this.isEditing = false;
+          },
+        });
       },
-      error: (error) => {
-        console.error(error);
+      error: (err) => {
+        console.error('Error actualizando perfil', err);
         alert('Error al actualizar el perfil');
         this.isSubmitting = false;
-        this.profileForm.enable();
-        this.fc('run').disable();
       },
     });
   }
 
-  getRegions(): void {
-    this.locationService.getRegions();
-  }
-
+  // Llama al LocationService para cargar comunas de una región seleccionada
   getCommunes(regionId: number): void {
-    this.locationService.getCommunesByRegionId(regionId);
+    if (!regionId) return;
+    // Intentamos dos nombres comunes de método en LocationService por compatibilidad:
+    const svc: any = this.locationService as any;
+    if (typeof svc.getCommunesByRegionId === 'function') {
+      svc.getCommunesByRegionId(regionId);
+    } else if (typeof svc.getCommunes === 'function') {
+      svc.getCommunes(regionId);
+    } else {
+      // último recurso: intentar exponer al observable communes$ para rellenar
+      console.warn('LocationService no expone getCommunesByRegionId/getCommunes');
+    }
   }
 
-  fc(name: string): FormControl {
-    return this.profileForm.get(name) as FormControl;
+  // Rellena el formulario a partir del profile object devuelto desde el backend
+  private patchForm(profile: any): void {
+    this.profileForm.patchValue({
+      run: String(profile.run ?? ''),
+      documentNumber: profile.documentNumber ?? 0,
+      names: profile.names ?? '',
+      firstLastName: profile.firstLastName ?? '',
+      secondLastName: profile.secondLastName ?? '',
+      email: profile.email ?? '',
+      cellphone: profile.cellphone ?? '',
+      street: profile.street ?? '',
+      number: profile.number ?? 0,
+      detail: profile.detail ?? '',
+      regionId: profile.regionId ?? 0,
+      communeId: profile.communeId ?? 0,
+    });
+
+    // Si hay regionId, disparar fetch de comunas
+    const reg = Number(profile.regionId ?? 0);
+    if (reg > 0) {
+      this.getCommunes(reg);
+    }
   }
 }
