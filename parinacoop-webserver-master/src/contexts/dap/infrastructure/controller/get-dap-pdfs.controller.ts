@@ -21,6 +21,35 @@ import { DapInstructionsRepository } from '@/database/repositories/dap-instructi
 import { DapPdfService } from '@/archives/pdf/dap-pdf.service';
 import { DapInstructionsStore } from '../dap-instructions.store';
 
+// Usamos el repositorio de perfil de cliente para obtener el nombre exacto que guarda la app
+import { ClientRepository } from '@/contexts/client-profile/domain/ports/client.repository';
+
+/**
+ * Helpers para RUT (módulo 11)
+ */
+function computeRutDV(runNumber: number | string): string {
+  let n = Number(String(runNumber).replace(/\D/g, ''));
+  let m = 2;
+  let s = 0;
+  while (n > 0) {
+    s += (n % 10) * m;
+    n = Math.floor(n / 10);
+    m = m === 7 ? 2 : m + 1;
+  }
+  const r = 11 - (s % 11);
+  if (r === 11) return '0';
+  if (r === 10) return 'K';
+  return String(r);
+}
+
+function formatRutWithDv(runNumber: number | string, withDots = true): string {
+  const digits = String(runNumber).replace(/\D/g, '');
+  const dv = computeRutDV(digits);
+  if (!withDots) return `${digits}-${dv}`;
+  const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${formatted}-${dv}`;
+}
+
 @ApiTags('DAP PDFs (clientes)')
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
@@ -31,6 +60,7 @@ export class GetDapPdfsController {
     private readonly dapInstructionsRepository: DapInstructionsRepository,
     private readonly dapPdfService: DapPdfService,
     private readonly dapInstructionsStore: DapInstructionsStore,
+    private readonly clientRepository: ClientRepository, // INYECTAMOS client repository
   ) {}
 
   @ApiResponse({ status: HttpStatus.OK, description: 'Descarga PDF Solicitud del DAP' })
@@ -47,22 +77,46 @@ export class GetDapPdfsController {
       throw new UnauthorizedException('No está autorizado');
     }
 
-    const dap = await this.dapRepository.findByIdAndUserRun(dapId, run);
-    if (!dap) throw new NotFoundException('DAP no encontrado');
+    const dapEntity = await this.dapRepository.findByIdAndUserRun(dapId, run);
+    if (!dapEntity) throw new NotFoundException('DAP no encontrado');
+
+    const dap: any =
+      typeof (dapEntity as any)?.toValue === 'function' ? (dapEntity as any).toValue() : dapEntity;
+
+    // Obtener el perfil del cliente y componer nombre
+    let nombre = '-';
+    try {
+      const profileEntity = await this.clientRepository.getProfileByRun(run);
+      if (profileEntity) {
+        const p: any = typeof (profileEntity as any)?.toValue === 'function'
+          ? (profileEntity as any).toValue()
+          : profileEntity;
+        // profile tiene: names, firstLastName, secondLastName (según Profile.ts y SQL del repo)
+        const a = p?.names ?? '';
+        const b = p?.firstLastName ?? p?.first_last_name ?? '';
+        const c = p?.secondLastName ?? p?.second_last_name ?? '';
+        const composed = [a, b, c].filter(Boolean).join(' ').trim();
+        if (composed) nombre = composed;
+      }
+    } catch (e) {
+      console.warn('No se pudo obtener perfil cliente para nombre en PDF', e);
+    }
+
+    // formatear RUT con DV (la DB guarda el número sin DV)
+    const rutConDv = formatRutWithDv(run, true); // true -> con puntos
 
     const buffer = await this.dapPdfService.solicitud({
       dap,
-      usuario: { rut: String(run), nombre: '' },
+      usuario: { rut: rutConDv, nombre },
     });
 
-    // Debug útil (puedes borrar después)
+    // Debug opcional
     // eslint-disable-next-line no-console
     console.log('[solicitudPdf] bytes=', buffer?.length ?? -1, 'head=', buffer?.subarray(0, 8)?.toString('hex'));
 
-    return res
-      .header('Content-Type', 'application/pdf')
-      .header('Content-Disposition', `attachment; filename="solicitud-dap-${dapId}.pdf"`)
-      .send(buffer);
+    res.header('Content-Type', 'application/pdf');
+    res.header('Content-Disposition', `attachment; filename="solicitud-dap-${dapId}.pdf"`);
+    return res.send(buffer);
   }
 
   @ApiResponse({ status: HttpStatus.OK, description: 'Descarga PDF Instructivo del DAP' })
@@ -79,22 +133,28 @@ export class GetDapPdfsController {
       throw new UnauthorizedException('No está autorizado');
     }
 
-    const dap = await this.dapRepository.findByIdAndUserRun(dapId, run);
-    if (!dap) throw new NotFoundException('DAP no encontrado');
+    const dapEntity = await this.dapRepository.findByIdAndUserRun(dapId, run);
+    if (!dapEntity) throw new NotFoundException('DAP no encontrado');
+
+    const dap: any =
+      typeof (dapEntity as any)?.toValue === 'function' ? (dapEntity as any).toValue() : dapEntity;
 
     const instr = await this.dapInstructionsRepository.getLatest();
 
-    const instructions = instr
-      ? {
-          bankName: instr.bank_name,
-          accountType: instr.account_type,
-          accountNumber: instr.account_number,
-          accountHolderName: instr.account_holder_name,
-          accountHolderRut: instr.account_holder_rut,
-          email: instr.email,
-          description: instr.description,
-        }
-      : await this.dapInstructionsStore.get();
+    const i: any = instr as any;
+
+    const instructions =
+      i
+        ? {
+            bankName: i.bank_name ?? i.bankName,
+            accountType: i.account_type ?? i.accountType,
+            accountNumber: i.account_number ?? i.accountNumber,
+            accountHolderName: i.account_holder_name ?? i.accountHolderName,
+            accountHolderRut: i.account_holder_rut ?? i.accountHolderRut,
+            email: i.email,
+            description: i.description,
+          }
+        : await this.dapInstructionsStore.get();
 
     const buffer = await this.dapPdfService.instructivo({ dap, instructions });
 
@@ -102,9 +162,8 @@ export class GetDapPdfsController {
     // eslint-disable-next-line no-console
     console.log('[instructivoPdf] bytes=', buffer?.length ?? -1, 'head=', buffer?.subarray(0, 8)?.toString('hex'));
 
-    return res
-      .header('Content-Type', 'application/pdf')
-      .header('Content-Disposition', `attachment; filename="instructivo-dap-${dapId}.pdf"`)
-      .send(buffer);
+    res.header('Content-Type', 'application/pdf');
+    res.header('Content-Disposition', `attachment; filename="instructivo-dap-${dapId}.pdf"`);
+    return res.send(buffer);
   }
 }

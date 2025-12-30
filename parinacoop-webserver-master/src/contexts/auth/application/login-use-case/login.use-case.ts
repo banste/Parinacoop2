@@ -25,8 +25,13 @@ export class LoginUseCase {
 
     const { run, role, password } = user.toValue();
 
+    // Manejo seguro: si no existe password en la entidad, consideramos credenciales inválidas
+    if (!password) {
+      throw new InvalidCredentialsException();
+    }
+
     const isSamePassword = await this.hashingService.compare(
-      dto.password,
+      dto.password ?? '',
       password.toString(),
     );
     if (!isSamePassword) {

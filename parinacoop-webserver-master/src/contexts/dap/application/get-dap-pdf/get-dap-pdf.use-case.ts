@@ -19,7 +19,7 @@ export class GetDapPdfUseCase {
 
     // tratar como any para poder leer distintas variantes de nombres de campo
     const data: any = dapEntity.toValue();
-
+    console.log('[GetDapPdfUseCase] data from dap.toValue():', JSON.stringify(data ?? {}, null, 2));
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
     const chunks: Buffer[] = [];
@@ -219,4 +219,5 @@ export class GetDapPdfUseCase {
     const shown = Math.abs(v) < 1 ? (v * 100).toFixed(2) : v.toFixed(2);
     return shown + '%';
   }
+  
 }
