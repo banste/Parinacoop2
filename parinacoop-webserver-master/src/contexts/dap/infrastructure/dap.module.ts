@@ -30,7 +30,7 @@ import { PostgreSqlClientRepository } from '@/contexts/client-profile/infrastruc
 
 // ---- Nuevos imports para attachments y contracts ----
 import { DapAttachmentsRepository } from './repositories/dap-attachments.repository';
-import { DapAttachmentsService } from './dap-attachments.service';
+import DapAttachmentsService from './dap-attachments.service';
 import { DapAttachmentsController } from './controller/dap-attachments.controller';
 
 import { DapContractsRepository } from '@/contexts/dap/infrastructure/repositories/dap-contracts.repository';

@@ -15,25 +15,25 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@/contexts/shared/guards/auth.guard';
 import { User } from '@/contexts/shared/decorators/user.decorator';
 import { UserRequest } from '@/utils/interfaces/user-request.interface';
-import { DapAttachmentsService } from '../dap-attachments.service';
+import { DapContractsService } from '../dap-contracts.service';
 
-@ApiTags('DAP Attachments')
+@ApiTags('DAP Contracts')
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
-@Controller('clients/:run/daps/:dapId/attachments')
-export class DapAttachmentsController {
-  constructor(private readonly attachmentsService: DapAttachmentsService) {}
+@Controller('clients/:run/daps/:dapId/contracts')
+export class DapContractsController {
+  constructor(private readonly contractsService: DapContractsService) {}
 
   @Post()
   async upload(
     @User() user: UserRequest,
     @Param('run', ParseIntPipe) run: number,
     @Param('dapId', ParseIntPipe) dapId: number,
-    @Body() body: { filename: string; contentBase64: string; type: 'receipt' | 'signed_document' },
+    @Body() body: { filename: string; contentBase64: string },
   ) {
     if (Number(user.run) !== run) throw new ForbiddenException();
-    const rec = await this.attachmentsService.uploadAttachment(run, dapId, body.filename, body.contentBase64, body.type);
-    return { id: rec.id, filename: rec.filename, type: rec.type, created_at: rec.created_at };
+    const rec = await this.contractsService.uploadContract(run, dapId, body.filename, body.contentBase64);
+    return { id: rec.id, filename: rec.filename, created_at: rec.created_at };
   }
 
   @Get()
@@ -43,34 +43,34 @@ export class DapAttachmentsController {
     @Param('dapId', ParseIntPipe) dapId: number,
   ) {
     if (Number(user.run) !== run) throw new ForbiddenException();
-    return this.attachmentsService.listAttachments(run, dapId);
+    return this.contractsService.listContracts(run, dapId);
   }
 
-  @Get(':attachmentId/download')
+  @Get(':contractId/download')
   async download(
     @User() user: UserRequest,
     @Param('run', ParseIntPipe) run: number,
     @Param('dapId', ParseIntPipe) dapId: number,
-    @Param('attachmentId', ParseIntPipe) attachmentId: number,
+    @Param('contractId', ParseIntPipe) contractId: number,
     @Res() res: Response,
   ) {
     if (Number(user.run) !== run) throw new ForbiddenException();
-    const rec = await this.attachmentsService.getAttachment(run, dapId, attachmentId);
+    const rec = await this.contractsService.getContract(run, dapId, contractId);
     return res
-      .header('Content-Type', rec.type === 'receipt' ? 'image/*' : 'application/pdf')
+      .header('Content-Type', 'application/pdf')
       .header('Content-Disposition', `attachment; filename="${rec.filename}"`)
       .sendFile(rec.storage_path, { root: '/' } as any);
   }
 
-  @Delete(':attachmentId')
+  @Delete(':contractId')
   async delete(
     @User() user: UserRequest,
     @Param('run', ParseIntPipe) run: number,
     @Param('dapId', ParseIntPipe) dapId: number,
-    @Param('attachmentId', ParseIntPipe) attachmentId: number,
+    @Param('contractId', ParseIntPipe) contractId: number,
   ) {
     if (Number(user.run) !== run) throw new ForbiddenException();
-    await this.attachmentsService.deleteAttachment(run, dapId, attachmentId);
+    await this.contractsService.deleteContract(run, dapId, contractId);
     return { ok: true };
   }
 }
