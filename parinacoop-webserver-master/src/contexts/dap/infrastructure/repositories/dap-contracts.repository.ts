@@ -7,7 +7,7 @@ export interface DapContractRecord {
   filename: string;
   storage_path: string;
   uploaded_by_run: number;
-  created_at: string;
+  created_at?: Date;
 }
 
 @Injectable()
@@ -30,7 +30,15 @@ export class DapContractsRepository {
       })
       .returningAll()
       .executeTakeFirst();
-    return r as DapContractRecord;
+
+    return {
+      id: r!.id,
+      dap_id: r!.dap_id,
+      filename: r!.filename,
+      storage_path: r!.storage_path,
+      uploaded_by_run: r!.uploaded_by_run,
+      created_at: r!.created_at ?? undefined,
+    } as DapContractRecord;
   }
 
   async findByDap(dapId: number): Promise<DapContractRecord[]> {

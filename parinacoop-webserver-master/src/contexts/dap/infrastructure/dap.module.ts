@@ -28,7 +28,7 @@ import { DapInstructionsStore } from './dap-instructions.store';
 import { ClientRepository } from '@/contexts/client-profile/domain/ports/client.repository';
 import { PostgreSqlClientRepository } from '@/contexts/client-profile/infrastructure/repositories/postgresql.client-repository';
 
-// ---- Nuevos imports para attachments y contracts (RUTAS RELATIVAS y NAMED IMPORTS) ----
+// Nuevos imports (rutas relativas y named imports)
 import { DapAttachmentsRepository } from './repositories/dap-attachments.repository';
 import { DapAttachmentsService } from './dap-attachments.service';
 import { DapAttachmentsController } from './controller/dap-attachments.controller';
@@ -36,7 +36,6 @@ import { DapAttachmentsController } from './controller/dap-attachments.controlle
 import { DapContractsRepository } from './repositories/dap-contracts.repository';
 import { DapContractsService } from './dap-contracts.service';
 import { DapContractsController } from './controller/dap-contracts.controller';
-// ------------------------------------------------------------------------------------
 
 @Module({
   controllers: [
@@ -44,7 +43,6 @@ import { DapContractsController } from './controller/dap-contracts.controller';
     CreateDapController,
     SimulateDapController,
     GetDapPdfsController,
-    // Controllers nuevos
     DapAttachmentsController,
     DapContractsController,
   ],
@@ -65,17 +63,16 @@ import { DapContractsController } from './controller/dap-contracts.controller';
     DapInstructionsStore,
     DapPdfService,
 
-    // ClientRepository para obtener perfil cliente (ya lo tenías)
     {
       provide: ClientRepository,
       useClass: PostgreSqlClientRepository,
     },
 
-    // Providers nuevos: attachments
+    // attachments
     DapAttachmentsRepository,
     DapAttachmentsService,
 
-    // Providers nuevos: contracts
+    // contracts
     DapContractsRepository,
     DapContractsService,
   ],
