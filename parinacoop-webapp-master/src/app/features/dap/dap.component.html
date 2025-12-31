@@ -38,13 +38,24 @@
     <div class="flex w-full flex-col gap-5 text-center">
       @if (userDaps) {
         @for (dap of userDaps; track dap.id) {
-          <app-dap-item [dap]="dap"/>
+          <!-- Hacemos que el div contenedor sea clickable para seleccionar el DAP -->
+          <div (click)="selectDap(dap.id)" class="cursor-pointer">
+            <app-dap-item [dap]="dap" />
+          </div>
         } @empty {
           <div>No tienes depósitos a plazo</div>
         }
       } @else {
         <div>cargando</div>
       }
+    </div>
+
+    <!-- Panel de Attachments: muestra uploader/listado para el DAP seleccionado -->
+    <div class="w-full max-w-[75rem] mt-6" *ngIf="selectedDapId">
+      <app-dap-attachments
+        [userRun]="(authService.currentUser$ | async)?.run ?? null"
+        [dapId]="selectedDapId">
+      </app-dap-attachments>
     </div>
   </section>
 </section>
