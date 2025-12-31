@@ -1,29 +1,5 @@
-@let userDaps = userDaps$ | async;
-@let totals = totals$ | async;
 <section class="flex flex-col items-center gap-5 pt-5">
   <h1 class="text-2xl">Inversiones: Depósitos a Plazo</h1>
-  @if (totals) {
-    <div class="grid w-full max-w-[40rem] grid-cols-2 gap-10">
-      <div
-        class="grid grid-rows-3 place-items-center rounded-xl border border-[#dcdcdc] bg-nav-color p-4 text-center"
-      >
-        <h3 class="text-pretty">Saldo total de los depósitos</h3>
-        <span class="text-lg font-bold">
-          {{ totals.activeDaps | currency: 'CLP' : 'symbol' }}
-        </span>
-        <span class="text-base">Pesos chilenos (CLP)</span>
-      </div>
-      <div
-        class="grid grid-rows-3 place-items-center rounded-xl border border-[#dcdcdc] bg-nav-color p-4 text-center"
-      >
-        <h3 class="text-pretty">Ganancias totales de los depósitos</h3>
-        <span class="text-lg font-bold">
-          {{ totals.profit | currency: 'CLP' : 'symbol' }}
-        </span>
-        <span class="text-base">Pesos chilenos (CLP)</span>
-      </div>
-    </div>
-  }
 
   <section class="flex w-full max-w-[75rem] flex-col items-center gap-2">
     <h2 class="text-2xl">Mis depósitos a plazo</h2>
@@ -36,26 +12,21 @@
     </a>
 
     <div class="flex w-full flex-col gap-5 text-center">
-      @if (userDaps) {
-        @for (dap of userDaps; track dap.id) {
-          <!-- Hacemos que el div contenedor sea clickable para seleccionar el DAP -->
-          <div (click)="selectDap(dap.id)" class="cursor-pointer">
-            <app-dap-item [dap]="dap" />
-          </div>
-        } @empty {
-          <div>No tienes depósitos a plazo</div>
-        }
-      } @else {
-        <div>cargando</div>
-      }
+      <ng-container *ngIf="userDaps$ | async as userDaps; else loading">
+        <ng-container *ngIf="userDaps?.length; else empty">
+          <ng-container *ngFor="let dap of userDaps; trackBy: trackById">
+            <app-dap-item [dap]="dap"></app-dap-item>
+          </ng-container>
+        </ng-container>
+      </ng-container>
     </div>
 
-    <!-- Panel de Attachments: muestra uploader/listado para el DAP seleccionado -->
-    <div class="w-full max-w-[75rem] mt-6" *ngIf="selectedDapId">
-      <app-dap-attachments
-        [userRun]="(authService.currentUser$ | async)?.run ?? null"
-        [dapId]="selectedDapId">
-      </app-dap-attachments>
-    </div>
+    <ng-template #loading>
+      <div>Cargando...</div>
+    </ng-template>
+
+    <ng-template #empty>
+      <div>No tienes depósitos a plazo</div>
+    </ng-template>
   </section>
 </section>

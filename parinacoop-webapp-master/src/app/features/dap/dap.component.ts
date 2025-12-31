@@ -7,23 +7,21 @@ import { RouterLink } from '@angular/router';
 import { CommonModule, AsyncPipe, CurrencyPipe } from '@angular/common';
 import { DapItemComponent } from './components/dap-item/dap-item.component';
 import { AuthService } from '@app/core/auth/services/auth.service';
-import { DapAttachmentsComponent } from './components/dap-attachments/dap-attachments.component';
 
 @Component({
   selector: 'app-dap',
   standalone: true,
   imports: [
-    CommonModule,              // necesario para *ngIf, *ngFor, etc.
+    CommonModule,        // necesario para *ngIf / *ngFor en plantillas standalone
     SvgIconComponent,
     DapItemComponent,
     RouterLink,
     AsyncPipe,
     CurrencyPipe,
-    DapAttachmentsComponent,
   ],
   templateUrl: './dap.component.html',
 })
-export default class DapComponent implements OnInit, OnDestroy {
+export class DapComponent implements OnInit, OnDestroy {
   userDaps$?: Observable<Dap[] | null>;
   totals$!: Observable<{ profit: number; activeDaps: number }>;
   totalProfit: number = 0;
@@ -32,10 +30,9 @@ export default class DapComponent implements OnInit, OnDestroy {
 
   isLoading = false;
 
-  // id del DAP seleccionado para mostrar attachments/contracts
+  // id del DAP seleccionado (si lo estás usando en otro sitio)
   selectedDapId: number | null = null;
 
-  // Hacer authService público para poder usar (authService.currentUser$ | async) en template
   constructor(
     public authService: AuthService,
     private dapService: DapService,
@@ -63,6 +60,11 @@ export default class DapComponent implements OnInit, OnDestroy {
       .subscribe((user) => {
         this.dapService.getDapList(user.run);
       });
+  }
+
+  // trackBy para evitar errores y mejorar performance
+  trackById(_: number, item: Dap): number | null {
+    return item?.id ?? null;
   }
 
   selectDap(dapId: number): void {

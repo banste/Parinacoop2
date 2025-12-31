@@ -14,7 +14,7 @@ import { take } from 'rxjs/operators';
   selector: 'app-dap-item',
   standalone: true,
   imports: [
-    CommonModule,
+    CommonModule, // para directivas básicas y ngIf/ngFor si se usan dentro
     NgClass,
     DatePipe,
     CurrencyPipe,
@@ -28,9 +28,6 @@ import { take } from 'rxjs/operators';
 export class DapItemComponent {
   @Input({ required: true }) dap!: Dap;
 
-  // queda por compatibilidad, pero no se usa para panel inline ahora
-  showAttachments = false;
-
   constructor(private dialog: MatDialog, public authService: AuthService) {}
 
   openDialog(data: Dap): void {
@@ -43,23 +40,18 @@ export class DapItemComponent {
   }
 
   openAttachments(dap: Dap): void {
-    // Aseguramos no tener panel inline abierto (por si queda alguna lógica previa)
-    this.showAttachments = false;
-
+    // Evitar abrir duplicados: revisamos diálogos ya abiertos
     this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
-      // Evitar abrir múltiples diálogos duplicados para el mismo dap.id
       const alreadyOpen = this.dialog.openDialogs.find(d => {
         const inst = (d.componentInstance as any);
         return !!inst && inst.dapId === dap.id && (inst.constructor?.name === 'DapAttachmentsComponent' || inst instanceof DapAttachmentsComponent);
       });
 
       if (alreadyOpen) {
-        // Si ya hay uno abierto para el mismo DAP, traemos al frente (si se puede) y no abrimos otro
         try { alreadyOpen.updatePosition?.(); } catch {}
         return;
       }
 
-      // abrir nuevo diálogo
       this.dialog.open(DapAttachmentsComponent, {
         width: '720px',
         maxHeight: '80vh',
