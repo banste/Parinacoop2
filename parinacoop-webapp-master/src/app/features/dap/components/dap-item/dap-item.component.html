@@ -1,6 +1,6 @@
 <div class="flex items-start gap-4">
   <article
-    class="relative grid grid-cols-[repeat(5,minmax(0,1fr))_8.3%] place-items-center rounded-lg border border-[#dcdcdc] bg-nav-color py-3 text-sm [&>div]:flex [&>div]:flex-col flex-1 leading-relaxed whitespace-normal"
+    class="relative grid grid-cols-[repeat(5,minmax(0,1fr))_12%] gap-x-6 place-items-center rounded-lg border border-[#dcdcdc] bg-nav-color py-4 px-4 text-sm [&>div]:flex [&>div]:flex-col flex-1 leading-relaxed whitespace-normal"
   >
     <div>
       <span class="font-medium">Depósito a Plazo</span>
@@ -27,15 +27,18 @@
       <span>{{ dap.status | dapStatus }}</span>
     </div>
 
-    <!-- Última columna: acciones (separación a la derecha con pr-8) -->
-    <div class="flex items-center justify-end pr-8">
-      <div class="flex gap-4 items-center text-sm">
-        <a class="text-primary-600 hover:underline cursor-pointer" (click)="openDialog(dap)">
+    <!-- Última columna: acciones (más ancha, links en una sola línea con espacio) -->
+    <div class="flex items-center justify-end pr-6">
+      <div class="flex gap-6 items-center text-sm whitespace-nowrap">
+        <a
+          class="text-primary-600 hover:underline cursor-pointer whitespace-nowrap"
+          (click)="openDialog(dap)"
+        >
           Ver detalle
         </a>
 
         <a
-          class="text-primary-600 hover:underline cursor-pointer"
+          class="text-primary-600 hover:underline cursor-pointer whitespace-nowrap"
           (click)="openAttachments(dap)"
           role="button"
         >

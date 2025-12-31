@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import DapComponent from './dap.component';
+import { DapComponent } from './dap.component';
 
 describe('DapComponent', () => {
   let component: DapComponent;
@@ -8,7 +8,7 @@ describe('DapComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DapComponent],
+      declarations: [DapComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DapComponent);

@@ -1,32 +1,74 @@
-<section class="flex flex-col items-center gap-5 pt-5">
-  <h1 class="text-2xl">Inversiones: Depósitos a Plazo</h1>
+<section class="w-full bg-white">
+  <!-- Cabecera (solo título) -->
+  <div class="max-w-[1100px] mx-auto px-4 py-4">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-1 mt-2 bg-orange-500 rounded"></div>
+      <div class="flex flex-col">
+        <h1 class="text-2xl font-semibold text-gray-900 leading-tight">Inversiones: Depósitos a Plazo</h1>
+        <div class="text-sm text-gray-600 mt-1">Mis depósitos a plazo</div>
+      </div>
+    </div>
+  </div>
 
-  <section class="flex w-full max-w-[75rem] flex-col items-center gap-2">
-    <h2 class="text-2xl">Mis depósitos a plazo</h2>
-    <a
-      [routerLink]="['nuevo-deposito']"
-      class="flex items-center gap-2 self-end text-primary-600 hover:underline"
-    >
-      <span> Realizar depósito a plazo </span>
-      <app-svg-icon icon="plus" />
-    </a>
+  <!-- Resumen en dos tarjetas centradas -->
+  <div class="max-w-[1100px] mx-auto px-4">
+    <div class="flex justify-center gap-6 mt-4 mb-6">
+      <ng-container *ngIf="totals$ | async as totals; else totalsLoading">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-4 w-64 text-center">
+          <div class="text-sm text-gray-600 mb-2">Saldo total de los depósitos</div>
+          <div class="text-xl font-semibold text-gray-900">
+            {{ (totals?.activeDaps ?? 0) | currency:'CLP':'symbol':'1.0-0' }}
+          </div>
+          <div class="text-xs text-gray-500">Pesos chilenos (CLP)</div>
+        </div>
 
-    <div class="flex w-full flex-col gap-5 text-center">
-      <ng-container *ngIf="userDaps$ | async as userDaps; else loading">
-        <ng-container *ngIf="userDaps?.length; else empty">
-          <ng-container *ngFor="let dap of userDaps; trackBy: trackById">
-            <app-dap-item [dap]="dap"></app-dap-item>
-          </ng-container>
-        </ng-container>
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-4 w-64 text-center">
+          <div class="text-sm text-gray-600 mb-2">Ganancias totales de los depósitos</div>
+          <div class="text-xl font-semibold text-gray-900">
+            {{ (totals?.profit ?? 0) | currency:'CLP':'symbol':'1.0-0' }}
+          </div>
+          <div class="text-xs text-gray-500">Pesos chilenos (CLP)</div>
+        </div>
       </ng-container>
+
+      <ng-template #totalsLoading>
+        <div class="w-64 h-20 bg-gray-50 rounded border animate-pulse"></div>
+        <div class="w-64 h-20 bg-gray-50 rounded border animate-pulse"></div>
+      </ng-template>
     </div>
 
+    <!-- BOTÓN: alineado a la derecha dentro del mismo ancho max-w (encima / sobre la tabla) -->
+    <div class="flex justify-end mb-4">
+      <a
+        [routerLink]="['nuevo-deposito']"
+        class="inline-flex items-center gap-2 text-primary-600 hover:underline bg-white px-4 py-2 rounded"
+      >
+        <app-svg-icon icon="plus" />
+        <span class="text-sm">Realizar depósito a plazo</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Lista de depósitos -->
+  <section class="max-w-[1100px] mx-auto px-1 pb-2">
+    <ng-container *ngIf="userDaps$ | async as userDaps; else loading">
+      <ng-container *ngIf="userDaps?.length; else empty">
+        <div class="space-y-2"> <!-- ajuste separación entre tarjetas -->
+          <ng-container *ngFor="let dap of userDaps; trackBy: trackById">
+            <div class="py-1">
+              <app-dap-item [dap]="dap"></app-dap-item>
+            </div>
+          </ng-container>
+        </div>
+      </ng-container>
+    </ng-container>
+
     <ng-template #loading>
-      <div>Cargando...</div>
+      <div class="text-center py-8">Cargando...</div>
     </ng-template>
 
     <ng-template #empty>
-      <div>No tienes depósitos a plazo</div>
+      <div class="text-center py-8">No tienes depósitos a plazo</div>
     </ng-template>
   </section>
 </section>

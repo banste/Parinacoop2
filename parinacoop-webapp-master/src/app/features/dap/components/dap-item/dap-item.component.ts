@@ -14,7 +14,7 @@ import { take } from 'rxjs/operators';
   selector: 'app-dap-item',
   standalone: true,
   imports: [
-    CommonModule, // para directivas básicas y ngIf/ngFor si se usan dentro
+    CommonModule,
     NgClass,
     DatePipe,
     CurrencyPipe,
@@ -40,7 +40,6 @@ export class DapItemComponent {
   }
 
   openAttachments(dap: Dap): void {
-    // Evitar abrir duplicados: revisamos diálogos ya abiertos
     this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
       const alreadyOpen = this.dialog.openDialogs.find(d => {
         const inst = (d.componentInstance as any);
