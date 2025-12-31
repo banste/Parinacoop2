@@ -7,7 +7,8 @@ export class DapInstructionsRepository {
 
   async getLatest() {
     return this.db
-      .selectFrom('dap_instructions')
+      // cast table name to any to satisfy Kysely's TableExpression typing
+      .selectFrom('dap_instructions' as any)
       .selectAll()
       .orderBy('updated_at', 'desc')
       .limit(1)

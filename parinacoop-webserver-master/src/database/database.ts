@@ -8,6 +8,8 @@ import { UserSessionTable } from './tables/usersessionTable';
 import { PasswordResetTable } from './tables/passwordresetTable';
 import { DapTable } from './tables/dapTable';
 import { ParameterTable } from './tables/parameterTable';
+import { DapContractsTable } from './tables/dapcontractsTable';
+import { DapAttachmentsTable } from './tables/dapattachmentsTable';
 
 export interface Tables {
   user: UserTable;
@@ -19,6 +21,9 @@ export interface Tables {
   password_reset: PasswordResetTable;
   dap: DapTable;
   parameter: ParameterTable;
+  dap_contracts: DapContractsTable;
+  dap_attachments: DapAttachmentsTable
+
 }
 
 export class Database extends Kysely<Tables> {}

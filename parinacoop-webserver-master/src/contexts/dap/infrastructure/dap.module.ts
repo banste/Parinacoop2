@@ -28,15 +28,15 @@ import { DapInstructionsStore } from '../infrastructure/dap-instructions.store';
 import { ClientRepository } from '@/contexts/client-profile/domain/ports/client.repository';
 import { PostgreSqlClientRepository } from '@/contexts/client-profile/infrastructure/repositories/postgresql.client-repository';
 
-// ---- Nuevos imports para attachments y contracts ----
+// ---- Nuevos imports para attachments y contracts (RUTAS RELATIVAS y NAMED IMPORTS) ----
 import { DapAttachmentsRepository } from './repositories/dap-attachments.repository';
-import DapAttachmentsService from './dap-attachments.service';
+import { DapAttachmentsService } from './dap-attachments.service';
 import { DapAttachmentsController } from './controller/dap-attachments.controller';
 
-import { DapContractsRepository } from '@/contexts/dap/infrastructure/repositories/dap-contracts.repository';
+import { DapContractsRepository } from './repositories/dap-contracts.repository';
 import { DapContractsService } from './dap-contracts.service';
 import { DapContractsController } from './controller/dap-contracts.controller';
-// ----------------------------------------------------
+// ------------------------------------------------------------------------------------
 
 @Module({
   controllers: [
