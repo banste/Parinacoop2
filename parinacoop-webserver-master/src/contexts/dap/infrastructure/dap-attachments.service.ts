@@ -33,7 +33,16 @@ export class DapAttachmentsRepository {
       })
       .returningAll()
       .executeTakeFirst();
-    return r as DapAttachmentRecord;
+    // Normalize created_at (Date | undefined) to string to satisfy DapAttachmentRecord
+    return {
+      id: r!.id,
+      dap_id: r!.dap_id,
+      type: r!.type,
+      filename: r!.filename,
+      storage_path: r!.storage_path,
+      uploaded_by_run: r!.uploaded_by_run,
+      created_at: r!.created_at ? r!.created_at.toISOString() : '',
+    } as DapAttachmentRecord;
   }
 
   async findByDap(dapId: number): Promise<DapAttachmentRecord[]> {
