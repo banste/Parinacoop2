@@ -184,8 +184,10 @@ export class DapAttachmentsService {
     }
   }
 
-  // Optional server-side lock method (no-op unless you implement actual DAP update)
+  // Optional server-side lock method: implement if your DAP repository supports it.
   async lockAttachments(run: number, dapId: number): Promise<void> {
+    // implement update on dap record to set attachments_locked = true if desired
+    // if not implemented, this method is a no-op (controller calls it safely)
     return;
   }
 }
