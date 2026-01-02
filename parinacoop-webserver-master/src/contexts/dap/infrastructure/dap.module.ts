@@ -24,15 +24,16 @@ import { DapInstructionsRepository } from '@/database/repositories/dap-instructi
 import { DapPdfService } from '@/archives/pdf/dap-pdf.service';
 import { DapInstructionsStore } from './dap-instructions.store';
 
-// Client profile (ya tenías)
+// Client profile
 import { ClientRepository } from '@/contexts/client-profile/domain/ports/client.repository';
 import { PostgreSqlClientRepository } from '@/contexts/client-profile/infrastructure/repositories/postgresql.client-repository';
 
-// Nuevos imports (rutas relativas y named imports)
+// Attachments
 import { DapAttachmentsRepository } from './repositories/dap-attachments.repository';
 import { DapAttachmentsService } from './dap-attachments.service';
 import { DapAttachmentsController } from './controller/dap-attachments.controller';
 
+// Contracts
 import { DapContractsRepository } from './repositories/dap-contracts.repository';
 import { DapContractsService } from './dap-contracts.service';
 import { DapContractsController } from './controller/dap-contracts.controller';
@@ -68,8 +69,12 @@ import { DapContractsController } from './controller/dap-contracts.controller';
       useClass: PostgreSqlClientRepository,
     },
 
-    // attachments
+    // attachments: register concrete repository and token expected by the service
     DapAttachmentsRepository,
+    {
+      provide: 'ATTACHMENTS_REPOSITORY',
+      useClass: DapAttachmentsRepository,
+    },
     DapAttachmentsService,
 
     // contracts

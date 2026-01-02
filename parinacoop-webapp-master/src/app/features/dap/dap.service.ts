@@ -1,4 +1,3 @@
-// (Note: URL in header points to the repo; replace if needed)
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -37,63 +36,84 @@ export class DapService {
   }>(this.initialTotals);
   public totals$ = this.totalsSubject.asObservable();
 
-  // ✅ NUEVO: guardamos el RUN actual
   private currentRunSubject = new BehaviorSubject<number | null>(null);
 
   constructor(private httpClient: HttpClient) {}
 
-  // ✅ Getter simple para que lo use el diálogo
   getCurrentRun(): number | null {
     return this.currentRunSubject.value;
   }
 
   getDapList(run: number): void {
-    // ✅ guardamos el run usado para cargar la lista
     this.currentRunSubject.next(run);
 
-    this.httpClient.get<{ daps: Dap[] }>(`clients/${run}/daps`).subscribe({
+    this.httpClient.get<{ daps: any[] }>(`clients/${run}/daps`).subscribe({
       next: (response) => {
-        this.dapsSubject.next(response.daps.sort((a, b) => b.id - a.id));
-        this.getTotals(response.daps);
+        const raw = Array.isArray(response?.daps) ? response.daps : [];
+        const normalized: Dap[] = raw.map((r: any) => ({
+          id: Number(r.id ?? r.dap_id ?? 0),
+          userRun: Number(r.userRun ?? r.user_run ?? 0),
+          type: r.type ?? r.type_name ?? null,
+          currencyType: r.currencyType ?? r.currency_type ?? 'CLP',
+          status: (r.status ?? r.estado ?? '').toString(),
+          days: Number(r.days ?? r.period_days ?? 0),
+          initialDate: r.initialDate ? new Date(r.initialDate) : (r.initial_date ? new Date(r.initial_date) : null),
+          initialAmount: Number(r.initialAmount ?? r.initial_amount ?? 0),
+          finalAmount: Number(r.finalAmount ?? r.final_amount ?? 0),
+          dueDate: r.dueDate ? new Date(r.dueDate) : (r.due_date ? new Date(r.due_date) : null),
+          profit: Number(r.profit ?? r.ganancia ?? 0),
+          interestRateInMonth: Number(r.interestRateInMonth ?? r.interest_rate_month ?? 0),
+          interestRateInPeriod: Number(r.interestRateInPeriod ?? r.interest_rate_period ?? 0),
+        }));
+
+        this.dapsSubject.next(normalized.sort((a, b) => (b.id ?? 0) - (a.id ?? 0)));
+        this.getTotals(normalized);
       },
-      error: (err) => console.error(err),
+      error: (err) => console.error('getDapList error', err),
     });
   }
 
   getTotals(dapList: Dap[]): void {
     const totals = dapList.reduce(
       (previous, current) => {
-        if (current.status !== DapStatus.ACTIVE) return previous;
-        previous.profit += current.profit;
-        previous.activeDaps += current.initialAmount;
+        const status = (current?.status ?? '').toString().toLowerCase();
+        if (status !== DapStatus.ACTIVE) return previous;
+
+        const profit = Number((current as any).profit ?? 0);
+        const initial = Number((current as any).initialAmount ?? 0);
+
+        previous.profit += isNaN(profit) ? 0 : profit;
+        previous.activeDaps += isNaN(initial) ? 0 : initial;
         return previous;
       },
       { profit: 0, activeDaps: 0 },
     );
 
+    console.debug('DAP totals computed in service:', totals);
     this.totalsSubject.next(totals);
   }
 
-  // ✅ GET /api/clients/:run/daps/:dapId/solicitud-pdf
-  downloadSolicitudPdf(userRun: number, dapId: number) {
-    return this.httpClient.get(
-      `clients/${userRun}/daps/${dapId}/solicitud-pdf`,
-      { responseType: 'blob' },
-    );
+  // GET single DAP (useful to read attachments_locked if backend provides it)
+  getDap(run: number, dapId: number): Observable<any> {
+    return this.httpClient.get<any>(`clients/${run}/daps/${dapId}`);
   }
 
-  // ✅ GET /api/clients/:run/daps/:dapId/instructivo-pdf
-  downloadInstructivoPdf(userRun: number, dapId: number) {
-    return this.httpClient.get(
-      `clients/${userRun}/daps/${dapId}/instructivo-pdf`,
-      { responseType: 'blob' },
-    );
+  // PATCH to lock attachments (backend must implement it; if not, call may 404/404 handled)
+  lockAttachments(run: number, dapId: number): Observable<void> {
+    return this.httpClient.patch<void>(`clients/${run}/daps/${dapId}/attachments/lock`, {});
   }
 
-  // -----------------------------
-  // Attachments (upload / list / download / delete)
-  // -----------------------------
+  // DOWNLOAD helper endpoints (used from dialog/details)
+  downloadSolicitudPdf(userRun: number, dapId: number): Observable<Blob> {
+    return this.httpClient.get(`clients/${userRun}/daps/${dapId}/solicitud-pdf`, { responseType: 'blob' });
+  }
 
+  downloadInstructivoPdf(userRun: number, dapId: number): Observable<Blob> {
+    return this.httpClient.get(`clients/${userRun}/daps/${dapId}/instructivo-pdf`, { responseType: 'blob' });
+  }
+
+  // Upload attachment using base64 (current approach). If your backend accepts multipart,
+  // consider switching to FormData (more efficient).
   uploadAttachment(
     userRun: number,
     dapId: number,
@@ -115,15 +135,21 @@ export class DapService {
             type,
           };
 
-          this.httpClient
-            .post<DapAttachment>(`clients/${userRun}/daps/${dapId}/attachments`, body)
-            .subscribe({
-              next: (v) => {
-                observer.next(v);
-                observer.complete();
-              },
-              error: (e) => observer.error(e),
-            });
+          console.debug('uploadAttachment: POST to', `clients/${userRun}/daps/${dapId}/attachments`, 'filename=', file.name);
+
+          this.httpClient.post<DapAttachment>(`clients/${userRun}/daps/${dapId}/attachments`, body).subscribe({
+            next: (v) => {
+              observer.next(v);
+              observer.complete();
+
+              // optimistic: request backend to lock (if implemented)
+              this.lockAttachments(userRun, dapId).subscribe({
+                next: () => this.getDapList(userRun),
+                error: (e) => console.debug('lockAttachments failed (may be unsupported):', e),
+              });
+            },
+            error: (e) => observer.error(e),
+          });
         } catch (e) {
           observer.error(e);
         }
@@ -137,21 +163,12 @@ export class DapService {
   }
 
   downloadAttachment(userRun: number, dapId: number, attachmentId: number): Observable<Blob> {
-    return this.httpClient.get(
-      `clients/${userRun}/daps/${dapId}/attachments/${attachmentId}/download`,
-      { responseType: 'blob' },
-    );
+    return this.httpClient.get(`clients/${userRun}/daps/${dapId}/attachments/${attachmentId}/download`, { responseType: 'blob' });
   }
 
   deleteAttachment(userRun: number, dapId: number, attachmentId: number) {
-    return this.httpClient.delete<void>(
-      `clients/${userRun}/daps/${dapId}/attachments/${attachmentId}`,
-    );
+    return this.httpClient.delete<void>(`clients/${userRun}/daps/${dapId}/attachments/${attachmentId}`);
   }
-
-  // -----------------------------
-  // Contracts (upload / list / download / delete)
-  // -----------------------------
 
   uploadContract(userRun: number, dapId: number, file: File): Observable<DapContract> {
     return new Observable<DapContract>((observer) => {
@@ -168,15 +185,10 @@ export class DapService {
             contentBase64: base64,
           };
 
-          this.httpClient
-            .post<DapContract>(`clients/${userRun}/daps/${dapId}/contracts`, body)
-            .subscribe({
-              next: (v) => {
-                observer.next(v);
-                observer.complete();
-              },
-              error: (e) => observer.error(e),
-            });
+          this.httpClient.post<DapContract>(`clients/${userRun}/daps/${dapId}/contracts`, body).subscribe({
+            next: (v) => { observer.next(v); observer.complete(); },
+            error: (e) => observer.error(e),
+          });
         } catch (e) {
           observer.error(e);
         }
@@ -190,15 +202,10 @@ export class DapService {
   }
 
   downloadContract(userRun: number, dapId: number, contractId: number): Observable<Blob> {
-    return this.httpClient.get(
-      `clients/${userRun}/daps/${dapId}/contracts/${contractId}/download`,
-      { responseType: 'blob' },
-    );
+    return this.httpClient.get(`clients/${userRun}/daps/${dapId}/contracts/${contractId}/download`, { responseType: 'blob' });
   }
 
   deleteContract(userRun: number, dapId: number, contractId: number) {
-    return this.httpClient.delete<void>(
-      `clients/${userRun}/daps/${dapId}/contracts/${contractId}`,
-    );
+    return this.httpClient.delete<void>(`clients/${userRun}/daps/${dapId}/contracts/${contractId}`);
   }
 }
