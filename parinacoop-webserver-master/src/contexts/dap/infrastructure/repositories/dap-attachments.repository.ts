@@ -1,46 +1,59 @@
 import { Injectable } from '@nestjs/common';
-import { promises as fsPromises } from 'fs';
-import { join } from 'path';
+import { Database } from '@/database/database';
 
-/**
- * Simple attachments repository for development.
- * Replace with your real DB repository implementation.
- */
+export interface DapAttachmentRecord {
+  id: number;
+  dap_id: number;
+  type: string;
+  filename: string;
+  storage_path: string;
+  uploaded_by_run: number;
+  created_at?: Date;
+}
+
 @Injectable()
 export class DapAttachmentsRepository {
-  private store: any[] = [];
-  private nextId = 1;
+  constructor(private db: Database) {}
 
-  async createAttachment(data: any) {
-    const id = this.nextId++;
-    const row = {
-      id,
-      dap_id: data.dap_id,
-      filename: data.filename,
-      storage_path: data.storage_path,
-      type: data.type,
-      uploaded_by_run: data.uploaded_by_run,
-      created_at: data.created_at ?? new Date(),
-      mime_type: data.mime_type,
-      size: data.size,
-    };
-    this.store.push(row);
-    return row;
+  async create(record: {
+    dap_id: number;
+    type: string;
+    filename: string;
+    storage_path: string;
+    uploaded_by_run: number;
+  }): Promise<DapAttachmentRecord> {
+    const r = await this.db
+      .insertInto('dap_attachments')
+      .values({
+        dap_id: record.dap_id,
+        type: record.type,
+        filename: record.filename,
+        storage_path: record.storage_path,
+        uploaded_by_run: record.uploaded_by_run,
+      })
+      .returningAll()
+      .executeTakeFirst();
+
+    return {
+      id: r!.id,
+      dap_id: r!.dap_id,
+      type: r!.type,
+      filename: r!.filename,
+      storage_path: r!.storage_path,
+      uploaded_by_run: r!.uploaded_by_run,
+      created_at: r!.created_at ?? undefined,
+    } as DapAttachmentRecord;
   }
 
-  async listByDap(run: number, dapId: number) {
-    return this.store.filter((r) => r.dap_id === dapId && (run == null || r.uploaded_by_run === run));
+  async findByDap(dapId: number): Promise<DapAttachmentRecord[]> {
+    return (await this.db.selectFrom('dap_attachments').selectAll().where('dap_id', '=', dapId).execute()) as DapAttachmentRecord[];
   }
 
-  async findByIdAndDap(attachmentId: number, dapId: number, run: number) {
-    const r = this.store.find((s) => s.id === attachmentId) ?? null;
-    if (!r) return null;
-    if (r.dap_id !== dapId) return null;
-    if (run != null && r.uploaded_by_run !== run) return null;
-    return r;
+  async findById(id: number): Promise<DapAttachmentRecord | null> {
+    return (await this.db.selectFrom('dap_attachments').selectAll().where('id', '=', id).executeTakeFirst()) as DapAttachmentRecord | null;
   }
 
-  async deleteById(attachmentId: number) {
-    this.store = this.store.filter((r) => r.id !== attachmentId);
+  async deleteById(id: number): Promise<void> {
+    await this.db.deleteFrom('dap_attachments').where('id', '=', id).execute();
   }
 }

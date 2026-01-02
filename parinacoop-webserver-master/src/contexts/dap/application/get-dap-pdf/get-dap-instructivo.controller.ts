@@ -1,33 +1,48 @@
-import { Controller, Get, Param, Res, StreamableFile, NotFoundException } from '@nestjs/common';
-import { createReadStream } from 'fs';
-import { join } from 'path';
-import { FastifyReply } from 'fastify';
-import * as DapInstructionsServiceModule from '../../infrastructure/service/dap-instructions.service';
+import { Controller, Get, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@/contexts/shared/guards/auth.guard';
+import * as PDFDocument from 'pdfkit';
 
-/**
- * Controlador que entrega el instructivo PDF de un DAP.
- * Nota: el error TS2315 se debía a usar Buffer como genérico.
- * Aquí se usa Buffer (no genérico) en el listener de 'data'.
- */
-@Controller('clients/:run/daps/:dapId/instructivo')
+
+@ApiTags('DAP de clientes')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
+@Controller('clients/:run/daps')
 export class GetDapInstructivoController {
-  // Use a loose type here to avoid TS errors when the service module's exports differ.
-  constructor(private readonly dapInstructionsService: any) {}
+  @Get('instructivo-pdf')
+  async run(@Res() res: Response) {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const chunks: Buffer[] = [];
 
-  @Get()
-  async get(
-    @Param('run') run: string,
-    @Param('dapId') dapId: string,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<StreamableFile> {
-    const info = await this.dapInstructionsService.getInstructivoInfo(Number(run), Number(dapId));
-    if (!info || !info.filePath) throw new NotFoundException('Instructivo no encontrado');
+    doc.on('data', (c: Buffer<ArrayBufferLike>) => chunks.push(c));
+    doc.on('end', () => {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=Instructivo_Deposito_DAP.pdf',
+      );
+      res.send(Buffer.concat(chunks));
+    });
 
-    // Establecer headers
-    reply.header('Content-Type', 'application/pdf');
-    reply.header('Content-Disposition', `inline; filename="${encodeURIComponent(info.filename ?? 'instructivo.pdf')}"`);
+    doc.fontSize(16).text('INSTRUCTIVO DEPÓSITO A PLAZO', { align: 'center' });
+    doc.moveDown(1);
+ 
+    doc.fontSize(11).list([
+      'Descargue la Solicitud de Depósito a Plazo.',
+      'Firme la solicitud.',
+      'Realice el depósito en la cuenta indicada.',
+      'Guarde el comprobante de transferencia.',
+      'Adjunte o entregue el comprobante según corresponda.',
+    ]);
 
-    const stream = createReadStream(info.filePath);
-    return new StreamableFile(stream);
+    doc.moveDown();
+    doc.text('Cuenta de Depósito:');
+    doc.text('Banco: __________________________');
+    doc.text('Cuenta: _________________________');
+    doc.text('RUT: ____________________________');
+    doc.text('Glosa: DEPÓSITO A PLAZO');
+
+    doc.end();
   }
 }

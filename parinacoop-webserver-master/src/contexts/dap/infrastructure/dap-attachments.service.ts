@@ -1,191 +1,103 @@
-import { Inject, Injectable, InternalServerErrorException, BadRequestException, NotFoundException } from '@nestjs/common';
-import { join } from 'path';
-import { promises as fsPromises, existsSync, statSync } from 'fs';
-
-export interface AttachmentRecord {
-  id: number;
-  dap_id: number;
-  filename: string;
-  storage_path?: string;
-  type?: string;
-  uploaded_by_run?: number;
-  created_at?: Date;
-  mime_type?: string;
-  size?: number;
-}
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { DapRepository } from '../domain/ports/dap.repository';
+import { DapAttachmentsRepository } from './repositories/dap-attachments.repository';
 
 @Injectable()
 export class DapAttachmentsService {
-  private MAX_RECEIPT = 5 * 1024 * 1024; // 5MB
-  private MAX_SIGNED = 10 * 1024 * 1024; // 10MB
-  private ALLOWED_RECEIPT_EXT = ['.png', '.jpg', '.jpeg'];
-  private ALLOWED_SIGNED_EXT = ['.pdf'];
+  private readonly UPLOAD_ROOT = path.join(process.cwd(), 'uploads', 'dap');
+  private readonly MAX_BYTES_RECEIPT = 5 * 1024 * 1024; // 5 MB
+  private readonly MAX_BYTES_SIGNED = 10 * 1024 * 1024; // 10 MB
 
   constructor(
-    @Inject('ATTACHMENTS_REPOSITORY') private readonly attachmentsRepo: any, // repo must expose createAttachment, listByDap, findByIdAndDap, deleteById
+    private readonly dapRepository: DapRepository,
+    private readonly attachmentsRepo: DapAttachmentsRepository,
   ) {}
 
-  private getUploadsRoot(): string {
-    return process.env.UPLOADS_ROOT ?? join(process.cwd(), 'uploads');
+  private async ensureDir(dir: string) {
+    await fs.mkdir(dir, { recursive: true });
   }
 
-  private getExtension(filename: string): string {
-    const idx = filename.lastIndexOf('.');
-    return idx >= 0 ? filename.slice(idx).toLowerCase() : '';
+  private sanitizeFilename(name: string) {
+    return name.replace(/[^a-zA-Z0-9.\-_ ]/g, '_').slice(0, 200);
   }
 
-  private bufferFromBase64(base64: string): Buffer {
-    const idx = base64.indexOf(';base64,');
-    const raw = idx >= 0 ? base64.slice(idx + ';base64,'.length) : base64;
-    const cleaned = raw.replace(/\s/g, '');
-    return Buffer.from(cleaned, 'base64');
+  private isPdfBuffer(buf: Buffer): boolean {
+    return buf.slice(0, 4).toString() === '%PDF';
   }
 
-  private mimeTypeForExt(ext: string): string {
-    const map: Record<string, string> = {
-      '.png': 'image/png',
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.pdf': 'application/pdf',
-    };
-    return map[ext] ?? 'application/octet-stream';
+  private isJpegBuffer(buf: Buffer): boolean {
+    return buf.length > 2 && buf[0] === 0xff && buf[1] === 0xd8;
   }
 
-  async uploadAttachment(
-    run: number,
-    dapId: number,
-    filename: string,
-    contentBase64: string,
-    type: 'receipt' | 'signed_document',
-  ): Promise<AttachmentRecord> {
-    if (!filename || !contentBase64) {
-      throw new BadRequestException('filename y contentBase64 son requeridos');
+  private isPngBuffer(buf: Buffer): boolean {
+    return buf.length > 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+  }
+
+  async uploadAttachment(run: number, dapId: number, filename: string, base64: string, type: 'receipt' | 'signed_document') {
+    const dapEntity = await this.dapRepository.findByIdAndUserRun(dapId, run);
+    if (!dapEntity) throw new NotFoundException('DAP no encontrado o no autorizado');
+
+    const buffer = Buffer.from(base64, 'base64');
+    if (buffer.byteLength === 0) throw new BadRequestException('Archivo vacío');
+
+    if (type === 'receipt') {
+      if (buffer.byteLength > this.MAX_BYTES_RECEIPT) throw new BadRequestException('Comprobante excede tamaño permitido (5 MB)');
+      if (!(this.isJpegBuffer(buffer) || this.isPngBuffer(buffer))) throw new BadRequestException('El comprobante debe ser imagen JPEG o PNG');
+    } else {
+      if (buffer.byteLength > this.MAX_BYTES_SIGNED) throw new BadRequestException('Documento excede tamaño permitido (10 MB)');
+      if (!this.isPdfBuffer(buffer)) throw new BadRequestException('El documento firmado debe ser PDF');
     }
 
-    const ext = this.getExtension(filename);
-    if (type === 'receipt' && !this.ALLOWED_RECEIPT_EXT.includes(ext)) {
-      throw new BadRequestException(`Formato inválido para comprobante. Permitidos: ${this.ALLOWED_RECEIPT_EXT.join(', ')}`);
-    }
-    if (type === 'signed_document' && !this.ALLOWED_SIGNED_EXT.includes(ext)) {
-      throw new BadRequestException(`Formato inválido para documento firmado. Permitidos: ${this.ALLOWED_SIGNED_EXT.join(', ')}`);
-    }
+    const safeName = this.sanitizeFilename(filename);
+    const timestamp = Date.now();
+    const subdir = path.join(this.UPLOAD_ROOT, String(dapId), 'attachments');
+    await this.ensureDir(subdir);
 
-    let buffer: Buffer;
-    try {
-      buffer = this.bufferFromBase64(contentBase64);
-    } catch (e) {
-      throw new BadRequestException('Contenido base64 inválido');
-    }
-    const size = buffer.length;
-    if (type === 'receipt' && size > this.MAX_RECEIPT) throw new BadRequestException('El comprobante excede 5MB');
-    if (type === 'signed_document' && size > this.MAX_SIGNED) throw new BadRequestException('El documento excede 10MB');
+    const storageName = `${timestamp}-${safeName}`;
+    const storagePath = path.join(subdir, storageName);
 
-    const uploadsRoot = this.getUploadsRoot();
-    const clientDir = join(uploadsRoot, `client_${run}`, `dap_${dapId}`);
-    try {
-      await fsPromises.mkdir(clientDir, { recursive: true });
-    } catch (e) {
-      throw new InternalServerErrorException('No se pudo crear carpeta de uploads');
-    }
+    await fs.writeFile(storagePath, buffer, { mode: 0o600 });
 
-    const safeName = filename.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
-    const targetName = `${Date.now()}_${safeName}`;
-    const targetPathAbsolute = join(clientDir, targetName);
-
-    try {
-      await fsPromises.writeFile(targetPathAbsolute, buffer);
-    } catch (e) {
-      throw new InternalServerErrorException('Error guardando archivo en disco');
-    }
-
-    const storageRelative = targetPathAbsolute.startsWith(uploadsRoot)
-      ? targetPathAbsolute.slice(uploadsRoot.length).replace(/^[/\\]/, '')
-      : targetPathAbsolute;
-
-    const recToCreate: Partial<AttachmentRecord> = {
+    const record = await this.attachmentsRepo.create({
       dap_id: dapId,
-      filename,
-      storage_path: storageRelative,
       type,
+      filename,
+      storage_path: storagePath,
       uploaded_by_run: run,
-      created_at: new Date(),
-      mime_type: type === 'receipt' ? this.mimeTypeForExt(ext) : 'application/pdf',
-      size,
-    };
+    });
 
-    let saved: any = null;
-    try {
-      if (!this.attachmentsRepo || typeof this.attachmentsRepo.createAttachment !== 'function') {
-        // fallback simple if repo not provided
-        saved = {
-          id: Date.now(),
-          ...(recToCreate as any),
-        };
-      } else {
-        saved = await this.attachmentsRepo.createAttachment(recToCreate);
-      }
-    } catch (e) {
-      // cleanup file on failure
-      try {
-        if (existsSync(targetPathAbsolute)) await fsPromises.unlink(targetPathAbsolute);
-      } catch {}
-      throw new InternalServerErrorException('Error persistiendo registro del attachment');
-    }
-
-    return saved as AttachmentRecord;
+    return record;
   }
 
-  async listAttachments(run: number, dapId: number): Promise<AttachmentRecord[]> {
-    if (!this.attachmentsRepo || typeof this.attachmentsRepo.listByDap !== 'function') return [];
-    return this.attachmentsRepo.listByDap(run, dapId);
+  async listAttachments(run: number, dapId: number) {
+    const dapEntity = await this.dapRepository.findByIdAndUserRun(dapId, run);
+    if (!dapEntity) throw new NotFoundException('DAP no encontrado o no autorizado');
+
+    return this.attachmentsRepo.findByDap(dapId);
   }
 
-  async getAttachment(run: number, dapId: number, attachmentId: number): Promise<AttachmentRecord | null> {
-    if (!this.attachmentsRepo || typeof this.attachmentsRepo.findByIdAndDap !== 'function') return null;
-    const rec = await this.attachmentsRepo.findByIdAndDap(attachmentId, dapId, run);
-    return rec ?? null;
+  async getAttachment(run: number, dapId: number, attachmentId: number) {
+    const rec = await this.attachmentsRepo.findById(attachmentId);
+    if (!rec) throw new NotFoundException('Adjunto no encontrado');
+    if (rec.dap_id !== dapId) throw new NotFoundException('Adjunto no pertenece a este DAP');
+
+    const dapEntity = await this.dapRepository.findByIdAndUserRun(dapId, run);
+    if (!dapEntity) throw new ForbiddenException('No autorizado');
+
+    return rec;
   }
 
-  async getAttachmentFileInfo(run: number, dapId: number, attachmentId: number) {
-    const rec = await this.getAttachment(run, dapId, attachmentId);
-    if (!rec) return null;
-    const uploadsRoot = this.getUploadsRoot();
-    const filePath = (rec as any).storage_path && (rec as any).storage_path.startsWith('/')
-      ? (rec as any).storage_path
-      : join(uploadsRoot, (rec as any).storage_path ?? rec.filename);
-    const exists = existsSync(filePath);
-    const fileSize = exists ? statSync(filePath).size : 0;
-    return {
-      filePath,
-      filename: rec.filename,
-      mimeType: rec.mime_type,
-      size: fileSize,
-      record: rec,
-    };
-  }
+  async deleteAttachment(run: number, dapId: number, attachmentId: number) {
+    const rec = await this.attachmentsRepo.findById(attachmentId);
+    if (!rec) throw new NotFoundException('Adjunto no encontrado');
+    if (rec.dap_id !== dapId) throw new NotFoundException('Adjunto no pertenece a este DAP');
 
-  async deleteAttachment(run: number, dapId: number, attachmentId: number): Promise<void> {
-    const rec = await this.getAttachment(run, dapId, attachmentId);
-    if (!rec) throw new NotFoundException('Attachment not found');
+    const dapEntity = await this.dapRepository.findByIdAndUserRun(dapId, run);
+    if (!dapEntity) throw new ForbiddenException('No autorizado');
 
-    const uploadsRoot = this.getUploadsRoot();
-    const filePath = (rec as any).storage_path && (rec as any).storage_path.startsWith('/')
-      ? (rec as any).storage_path
-      : join(uploadsRoot, (rec as any).storage_path ?? rec.filename);
-
-    if (this.attachmentsRepo && typeof this.attachmentsRepo.deleteById === 'function') {
-      await this.attachmentsRepo.deleteById(attachmentId);
-    }
-
-    try {
-      if (existsSync(filePath)) await fsPromises.unlink(filePath);
-    } catch (e) {
-      // ignore deletion error
-    }
-  }
-
-  // Optional server-side lock method (no-op unless you implement actual DAP update)
-  async lockAttachments(run: number, dapId: number): Promise<void> {
-    return;
+    await fs.unlink(rec.storage_path).catch(() => {});
+    await this.attachmentsRepo.deleteById(attachmentId);
   }
 }

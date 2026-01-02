@@ -4,17 +4,15 @@ import { DapType } from './dap-type.enum';
 export class Dap {
   id!: number;
   userRun!: number;
-  type?: DapType | string | null;
-  currencyType?: string | null;
-  status?: DapStatus | string | null;
-
-  // Campos que pueden venir vacíos → los dejamos opcionales y admiten null
-  days?: number | null;
-  initialDate?: Date | null;
-  initialAmount?: number | null;
-  finalAmount?: number | null;
-  dueDate?: Date | null;
-  profit?: number | null;
-  interestRateInMonth?: number | null;
-  interestRateInPeriod?: number | null;
+  type!: DapType;
+  currencyType!: string;
+  status!: DapStatus;
+  days!: number;
+  initialDate!: Date;
+  initialAmount!: number;
+  finalAmount!: number;
+  dueDate!: Date;
+  profit!: number;
+  interestRateInMonth!: number;
+  interestRateInPeriod!: number;
 }
