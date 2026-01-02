@@ -1,9 +1,20 @@
-import { Migration } from 'kysely';
+import { Migration, sql } from 'kysely';
+import { parameters } from '../seed/parameters';
+
+/**
+ * Migración única y corregida:
+ * - `commune.region_id` en vez de `id_region` para que el app use region_id.
+ * - Mantiene el resto de tablas y FKs coherentes con lo que ya definiste.
+ *
+ * Nota: Si tienes datos en una tabla `comuna` previa, dime y preparo un script
+ * para copiar (mapear) filas desde `comuna` -> `commune`.
+ */
 
 export const up: Migration['up'] = async (db) => {
   // REGION
   await db.schema
     .createTable('region')
+    .ifNotExists()
     .addColumn('id_region', 'serial', (col) => col.primaryKey())
     .addColumn('nombre', 'varchar(100)', (col) => col.notNull())
     .addColumn('numero_romano', 'varchar(10)', (col) => col.notNull())
@@ -11,151 +22,151 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('abreviacion', 'varchar(10)', (col) => col.notNull())
     .execute();
 
-  // COMUNA
+  // COMMUNE (inglés) — usa region_id (lo espera la app)
   await db.schema
-    .createTable('comuna')
-    .addColumn('id_comuna', 'serial', (col) => col.primaryKey())
+    .createTable('commune')
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('nombre', 'varchar(100)', (col) => col.notNull())
     .addColumn('codigo_postal', 'varchar(20)', (col) => col.notNull())
-    .addColumn('id_region', 'integer', (col) => col.notNull())
+    .addColumn('region_id', 'integer') // <- nombre esperado por la aplicación
     .addForeignKeyConstraint(
-      'fk_comuna_region',
-      ['id_region'],
+      'fk_commune_region',
+      ['region_id'],
       'region',
       ['id_region'],
       (cb) => cb.onDelete('cascade'),
     )
     .execute();
 
-  // DIRECCION
+  // DIRECCION (español) - referencia commune.id
   await db.schema
     .createTable('direccion')
+    .ifNotExists()
     .addColumn('id_direccion', 'serial', (col) => col.primaryKey())
     .addColumn('tipo_direccion', 'varchar(50)', (col) => col.notNull())
     .addColumn('numero', 'varchar(20)', (col) => col.notNull())
     .addColumn('calle', 'varchar(150)', (col) => col.notNull())
     .addColumn('detalle', 'varchar(255)', (col) => col.notNull())
-    .addColumn('id_comuna', 'integer', (col) => col.notNull())
+    .addColumn('id_commune', 'integer', (col) => col.notNull())
     .addForeignKeyConstraint(
-      'fk_direccion_comuna',
-      ['id_comuna'],
-      'comuna',
-      ['id_comuna'],
+      'fk_direccion_commune',
+      ['id_commune'],
+      'commune',
+      ['id'],
       (cb) => cb.onDelete('cascade'),
     )
     .execute();
 
-  // USUARIO
+  // USER (autenticación) -- run como INTEGER
   await db.schema
-    .createTable('usuario')
-    // run ahora es texto, soporta K, puntos, guion, etc.
-    .addColumn('run', 'varchar(12)', (col) => col.primaryKey())
-    .addColumn('primer_apellido', 'varchar(20)', (col) => col.notNull())
-    .addColumn('segundo_apellido', 'varchar(20)', (col) => col.notNull())
-    .addColumn('celular', 'varchar(20)', (col) => col.notNull())
-    .addColumn('contrasena', 'varchar(255)', (col) => col.notNull())
-    .addColumn('fecha_creacion', 'date', (col) => col.notNull())
-    .addColumn('fecha_actualizacion', 'date', (col) => col.notNull())
-    .addColumn('nombres', 'varchar(150)', (col) => col.notNull())
-    .addColumn('email', 'varchar(255)', (col) => col.notNull().unique())
-    .addColumn('id_direccion', 'integer', (col) => col.notNull())
-    .addForeignKeyConstraint(
-      'fk_usuario_direccion',
-      ['id_direccion'],
-      'direccion',
-      ['id_direccion'],
-      (cb) => cb.onDelete('cascade'),
+    .createTable('user')
+    .ifNotExists()
+    .addColumn('run', 'integer', (col) => col.primaryKey())
+    .addColumn('role', 'varchar(10)', (col) => col.notNull())
+    .addColumn('password', 'varchar(255)', (col) => col.notNull())
+    .addColumn('password_attempts', 'smallint', (col) => col.notNull().defaultTo(3))
+    .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
+    .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
+    .addColumn('updated_at', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
+    .execute();
+
+  // CLIENT_PROFILE (separada) -- FK a user.run
+  await db.schema
+    .createTable('client_profile')
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.unique().notNull())
+    .addColumn('document_number', 'bigint')
+    .addColumn('email', 'varchar(255)')
+    .addColumn('cellphone', 'varchar(20)')
+    .addColumn('names', 'varchar(150)')
+    .addColumn('first_last_name', 'varchar(50)')
+    .addColumn('second_last_name', 'varchar(50)')
+    .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`now()`))
+    .addColumn('updated_at', 'timestamp', (col) => col.defaultTo(sql`now()`))
+    .addForeignKeyConstraint('fk_clientprofile_user', ['user_run'], 'user', ['run'], (cb) =>
+      cb.onDelete('cascade'),
     )
     .execute();
 
-  // DAP
+  // DAP (PK = id)
   await db.schema
     .createTable('dap')
-    .addColumn('id_dap', 'serial', (col) => col.primaryKey())
-    .addColumn('tipo', 'varchar(50)', (col) => col.notNull())
-    .addColumn('tipo_moneda', 'varchar(20)', (col) => col.notNull())
-    .addColumn('estado', 'varchar(50)', (col) => col.notNull())
-    .addColumn('dias', 'integer', (col) => col.notNull())
-    .addColumn('fecha_inicial', 'date', (col) => col.notNull())
-    .addColumn('monto_inicial', 'numeric(12, 2)', (col) => col.notNull())
-    .addColumn('fecha_vencimiento', 'date', (col) => col.notNull())
-    .addColumn('monto_final', 'numeric(12, 2)', (col) => col.notNull())
-    .addColumn('tasa_interes', 'numeric(5, 2)', (col) => col.notNull())
-    // FK también como texto
-    .addColumn('run', 'varchar(12)', (col) => col.notNull())
-    .addForeignKeyConstraint(
-      'fk_dap_usuario',
-      ['run'],
-      'usuario',
-      ['run'],
-      (cb) => cb.onDelete('cascade'),
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.notNull())
+    .addColumn('type', 'varchar(50)', (col) => col.notNull())
+    .addColumn('currency_type', 'varchar(20)', (col) => col.notNull())
+    .addColumn('status', 'varchar(50)', (col) => col.notNull())
+    .addColumn('days', 'integer', (col) => col.notNull())
+    .addColumn('initial_date', 'timestamp', (col) => col.notNull())
+    .addColumn('initial_amount', 'numeric', (col) => col.notNull())
+    .addColumn('due_date', 'timestamp', (col) => col.notNull())
+    .addColumn('final_amount', 'numeric', (col) => col.notNull())
+    .addColumn('profit', 'numeric')
+    .addColumn('interest_rate_in_month', 'numeric')
+    .addColumn('interest_rate_in_period', 'numeric')
+    .addForeignKeyConstraint('fk_dap_user', ['user_run'], 'user', ['run'], (cb) =>
+      cb.onDelete('cascade'),
     )
     .execute();
 
-  // ✅ DAP_INSTRUCTIONS (config admin para cuenta destino + instructivo)
+  // DAP_INSTRUCTIONS
   await db.schema
     .createTable('dap_instructions')
+    .ifNotExists()
     .addColumn('id_dap_instructions', 'serial', (col) => col.primaryKey())
     .addColumn('bank_name', 'varchar(100)', (col) => col.notNull())
     .addColumn('account_type', 'varchar(50)', (col) => col.notNull())
     .addColumn('account_number', 'varchar(50)', (col) => col.notNull())
     .addColumn('account_holder_name', 'varchar(100)', (col) => col.notNull())
-    // si quieres permitir "76.123.456-7", cambia a varchar(15)
-    .addColumn('account_holder_rut', 'varchar(12)', (col) => col.notNull())
+    .addColumn('account_holder_rut', 'varchar(15)', (col) => col.notNull())
     .addColumn('email', 'varchar(255)')
     .addColumn('description', 'text', (col) => col.notNull())
-    .addColumn('updated_at', 'timestamp', (col) =>
-      col.notNull().defaultTo(db.fn('current_timestamp')),
-    )
+    .addColumn('updated_at', 'timestamp', (col) => col.defaultTo(sql`now()`))
     .execute();
 
   // CAMBIAR_PASSWORD
   await db.schema
     .createTable('cambiar_password')
+    .ifNotExists()
     .addColumn('id_passwordreset', 'serial', (col) => col.primaryKey())
     .addColumn('token', 'varchar(255)', (col) => col.notNull())
-    .addColumn('expiration', 'date', (col) => col.notNull())
-    .addColumn('fecha_creacion', 'date', (col) => col.notNull())
-    // también texto
-    .addColumn('run', 'varchar(12)', (col) => col.notNull())
-    .addForeignKeyConstraint(
-      'fk_password_usuario',
-      ['run'],
-      'usuario',
-      ['run'],
-      (cb) => cb.onDelete('cascade'),
+    .addColumn('expiration', 'timestamp', (col) => col.notNull())
+    .addColumn('fecha_creacion', 'timestamp', (col) => col.defaultTo(sql`now()`))
+    .addColumn('run', 'integer', (col) => col.notNull())
+    .addForeignKeyConstraint('fk_password_user', ['run'], 'user', ['run'], (cb) =>
+      cb.onDelete('cascade'),
     )
     .execute();
 
   // CUENTA_AHORRO
   await db.schema
     .createTable('cuenta_ahorro')
+    .ifNotExists()
     .addColumn('id_cuentaahorro', 'serial', (col) => col.primaryKey())
-    .addColumn('monto_inicial', 'numeric(12, 2)', (col) => col.notNull())
+    .addColumn('monto_inicial', 'numeric', (col) => col.notNull())
     .addColumn('tipo_moneda', 'varchar(20)', (col) => col.notNull())
-    .addColumn('tasa_de_interes', 'numeric(5, 2)', (col) => col.notNull())
+    .addColumn('tasa_de_interes', 'numeric', (col) => col.notNull())
     .addColumn('fecha_inicial', 'date', (col) => col.notNull())
     .addColumn('fecha_cierre', 'date')
-    // FK texto
-    .addColumn('run', 'varchar(12)', (col) => col.notNull())
+    .addColumn('run', 'integer', (col) => col.notNull())
     .addColumn('contrato_url', 'varchar(255)')
     .addColumn('contrato_hash', 'varchar(128)')
     .addColumn('contrato_firmado', 'boolean', (col) => col.defaultTo(false))
     .addColumn('fecha_contrato', 'date')
-    .addForeignKeyConstraint(
-      'fk_cahorro_usuario',
-      ['run'],
-      'usuario',
-      ['run'],
-      (cb) => cb.onDelete('cascade'),
+    .addForeignKeyConstraint('fk_cahorro_user', ['run'], 'user', ['run'], (cb) =>
+      cb.onDelete('cascade'),
     )
     .execute();
 
   // RETIRO
   await db.schema
     .createTable('retiro')
+    .ifNotExists()
     .addColumn('id_retiro', 'serial', (col) => col.primaryKey())
-    .addColumn('monto', 'numeric(12, 2)', (col) => col.notNull())
+    .addColumn('monto', 'numeric', (col) => col.notNull())
     .addColumn('fecha', 'date', (col) => col.notNull())
     .addColumn('id_cuentaahorro', 'integer', (col) => col.notNull())
     .addForeignKeyConstraint(
@@ -166,16 +177,80 @@ export const up: Migration['up'] = async (db) => {
       (cb) => cb.onDelete('cascade'),
     )
     .execute();
+
+  // ADDRESS
+  await db.schema
+    .createTable('address')
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.notNull())
+    .addColumn('type_address', 'varchar(20)', (col) => col.notNull())
+    .addColumn('street', 'varchar(50)', (col) => col.notNull())
+    .addColumn('number', 'smallint', (col) => col.notNull())
+    .addColumn('detail', 'varchar(50)')
+    .addColumn('commune_id', 'integer')
+    .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
+    .addColumn('updated_at', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
+    .addForeignKeyConstraint(
+      'fk_address_commune',
+      ['commune_id'],
+      'commune',
+      ['id'],
+      (cb) => cb.onDelete('set null'),
+    )
+    .addForeignKeyConstraint('fk_address_user', ['user_run'], 'user', ['run'], (cb) =>
+      cb.onDelete('cascade'),
+    )
+    .execute();
+
+  // USER_SESSION
+  await db.schema
+    .createTable('user_session')
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_run', 'integer', (col) => col.notNull())
+    .addColumn('login_at', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
+    .addColumn('logout_at', 'timestamp')
+    .addColumn('ip_address', 'varchar(20)', (col) => col.notNull())
+    .addColumn('user_agent', 'varchar(255)', (col) => col.notNull())
+    .addForeignKeyConstraint('fk_usersession_user', ['user_run'], 'user', ['run'], (cb) =>
+      cb.onDelete('cascade'),
+    )
+    .execute();
+
+  // PARAMETER
+  await db.schema
+    .createTable('parameter')
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('minimum_days', 'integer', (col) => col.notNull())
+    .addColumn('maximum_days', 'integer', (col) => col.notNull())
+    .addColumn('interest_rate_base', 'numeric', (col) => col.notNull())
+    .execute();
+
+  // Insertar seeds en parameter si existen
+  try {
+    if (Array.isArray(parameters) && parameters.length > 0) {
+      await db.insertInto('parameter').values(parameters).execute();
+    }
+  } catch (err) {
+    console.warn('[migration] parameter seed insertion failed:', err);
+  }
 };
 
 export const down: Migration['down'] = async (db) => {
-  await db.schema.dropTable('retiro').execute();
-  await db.schema.dropTable('cuenta_ahorro').execute();
-  await db.schema.dropTable('cambiar_password').execute();
-  await db.schema.dropTable('dap_instructions').execute(); // ✅ nuevo
-  await db.schema.dropTable('dap').execute();
-  await db.schema.dropTable('usuario').execute();
-  await db.schema.dropTable('direccion').execute();
-  await db.schema.dropTable('comuna').execute();
-  await db.schema.dropTable('region').execute();
+  // eliminación en orden inverso para no romper FK
+  await db.schema.dropTable('parameter').ifExists().execute();
+  await db.schema.dropTable('user_session').ifExists().execute();
+  await db.schema.dropTable('address').ifExists().execute();
+  await db.schema.dropTable('retiro').ifExists().execute();
+  await db.schema.dropTable('cuenta_ahorro').ifExists().execute();
+  await db.schema.dropTable('cambiar_password').ifExists().execute();
+  await db.schema.dropTable('dap_instructions').ifExists().execute();
+  await db.schema.dropTable('dap').ifExists().execute();
+  await db.schema.dropTable('client_profile').ifExists().execute();
+  await db.schema.dropTable('user').ifExists().execute();
+  await db.schema.dropTable('direccion').ifExists().execute();
+  await db.schema.dropTable('commune').ifExists().execute();
+  await db.schema.dropTable('region').ifExists().execute();
 };

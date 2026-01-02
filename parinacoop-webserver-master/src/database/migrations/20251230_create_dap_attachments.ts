@@ -4,6 +4,7 @@ import type { Kysely } from 'kysely';
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('dap_attachments')
+    .ifNotExists()
     .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('dap_id', 'integer', (col) => col.notNull())
     .addColumn('type', 'varchar(32)', (col) => col.notNull()) // 'receipt' | 'signed_document'
@@ -19,6 +20,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .column('dap_id')
     .execute();
 
+  // CORRECCIÓN: referenciar PK de dap ahora es 'id'
   await db.schema
     .alterTable('dap_attachments')
     .addForeignKeyConstraint('fk_dap_attachments_dap', ['dap_id'], 'dap', ['id'])

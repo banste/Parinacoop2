@@ -14,12 +14,12 @@
 
     <div>
       <span class="font-medium">Vencimiento</span>
-      <span>{{ dap.dueDate | date: 'dd-MM-yyyy' }}</span>
+      <span>{{ dap.dueDate ? (dap.dueDate | date: 'dd-MM-yyyy') : '-' }}</span>
     </div>
 
     <div>
       <span class="font-medium">Monto a recibir</span>
-      <span>{{ dap.finalAmount | currency: 'CLP' : 'symbol' }}</span>
+      <span>{{ dap.finalAmount != null ? (dap.finalAmount | currency: 'CLP':'symbol':'1.0-0') : '-' }}</span>
     </div>
 
     <div>

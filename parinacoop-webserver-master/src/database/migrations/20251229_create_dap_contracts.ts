@@ -5,6 +5,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   // Crear tabla - usar 'serial' para id autoincremental en Postgres
   await db.schema
     .createTable('dap_contracts')
+    .ifNotExists()
     .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('dap_id', 'integer', (col) => col.notNull())
     .addColumn('filename', 'varchar(255)', (col) => col.notNull())
@@ -21,7 +22,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .column('dap_id')
     .execute();
 
-  // FK hacia la tabla dap (ajusta el nombre si tu tabla DAP se llama distinto)
+  // FK hacia la tabla dap: ahora referenciando dap.id
   await db.schema
     .alterTable('dap_contracts')
     .addForeignKeyConstraint('fk_dap_contracts_dap', ['dap_id'], 'dap', ['id'])
