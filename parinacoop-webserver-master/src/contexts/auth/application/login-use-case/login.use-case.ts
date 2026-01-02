@@ -64,7 +64,7 @@ export class LoginUseCase {
 
     const isSamePassword = await this.hashingService.compare(
       dto.password,
-      password.toString(),
+      String(password),
     );
 
     if (!isSamePassword) {
