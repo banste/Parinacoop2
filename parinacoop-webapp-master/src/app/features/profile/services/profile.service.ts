@@ -8,7 +8,8 @@ import { UpdateProfileDto } from '../interfaces/update-profile.dto';
 export interface ProfileResponse {
   profile: {
     run: number;
-    documentNumber: number;
+    // documentNumber ahora es string
+    documentNumber: string;
     names: string;
     firstLastName: string;
     secondLastName: string;
@@ -49,6 +50,7 @@ export class ProfileService {
   updateProfile(dto: UpdateProfileDto): Observable<{ msg: string }> {
     // URL RELATIVA también
     return this.http.patch<{ msg: string }>(`profile/${dto.run}`, {
+      // enviar documentNumber como string
       documentNumber: dto.documentNumber,
       names: dto.names,
       firstLastName: dto.firstLastName,

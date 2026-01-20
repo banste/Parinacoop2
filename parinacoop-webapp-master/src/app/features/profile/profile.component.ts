@@ -1,35 +1,33 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { AsyncPipe, NgClass } from '@angular/common';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { AsyncPipe, NgClass } from '@angular/common';
+import { Subject, Observable, takeUntil, filter } from 'rxjs';
+
 import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { Observable, Subject, filter, takeUntil } from 'rxjs';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 
-import { runValidator } from '@shared/validators/runValidator';
-import { FormFieldComponent, SpinnerComponent } from '@shared/components';
+import { FormFieldComponent } from '@app/shared/components/form-field/form-field.component';
+import { SpinnerComponent } from '@app/shared/components/spinner/spinner.component';
 
-import { AuthService } from '@app/core/auth/services/auth.service';
 import { LocationService } from './services/location.service';
+import { AuthService } from '@app/core/auth/services/auth.service';
 import { ProfileService } from './services/profile.service';
-import { Region } from './models/Region';
-import { Commune } from '@features/profile/models/Commune';
-
-import {
-  formatRut,
-  getRutDigits,
-  RutFormat,
-  calculateRutVerifier,
-} from '@fdograph/rut-utilities';
-
 import { UpdateProfileDto } from './interfaces/update-profile.dto';
+
+import { Commune } from './models/Commune';
+import { Region } from './models/Region';
 
 @Component({
   selector: 'app-profile',
@@ -50,15 +48,20 @@ import { UpdateProfileDto } from './interfaces/update-profile.dto';
 })
 export default class ProfileComponent implements OnInit, OnDestroy {
   profileForm = new FormGroup({
-    run: new FormControl<string>('', [Validators.required, runValidator]),
+    run: new FormControl<string>('', [Validators.required /*, runValidator si lo usas */]),
     names: new FormControl<string>('', Validators.required),
     firstLastName: new FormControl<string>('', Validators.required),
     secondLastName: new FormControl<string>('', Validators.required),
     email: new FormControl<string>('', [Validators.required, Validators.email]),
-    documentNumber: new FormControl<number>(0, Validators.required),
+    // documentNumber como string: acepta letras, números, puntos y guiones
+    documentNumber: new FormControl<string>('', [
+      Validators.required,
+      Validators.minLength(3),
+      Validators.pattern(/^[A-Za-z0-9.\-]+$/),
+    ]),
     cellphone: new FormControl<string>('', Validators.required),
     street: new FormControl<string>('', Validators.required),
-    number: new FormControl<number>(0, Validators.required),
+    number: new FormControl<number | null>(null, Validators.required),
     detail: new FormControl<string>(''),
     regionId: new FormControl<number>(0, [Validators.min(1)]),
     communeId: new FormControl<number>(0, [Validators.min(1)]),
@@ -133,8 +136,10 @@ export default class ProfileComponent implements OnInit, OnDestroy {
           error: (err) => {
             this.loading = false;
             if (err?.status === 404) {
-              // Perfil no existe -> permitir crear desde UI pero SOLO campos editables
+              // Perfil no existe -> permitir crear desde UI
+              // Habilitar campos editables + documentNumber (usuario debe ingresarlo)
               this.enableEditableFields();
+              this.profileForm.get('documentNumber')?.enable();
               this.isEditing = true;
               this.profileForm.get('run')?.setValue(String(runNumber));
               return;
@@ -158,26 +163,17 @@ export default class ProfileComponent implements OnInit, OnDestroy {
 
   // Habilita SOLO los campos de contacto/dirección
   private enableEditableFields(): void {
-    // Habilitamos temporalmente todo para poder manipular controles
-    this.profileForm.enable();
-
-    // Deshabilitamos todos para controlarlos de forma explícita
-    Object.keys(this.profileForm.controls).forEach((key) => {
-      const c = this.profileForm.get(key);
-      c?.disable();
-    });
-
-    // Habilitamos sólo los editables (contacto + dirección)
+    // Habilitar solo los editables definidos
     this.editableFields.forEach((f) => {
-      const ctrl = this.profileForm.get(f) as FormControl | null;
-      if (ctrl) ctrl.enable();
+      const ctrl = this.profileForm.get(f);
+      ctrl?.enable();
     });
-
-    // Por seguridad, mantener ineditables los datos personales
+    // mantener datos personales deshabilitados por defecto
     this.profileForm.get('run')?.disable();
     this.profileForm.get('names')?.disable();
     this.profileForm.get('firstLastName')?.disable();
     this.profileForm.get('secondLastName')?.disable();
+    // documentNumber lo dejamos deshabilitado por defecto; en flujo de creación se habilita explícitamente
     this.profileForm.get('documentNumber')?.disable();
   }
 
@@ -193,6 +189,8 @@ export default class ProfileComponent implements OnInit, OnDestroy {
   toggleEdit(): void {
     if (!this.isEditing) {
       this.enableEditableFields();
+      // si quieres que al hacer click en "Modificar" también permita editar documentNumber:
+      // this.profileForm.get('documentNumber')?.enable();
       this.isEditing = true;
       return;
     }
@@ -205,18 +203,45 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Rellena el formulario a partir del profile object devuelto desde el backend
+  private patchForm(profile: any): void {
+    this.profileForm.patchValue({
+      run: String(profile.run ?? ''),
+      // documentNumber como string; usar '' si no viene
+      documentNumber: profile.documentNumber ?? '',
+      names: profile.names ?? '',
+      firstLastName: profile.firstLastName ?? '',
+      secondLastName: profile.secondLastName ?? '',
+      email: profile.email ?? '',
+      cellphone: profile.cellphone ?? '',
+      street: profile.street ?? '',
+      number: profile.number ?? null,
+      detail: profile.detail ?? '',
+      regionId: profile.regionId ?? 0,
+      communeId: profile.communeId ?? 0,
+    });
+
+    // Si hay regionId, disparar fetch de comunas
+    const reg = Number(profile.regionId ?? 0);
+    if (reg > 0) {
+      this.getCommunes(reg);
+    }
+  }
+
   // Maneja el submit del formulario: arma DTO y llama al servicio
   onSubmit(): void {
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
+      alert('Corrige los errores del formulario antes de enviar.');
       return;
     }
 
     this.isSubmitting = true;
 
     const dto: UpdateProfileDto = {
-      run: Number(this.profileForm.get('run')?.value),
-      documentNumber: Number(this.profileForm.get('documentNumber')?.value ?? 0),
+      run: Number(this.profileForm.get('run')?.value ?? 0),
+      // enviar documentNumber como string tal y como está en el form
+      documentNumber: String(this.profileForm.get('documentNumber')?.value ?? ''),
       names: String(this.profileForm.get('names')?.value ?? ''),
       firstLastName: String(this.profileForm.get('firstLastName')?.value ?? ''),
       secondLastName: String(this.profileForm.get('secondLastName')?.value ?? ''),
@@ -249,7 +274,8 @@ export default class ProfileComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error actualizando perfil', err);
-        alert('Error al actualizar el perfil');
+        const serverMsg = err?.error ?? err;
+        alert(`Error al actualizar el perfil: ${JSON.stringify(serverMsg)}`);
         this.isSubmitting = false;
       },
     });
@@ -265,30 +291,6 @@ export default class ProfileComponent implements OnInit, OnDestroy {
       svc.getCommunes(regionId);
     } else {
       console.warn('LocationService no expone getCommunesByRegionId/getCommunes');
-    }
-  }
-
-  // Rellena el formulario a partir del profile object devuelto desde el backend
-  private patchForm(profile: any): void {
-    this.profileForm.patchValue({
-      run: String(profile.run ?? ''),
-      documentNumber: profile.documentNumber ?? 0,
-      names: profile.names ?? '',
-      firstLastName: profile.firstLastName ?? '',
-      secondLastName: profile.secondLastName ?? '',
-      email: profile.email ?? '',
-      cellphone: profile.cellphone ?? '',
-      street: profile.street ?? '',
-      number: profile.number ?? 0,
-      detail: profile.detail ?? '',
-      regionId: profile.regionId ?? 0,
-      communeId: profile.communeId ?? 0,
-    });
-
-    // Si hay regionId, disparar fetch de comunas
-    const reg = Number(profile.regionId ?? 0);
-    if (reg > 0) {
-      this.getCommunes(reg);
     }
   }
 }

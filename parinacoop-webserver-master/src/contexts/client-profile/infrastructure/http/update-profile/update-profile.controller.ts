@@ -12,6 +12,7 @@ import { UpdateProfileUseCase } from '@/contexts/client-profile/application/upda
 import { AuthGuard } from '@/contexts/shared/guards/auth.guard';
 
 import { UpdateProfileHttpDto } from './update-profile.http-dto';
+import { UpdateProfileDto } from '@/contexts/client-profile/application/update-profile/update-profile.dto';
 
 @ApiTags('Perfil de cliente')
 @ApiBearerAuth()
@@ -25,6 +26,22 @@ export class UpdateProfileController {
     @Param('run', ParseIntPipe) run: number,
     @Body() dtoHttp: UpdateProfileHttpDto,
   ): Promise<{ msg: string }> {
-    return await this.updateProfileUseCase.execute({ ...dtoHttp, run });
+    // Normalizamos/transformamos valores recibidos y proveemos default para detail
+    const dto: UpdateProfileDto = {
+      documentNumber: Number(dtoHttp.documentNumber),
+      names: String(dtoHttp.names),
+      firstLastName: String(dtoHttp.firstLastName),
+      secondLastName: String(dtoHttp.secondLastName),
+      email: String(dtoHttp.email),
+      cellphone: String(dtoHttp.cellphone),
+      street: String(dtoHttp.street),
+      number: Number(dtoHttp.number),
+      detail: dtoHttp.detail ?? '',
+      regionId: Number(dtoHttp.regionId),
+      communeId: Number(dtoHttp.communeId),
+    };
+
+    // Firma del use-case: (run, dto)
+    return await this.updateProfileUseCase.execute(run, dto);
   }
 }

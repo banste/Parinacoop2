@@ -3,6 +3,7 @@ import { UserRepository } from '../../domain/ports/user.repository';
 import { Database } from '@/database/database';
 import { User } from '../../domain/models/User';
 import { Role } from '@/contexts/shared/enums/roles.enum';
+import { sql } from 'kysely';
 
 @Injectable()
 export class PostgreSqlUserRepository implements UserRepository {
@@ -31,17 +32,19 @@ export class PostgreSqlUserRepository implements UserRepository {
   async create(user: User): Promise<User> {
     const { run, role, password, address, profile } = user.toValue();
 
+    // Insert user row
     await this.db
       .insertInto('user')
       .values({
-        run,           // usar number, no string
-        role,          // role (enum/string) directamente
-        password: password!,
+        run, // usar number
+        role, // role (enum/string)
+        password: password ?? null,
       })
       .executeTakeFirstOrThrow();
 
     const userClient = new User({ run, role });
 
+    // Insert client_profile if profile provided
     if (profile) {
       await this.db
         .insertInto('client_profile')
@@ -52,11 +55,16 @@ export class PostgreSqlUserRepository implements UserRepository {
           second_last_name: profile.secondLastName,
           email: profile.email,
           cellphone: profile.cellphone,
-          document_number: profile.documentNumber,
+          // Convertir a string si puede venir como number (evita error de tipado)
+          document_number: String(profile.documentNumber ?? ''),
+          // Satisfacer tipos que esperan timestamps
+          created_at: sql`now()`,
+          updated_at: sql`now()`,
         })
         .executeTakeFirstOrThrow();
     }
 
+    // Insert address if provided; incluimos created_at/updated_at para satisfacer los tipos Kysely
     if (address) {
       await this.db
         .insertInto('address')
@@ -67,6 +75,8 @@ export class PostgreSqlUserRepository implements UserRepository {
           number: address.number,
           detail: address.detail,
           commune_id: address.communeId,
+          created_at: sql`now()`,
+          updated_at: sql`now()`,
         })
         .executeTakeFirstOrThrow();
     }

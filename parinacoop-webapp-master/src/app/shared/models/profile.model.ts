@@ -1,6 +1,6 @@
 export class Profile {
   run!: string;
-  documentNumber!: number;
+  documentNumber!: string; // ahora string
   names!: string;
   firstLastName!: string;
   secondLastName!: string;

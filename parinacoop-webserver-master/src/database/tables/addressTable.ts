@@ -8,4 +8,8 @@ export interface AddressTable {
   street: string;
   number: number;
   detail: string;
+
+  // timestamps creados en la migración
+  created_at: Date;
+  updated_at: Date;
 }

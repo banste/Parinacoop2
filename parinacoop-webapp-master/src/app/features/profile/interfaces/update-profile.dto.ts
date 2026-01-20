@@ -1,6 +1,6 @@
 export interface UpdateProfileDto {
   run: number;
-  documentNumber: number;
+  documentNumber: string; // ahora string (acepta letras y números)
   names: string;
   firstLastName: string;
   secondLastName: string;

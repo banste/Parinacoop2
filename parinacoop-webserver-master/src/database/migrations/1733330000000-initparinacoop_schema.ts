@@ -77,7 +77,7 @@ export const up: Migration['up'] = async (db) => {
     .ifNotExists()
     .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('user_run', 'integer', (col) => col.unique().notNull())
-    .addColumn('document_number', 'bigint')
+    .addColumn('document_number', 'varchar(20)')
     .addColumn('email', 'varchar(255)')
     .addColumn('cellphone', 'varchar(20)')
     .addColumn('names', 'varchar(150)')

@@ -1,71 +1,102 @@
-<main class="flex h-full flex-col items-center gap-5">
-  <h1 class="mt-20 w-80 text-pretty text-center text-2xl">
+<main class="flex min-h-screen flex-col items-center justify-start py-12">
+  <h1 class="mb-6 text-center text-2xl font-medium text-pretty">
     Nuevo cliente de Parinacoop
   </h1>
-  <div
-    class="flex h-[33rem] w-96 flex-col items-center justify-evenly rounded-xl bg-[#F6F6F6]"
-  >
-    <h2 class="w-72 text-pretty text-center font-medium">
-      Para asociarse con Parinacoop debe ingresar los siguientes datos
-    </h2>
-    <form
-      class="flex flex-col items-center justify-center gap-6"
-      (ngSubmit)="onDataSubmit()"
-      [formGroup]="dataForm"
-    >
-      <!-- <app-form-field label="Run" type="text" formControlName="run" />
-      <app-form-field
-        label="N° de documento"
-        type="text"
-        formControlName="documentNumber"
-      />
-      <app-form-field label="Correo" type="email" formControlName="email" />
-      <app-form-field
-        label="Teléfono celular"
-        type="number"
-        formControlName="cellphone"
-      /> -->
 
-      <button
-        [ngClass]="[
-          'col-span-2 h-10 w-72 justify-self-center rounded-full bg-primary-500 text-white transition-colors duration-100',
-          'disabled:bg-primary-100 disabled:text-primary-400',
-          'hover:bg-primary-600',
-        ]"
-        type="submit"
-        [disabled]="dataForm.invalid"
-      >
-        Registrarse como cliente
-      </button>
-    </form>
-    <!-- <form [formGroup]="passwordForm">
-      <app-form-field
-        label="Clave"
-        type="password"
-        formControlName="password"
-      />
-      <app-form-field
-        label="Confirmar clave"
-        type="password"
-        formControlName="confirmPassword"
-      />
-      <label class="col-span-2 flex items-center gap-2 justify-self-center">
-        <input type="checkbox" formControlName="terms" class="h-5 w-5" />
-        <span class="text-sm"
-          >Al hacerme cliente de Parinacoop, estoy de acuerdo con ...</span
+  <section class="w-full max-w-3xl space-y-6">
+    <!-- Card 1: Información principal -->
+    <div class="rounded-xl bg-[#F6F6F6] px-6 py-6 shadow-sm">
+      <h2 class="mb-4 text-sm font-medium text-[#333]">Información personal</h2>
+
+      <div class="grid grid-cols-1 gap-4">
+        <div class="grid grid-cols-2 gap-4">
+          <par-form-field size="large" label="Nombres" [formCtrl]="fc('names')"></par-form-field>
+          <par-form-field size="large" label="Primer apellido" [formCtrl]="fc('firstLastName')"></par-form-field>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <par-form-field size="large" label="Segundo apellido" [formCtrl]="fc('secondLastName')"></par-form-field>
+          <par-form-field size="large" label="RUN" format="run" [formCtrl]="fc('run')"></par-form-field>
+        </div>
+
+        <par-form-field size="large" label="N° de documento" [formCtrl]="fc('documentNumber')"></par-form-field>
+
+        <div class="grid grid-cols-2 gap-4">
+          <par-form-field size="large" label="Correo" type="email" [formCtrl]="fc('email')"></par-form-field>
+          <par-form-field size="large" label="Teléfono celular" type="tel" [formCtrl]="fc('cellphone')"></par-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Dirección (Address fields + Región / Comuna) -->
+    <div class="rounded-xl bg-[#F6F6F6] px-6 py-6 shadow-sm">
+      <h2 class="mb-4 text-sm font-medium text-[#333]">Dirección</h2>
+
+      <div class="grid grid-cols-1 gap-4">
+        <!-- address fields añadidos -->
+        <div class="grid grid-cols-2 gap-4">
+          <par-form-field size="large" label="Tipo (home/work)" [formCtrl]="fc('typeAddress')"></par-form-field>
+          <par-form-field size="large" label="Calle" [formCtrl]="fc('street')"></par-form-field>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <par-form-field size="large" label="Número" type="number" [formCtrl]="fc('number')"></par-form-field>
+          <par-form-field size="large" label="Detalle" [formCtrl]="fc('detail')"></par-form-field>
+        </div>
+
+        <!-- Region / Commune (existentes) -->
+        <mat-form-field appearance="outline" class="w-full" hideRequiredMarker>
+          <mat-label>Región</mat-label>
+          <mat-select [formControl]="fc('regionId')">
+            <mat-option [value]="0">Seleccione una región</mat-option>
+            <mat-option *ngFor="let r of (regions$ | async)" [value]="r.id">{{ r.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full" hideRequiredMarker>
+          <mat-label>Comuna</mat-label>
+          <mat-select [formControl]="fc('communeId')">
+            <mat-option [value]="0">Seleccione una comuna</mat-option>
+            <mat-option *ngFor="let c of (communes$ | async)" [value]="c.id">{{ c.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Card 3: Contraseña -->
+    <div class="rounded-xl bg-[#F6F6F6] px-6 py-6 shadow-sm">
+      <h2 class="mb-4 text-sm font-medium text-[#333]">Contraseña</h2>
+
+      <div class="grid grid-cols-1 gap-4">
+        <par-form-field size="large" label="Clave" type="password" [formCtrl]="fc('password')"></par-form-field>
+        <par-form-field size="large" label="Confirmar clave" type="password" [formCtrl]="fc('confirmPassword')"></par-form-field>
+
+        <label class="mt-2 flex items-start gap-3 text-sm text-[#444]">
+          <input type="checkbox" class="mt-1 h-4 w-4 rounded border-gray-300" [formControl]="fc('terms')" />
+          <span>Al hacerme cliente de Parinacoop, estoy de acuerdo con ...</span>
+        </label>
+
+        <p *ngIf="registerErrorMsg" class="mt-2 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-600">
+          {{ registerErrorMsg }}
+        </p>
+
+        <button
+          type="button"
+          (click)="onRegister()"
+          [disabled]="registerForm.invalid || isSubmitting"
+          [attr.aria-disabled]="registerForm.invalid || isSubmitting"
+          [ngClass]="{
+            'flex h-10 w-full items-center justify-center rounded-full px-4 text-sm font-medium transition': true,
+            'bg-primary-500 text-white hover:bg-primary-600': !(registerForm.invalid || isSubmitting),
+            'bg-primary-100 text-primary-600 cursor-not-allowed': registerForm.invalid || isSubmitting
+          }"
         >
-      </label>
-      <button
-        [ngClass]="[
-          'col-span-2 h-10 w-72 justify-self-center rounded-full bg-primary-500 text-white transition-colors duration-100',
-          'disabled:bg-primary-100 disabled:text-primary-400',
-          'hover:bg-primary-600',
-        ]"
-        type="submit"
-        [disabled]="passwordForm.invalid"
-      >
-        Registrarse como cliente
-      </button>
-    </form> -->
-  </div>
+          <ng-container *ngIf="isSubmitting; else notSubmitting">
+            <app-spinner></app-spinner><span class="ml-2">Registrando...</span>
+          </ng-container>
+          <ng-template #notSubmitting>Registrarse como cliente</ng-template>
+        </button>
+      </div>
+    </div>
+  </section>
 </main>

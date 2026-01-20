@@ -1,17 +1,20 @@
+import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsInt,
   IsNotEmpty,
-  IsPhoneNumber,
-  IsPositive,
+  IsOptional,
   IsString,
   MaxLength,
   Min,
+  Matches,
+  IsPositive,
 } from 'class-validator';
 
 export class UpdateProfileHttpDto {
-  @Min(100000000)
+  @Type(() => Number)
   @IsInt()
+  @Min(100000000)
   documentNumber!: number;
 
   @IsString()
@@ -34,7 +37,11 @@ export class UpdateProfileHttpDto {
   @MaxLength(50)
   email!: string;
 
-  @IsPhoneNumber('CL')
+  // Acepta teléfono local (8-9 dígitos) o con +56 prefijo opcional
+  @IsString()
+  @Matches(/^(\+56)?\d{8,9}$/, {
+    message: 'cellphone must be 8–9 digits, optionally prefixed with +56',
+  })
   cellphone!: string;
 
   @IsString()
@@ -42,17 +49,24 @@ export class UpdateProfileHttpDto {
   @IsNotEmpty()
   street!: string;
 
-  @IsPositive()
+  @Type(() => Number)
   @IsInt()
+  @IsPositive()
   number!: number;
 
+  // detail ahora opcional en HTTP; el dominio puede recibir '' si lo prefieres
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  @IsNotEmpty()
-  detail!: string;
+  detail?: string;
 
-  @IsPositive()
+  @Type(() => Number)
   @IsInt()
+  @IsPositive()
   communeId!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
   regionId!: number;
 }

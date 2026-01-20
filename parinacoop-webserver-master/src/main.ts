@@ -24,7 +24,13 @@ async function bootstrap() {
     ],
   });
   app.setGlobalPrefix('api');
-  app.useGlobalPipes(new ValidationPipe());
+
+  // <-- IMPORTANTE: activar transform para que @Type(() => Number) funcione
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+    forbidNonWhitelisted: false,
+  }));
 
   await app.register(helmet);
 

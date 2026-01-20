@@ -1,6 +1,7 @@
 export interface ProfileResponse {
   run: number;
-  documentNumber: number;
+  // documentNumber como string
+  documentNumber: string;
   names: string;
   firstLastName: string;
   secondLastName: string;

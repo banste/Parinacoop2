@@ -8,6 +8,10 @@ import { EnvironmentVariables } from '@/config/environment-variables.schema';
 import { ConfigService } from '@nestjs/config';
 import { ValidateJwtController } from './http/validate-jwt/validate-jwt.controller';
 
+// Nuevos imports: RegisterUseCase + RegisterController
+import { RegisterUseCase } from '@/contexts/auth/application/register-use-case/register.use-case';
+import { RegisterController } from './http/register/register.controller';
+
 @Module({
   imports: [
     JwtModule.registerAsync({
@@ -19,9 +23,11 @@ import { ValidateJwtController } from './http/validate-jwt/validate-jwt.controll
       }),
     }),
   ],
-  controllers: [LoginController, ValidateJwtController],
+  // Agregar RegisterController aquí
+  controllers: [LoginController, ValidateJwtController, RegisterController],
   providers: [
     LoginUseCase,
+    RegisterUseCase, // registrar el caso de uso
     {
       provide: UserRepository,
       useClass: PostgresUserRepository,

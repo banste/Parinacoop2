@@ -2,7 +2,23 @@ export interface PrimitiveAuthUser {
   run: number;
   role: string;
   password?: string;
-  // agrega campos que necesites
+  // optional profile block
+  profile?: {
+    names?: string;
+    firstLastName?: string;
+    secondLastName?: string;
+    email?: string;
+    cellphone?: string;
+    documentNumber?: string | number;
+  };
+  // optional address block
+  address?: {
+    typeAddress?: string;
+    street?: string;
+    number?: number;
+    detail?: string;
+    communeId?: number;
+  };
 }
 
 export class User {
@@ -17,5 +33,9 @@ export class User {
   }
   get role(): string {
     return this.props.role;
+  }
+
+  get password(): string | undefined {
+    return this.props.password;
   }
 }
