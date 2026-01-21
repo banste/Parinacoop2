@@ -53,8 +53,8 @@ export class DapDialogDetailsComponent {
   }
 
   descargarSolicitudPdf(): void {
-    const run = this.dapService.getCurrentRun?.() ?? (this.currentDap as any)?.userRun;
-    const dapId = this.currentDap?.id;
+    const run = this.dapService.getCurrentRun?.() ?? (this.currentDap as any).userRun;
+    const dapId = this.currentDap.id;
 
     if (!run || !dapId) {
       alert(`Falta RUN o ID.\nrun=${run}\ndapId=${dapId}`);
@@ -74,8 +74,8 @@ export class DapDialogDetailsComponent {
   }
 
   descargarInstructivoPdf(): void {
-    const run = this.dapService.getCurrentRun?.() ?? (this.currentDap as any)?.userRun;
-    const dapId = this.currentDap?.id;
+    const run = this.dapService.getCurrentRun?.() ?? (this.currentDap as any).userRun;
+    const dapId = this.currentDap.id;
 
     if (!run || !dapId) {
       alert(`Falta RUN o ID.\nrun=${run}\ndapId=${dapId}`);
@@ -94,36 +94,24 @@ export class DapDialogDetailsComponent {
       });
   }
 
-  private showHttpError(tipo: string, err: unknown): void {
-    if (err instanceof HttpErrorResponse) {
-      console.error(`[${tipo}] HTTP Error`, err);
-
-      // Si backend manda JSON con "message"
-      const msg =
-        (typeof err.error === 'object' && err.error?.message) ||
-        (typeof err.error === 'string' ? err.error : null) ||
-        err.message;
-
-      alert(
-        `${tipo} falló.\n` +
-          `Status: ${err.status} ${err.statusText}\n` +
-          `URL: ${err.url}\n` +
-          `Mensaje: ${msg}`
-      );
-      return;
-    }
-
-    console.error(`[${tipo}] Error`, err);
-    alert(`${tipo} falló. Revisa consola.`);
-  }
-
-  private saveBlob(blob: Blob, filename: string): void {
+  private saveBlob(blob: Blob, fileName: string): void {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
-    a.rel = 'noopener';
+    a.download = fileName;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     window.URL.revokeObjectURL(url);
+  }
+
+  private showHttpError(label: string, err: unknown): void {
+    if (err instanceof HttpErrorResponse) {
+      console.error(`${label} download error`, err);
+      alert(`${label} - Error: ${err.status} ${err.statusText}`);
+    } else {
+      console.error(`${label} download unknown error`, err);
+      alert(`${label} - Error desconocido`);
+    }
   }
 }
