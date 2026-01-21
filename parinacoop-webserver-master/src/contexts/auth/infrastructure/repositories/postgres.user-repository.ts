@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
-// Importar el contrato correcto dentro del mismo contexto (ruta relativa a domain)
-import { UserRepository } from '../../domain/user.repository';
 import { Database } from '@/database/database';
-// Importar la entidad User desde el domain del contexto auth
 import { User } from '../../domain/user';
-import { Role } from '@/contexts/shared/enums/roles.enum';
+import { UserRepository } from '../../domain/user.repository';
 import { sql } from 'kysely';
 
 @Injectable()
@@ -12,24 +9,78 @@ export class PostgresUserRepository implements UserRepository {
   constructor(private db: Database) {}
 
   async getByRun(run: number): Promise<User | null> {
-    const result = await this.db
+    const row = await this.db
       .selectFrom('user')
-      .selectAll()
+      .leftJoin('client_profile', 'client_profile.user_run', 'user.run')
+      .select([
+        'user.run as run',
+        'user.role as role',
+        'user.password as password',
+        'client_profile.names as names',
+        'client_profile.first_last_name as first_last_name',
+        'client_profile.second_last_name as second_last_name',
+        'client_profile.email as email',
+        'client_profile.cellphone as cellphone',
+        'client_profile.document_number as document_number',
+      ])
       .where('user.run', '=', run)
       .executeTakeFirst();
 
-    return result ? new User(result as any) : null;
+    if (!row) return null;
+
+    const primitive: any = {
+      run: Number(row.run),
+      role: String(row.role),
+      password: row.password ?? undefined,
+      profile: {
+        names: row.names ?? undefined,
+        firstLastName: row.first_last_name ?? undefined,
+        secondLastName: row.second_last_name ?? undefined,
+        email: row.email ?? undefined,
+        cellphone: row.cellphone ?? undefined,
+        documentNumber: row.document_number ?? undefined,
+      },
+    };
+
+    return new User(primitive);
   }
 
   async getByCredentials(run: number, password: string): Promise<User | null> {
-    const result = await this.db
+    const row = await this.db
       .selectFrom('user')
-      .selectAll()
+      .leftJoin('client_profile', 'client_profile.user_run', 'user.run')
+      .select([
+        'user.run as run',
+        'user.role as role',
+        'user.password as password',
+        'client_profile.names as names',
+        'client_profile.first_last_name as first_last_name',
+        'client_profile.second_last_name as second_last_name',
+        'client_profile.email as email',
+        'client_profile.cellphone as cellphone',
+        'client_profile.document_number as document_number',
+      ])
       .where('user.run', '=', run)
       .where('user.password', '=', password)
       .executeTakeFirst();
 
-    return result ? new User(result as any) : null;
+    if (!row) return null;
+
+    const primitive: any = {
+      run: Number(row.run),
+      role: String(row.role),
+      password: row.password ?? undefined,
+      profile: {
+        names: row.names ?? undefined,
+        firstLastName: row.first_last_name ?? undefined,
+        secondLastName: row.second_last_name ?? undefined,
+        email: row.email ?? undefined,
+        cellphone: row.cellphone ?? undefined,
+        documentNumber: row.document_number ?? undefined,
+      },
+    };
+
+    return new User(primitive);
   }
 
   async create(user: User): Promise<User> {
@@ -86,5 +137,14 @@ export class PostgresUserRepository implements UserRepository {
     }
 
     return new User({ run, role, password: password ?? undefined });
+  }
+
+  // Nuevo método: actualizar contraseña del usuario
+  async updatePassword(run: number, hashedPassword: string): Promise<void> {
+    await this.db
+      .updateTable('user')
+      .set({ password: hashedPassword })
+      .where('run', '=', run)
+      .execute();
   }
 }

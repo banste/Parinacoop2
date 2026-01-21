@@ -7,10 +7,18 @@ import { JwtModule } from '@nestjs/jwt';
 import { EnvironmentVariables } from '@/config/environment-variables.schema';
 import { ConfigService } from '@nestjs/config';
 import { ValidateJwtController } from './http/validate-jwt/validate-jwt.controller';
-
-// Nuevos imports: RegisterUseCase + RegisterController
 import { RegisterUseCase } from '@/contexts/auth/application/register-use-case/register.use-case';
 import { RegisterController } from './http/register/register.controller';
+
+import { ForgotPasswordController } from './http/forgot-password/forgot-password.controller';
+import { ForgotPasswordUseCase } from '@/contexts/auth/application/forgot-password/forgot-password.use-case';
+import { PasswordResetRepository } from '../domain/password-reset.repository';
+
+import { ResetPasswordController } from './http/reset-password/reset-password.controller';
+import { ResetPasswordUseCase } from '@/contexts/auth/application/reset-password/reset-password.use-case';
+
+// Import SharedModule so HashingService / MailService are available
+import { SharedModule } from '@/contexts/shared/shared.module';
 
 @Module({
   imports: [
@@ -22,12 +30,21 @@ import { RegisterController } from './http/register/register.controller';
         signOptions: { expiresIn: configService.get('JWT_EXPIRES_IN') },
       }),
     }),
+    SharedModule,
   ],
-  // Agregar RegisterController aquí
-  controllers: [LoginController, ValidateJwtController, RegisterController],
+  controllers: [
+    LoginController,
+    ValidateJwtController,
+    RegisterController,
+    ForgotPasswordController,
+    ResetPasswordController,
+  ],
   providers: [
     LoginUseCase,
-    RegisterUseCase, // registrar el caso de uso
+    RegisterUseCase,
+    ForgotPasswordUseCase,
+    ResetPasswordUseCase,
+    PasswordResetRepository,
     {
       provide: UserRepository,
       useClass: PostgresUserRepository,

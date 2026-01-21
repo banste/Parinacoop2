@@ -104,16 +104,36 @@ export class AuthService {
   }
 
   /**
-   * Resetea la contraseña usando token/código recibido por correo y la nueva password.
-   * token: string (código enviado en correo)
-   * newPassword: string
+   * Resetea la contraseña.
+   *
+   * Firmas soportadas:
+   * - resetPassword(token: string, newPassword: string)
+   * - resetPassword(payload: { run?: string|number; token: string; newPassword: string })
+   *
+   * El método detecta la forma llamada y normaliza el body que se envía al backend.
    */
-  resetPassword(token: string, newPassword: string): Observable<any> {
+  resetPassword(tokenOrPayload: string | { run?: string | number; token: string; newPassword: string }, maybeNewPassword?: string): Observable<any> {
     try {
       (this.loader as any)?.show?.();
     } catch {}
 
-    return this.httpClient.post('auth/reset-password', { token, newPassword }).pipe(
+    let body: { run?: string | number; token: string; newPassword: string };
+
+    if (typeof tokenOrPayload === 'string') {
+      // llamada antigua: resetPassword(token, newPassword)
+      body = { token: tokenOrPayload, newPassword: maybeNewPassword ?? '' };
+    } else {
+      // llamada con objeto
+      body = {
+        run: tokenOrPayload.run,
+        token: tokenOrPayload.token,
+        newPassword: tokenOrPayload.newPassword,
+      };
+    }
+
+    // Nota: el backend que implementamos espera run + token + newPassword;
+    // si run es undefined el backend puede rechazar la petición (400). Preferible pasar siempre run.
+    return this.httpClient.post('auth/reset-password', body).pipe(
       tap((res) => {
         // Opcional: si el backend devuelve un token de acceso al resetear, puedes guardarlo:
         // if (res?.accessToken) this.saveAccessToken(res.accessToken);

@@ -88,4 +88,16 @@ export default class LoginComponent implements OnInit, OnDestroy {
   fc(name: string): FormControl {
     return this.loginForm.get(name) as FormControl;
   }
+
+  // Método agregado: navegación programática a la ruta de recuperación
+  onForgotPassword(event?: MouseEvent): void {
+    if (event) event.preventDefault();
+    console.log('onForgotPassword clicked');
+    // La ruta de recuperación está definida por ROUTE_TOKENS.PASSWORD_RECOVERY ('password-recovery').
+    // Dado que AUTH_PATH === '' en ROUTE_TOKENS, la ruta completa es '/password-recovery'.
+    this.router
+      .navigate(['/', ROUTE_TOKENS.PASSWORD_RECOVERY])
+      .then((result) => console.log('router.navigate result:', result))
+      .catch((err) => console.error('Navigation error to password recovery', err));
+  }
 }

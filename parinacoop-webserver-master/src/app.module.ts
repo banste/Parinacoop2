@@ -24,13 +24,17 @@ import { AdminModule } from './contexts/admin/infrastructure/admin.module';
         password: configService.get('DB_PASSWORD'),
       }),
     }),
+
+    // SharedModule must be imported before modules that consume its providers
+    // (AuthModule depends on MailService exported by SharedModule)
+    SharedModule,
+
     HealthModule,
     AdminModule,
     AuthModule,
     ClientProfileModule,
     DapModule,
     LocationModule,
-    SharedModule,
   ],
 })
 export class AppModule {}

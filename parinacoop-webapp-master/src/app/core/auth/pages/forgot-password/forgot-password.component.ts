@@ -1,38 +1,38 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  Validators,
+} from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { getRutDigits } from '@fdograph/rut-utilities';
 
-import { FormFieldComponent } from '@app/shared/components';
+import { FormFieldComponent } from '@shared/components/form-field/form-field.component';
 import { SpinnerComponent } from '@app/shared/components/spinner/spinner.component';
-import { GroupEvery3Directive } from '@app/shared/directives/group-every-3.directive';
+import { AuthService } from '../../services/auth.service';
+import { runValidator } from '@shared/validators/runValidator';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    FormFieldComponent,
-    SpinnerComponent,
-    GroupEvery3Directive,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, FormFieldComponent, SpinnerComponent],
   templateUrl: './forgot-password.component.html',
 })
-export class ForgotPasswordComponent implements OnInit {
+export default class ForgotPasswordComponent implements OnInit {
   form!: FormGroup;
   isSubmitting = false;
   message = '';
   error = '';
 
-  constructor(private fb: FormBuilder, private http: HttpClient, private router: Router) {}
+  constructor(private fb: FormBuilder, private authService: AuthService) {}
 
   ngOnInit(): void {
-    // Inicializar el formulario aquí (ya existe this.fb)
     this.form = this.fb.group({
-      run: [''],
-      email: ['', [Validators.email]],
+      // Solo RUN: acepta con o sin DV; runValidator valida formato
+      run: ['', [Validators.required, runValidator]],
     });
   }
 
@@ -40,31 +40,76 @@ export class ForgotPasswordComponent implements OnInit {
     return this.form.get(name) as FormControl;
   }
 
-  async onSubmit() {
-    this.error = '';
-    this.message = '';
+  /**
+   * Formatea el valor del RUN mientras el usuario escribe.
+   * - Permite números y 'k'/'K' como DV.
+   * - Toma el último carácter como DV y formatea el resto con puntos.
+   * - Actualiza el form control sin emitir eventos para evitar loops.
+   */
+  onRunInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input) return;
 
-    if (!this.fc('run').value && !this.fc('email').value) {
-      this.error = 'Ingresa tu RUN o correo electrónico.';
+    // Normalizar: quitar todo excepto dígitos y 'k'/'K'
+    let raw = String(input.value || '').replace(/[^0-9kK]/g, '');
+
+    // Si queda vacío o es un solo carácter, deja como está (sin formato)
+    if (raw.length <= 1) {
+      this.fc('run').setValue(raw, { emitEvent: false });
       return;
     }
 
-    const payload: any = {};
-    if (this.fc('run').value) payload.run = String(this.fc('run').value);
-    if (this.fc('email').value) payload.email = String(this.fc('email').value);
+    // Separar DV (último carácter) y cuerpo (resto)
+    const dv = raw.slice(-1);
+    const body = raw.slice(0, -1);
+
+    // Formatear cuerpo con puntos de miles: e.g. 8271125 -> 8.271.125
+    const bodyFormatted = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    // Construir formato final (mantener DV en minúscula si es 'k')
+    const formatted = `${bodyFormatted}-${dv.toLowerCase()}`;
+
+    // Actualizar control sin emitir eventos (para no provocar validations/reloops)
+    this.fc('run').setValue(formatted, { emitEvent: false });
+  }
+
+  onSubmit(): void {
+    this.error = '';
+    this.message = '';
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.error = 'Completa el RUN correctamente.';
+      return;
+    }
+
+    // Extraer sólo los dígitos del RUT (sin DV)
+    const raw = String(this.fc('run').value || '');
+    const runDigitsRaw = getRutDigits(raw); // devuelve los dígitos del RUT (string)
+    const runDigitsStr = String(runDigitsRaw).trim();
+
+    if (!runDigitsStr) {
+      this.error = 'RUN inválido.';
+      return;
+    }
 
     this.isSubmitting = true;
-    try {
-      await this.http.post('/api/auth/forgot-password', payload).toPromise();
-      this.message =
-        'Si el usuario existe, se ha enviado un código a su correo. Revisa tu bandeja y sigue el enlace o copia el código.';
-      // opcional: redirigir automáticamente, por ejemplo:
-      // this.router.navigate(['/auth/reset-password']);
-    } catch (err: any) {
-      console.error('forgot error', err);
-      this.error = err?.error?.message ?? 'Error solicitando código';
-    } finally {
-      this.isSubmitting = false;
-    }
+
+    // Enviamos sólo el run como STRING; el backend buscará el email y enviará el código automáticamente
+    this.authService.forgotPassword({ run: runDigitsStr }).subscribe(
+      (res: any) => {
+        this.isSubmitting = false;
+        if (res?.ok === false) {
+          this.error = res?.error?.message ?? 'Error solicitando recuperación.';
+          return;
+        }
+        this.message = 'Si la cuenta existe, se ha enviado un correo al email registrado para ese RUN.';
+      },
+      (err) => {
+        this.isSubmitting = false;
+        console.error('forgot error', err);
+        this.error = err?.error?.message ?? 'Error solicitando recuperación.';
+      },
+    );
   }
 }

@@ -1,3 +1,4 @@
+// src/app/core/auth/auth.routes.ts
 import { Route } from '@angular/router';
 import { ROUTE_TOKENS } from '@app/route-tokens';
 
@@ -23,6 +24,14 @@ const routes: Route[] = [
         path: ROUTE_TOKENS.REGISTER,
         loadComponent: () => resolveComponent(import('./pages/register/register.component'), 'RegisterComponent'),
       },
+
+      // <-- NUEVA RUTA: reset-password (pública dentro del layout de auth)
+      {
+        path: 'reset-password', // si tienes ROUTE_TOKENS.RESET_PASSWORD puedes usarlo en vez de 'reset-password'
+        loadComponent: () =>
+          resolveComponent(import('./pages/reset-password/reset-password.component'), 'ResetPasswordComponent'),
+      },
+
       {
         path: ROUTE_TOKENS.PASSWORD_RECOVERY,
         loadComponent: () => resolveComponent(import('./pages/forgot-password/forgot-password.component'), 'ForgotPasswordComponent'),

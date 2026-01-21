@@ -47,6 +47,7 @@
     >
       <li class="">{{ loginErrorMsg }}</li>
     </ul>
-    <a class="italic" href="#">Olvidé mi clave</a>
+    <!-- Anchor actualizado: llamará a onForgotPassword sin alterar login -->
+    <a class="italic cursor-pointer" (click)="onForgotPassword($event)">Olvidé mi clave</a>
   </div>
 </section>

@@ -5,7 +5,7 @@ import { CommuneTable } from './tables/communeTable';
 import { ClientProfileTable } from './tables/clientprofileTable';
 import { AddressTable } from './tables/addressTable';
 import { UserSessionTable } from './tables/usersessionTable';
-import { PasswordResetTable } from './tables/passwordresetTable';
+import { PasswordresetTable } from './tables/passwordresetTable';
 import { DapTable } from './tables/dapTable';
 import { ParameterTable } from './tables/parameterTable';
 import { DapContractsTable } from './tables/dapcontractsTable';
@@ -18,7 +18,7 @@ export interface Tables {
   client_profile: ClientProfileTable;
   address: AddressTable;
   user_session: UserSessionTable;
-  password_reset: PasswordResetTable;
+  passwordreset: PasswordresetTable;
   dap: DapTable;
   parameter: ParameterTable;
   dap_contracts: DapContractsTable;
