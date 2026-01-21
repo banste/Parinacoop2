@@ -4,7 +4,7 @@ import { parameters } from '../seed/parameters';
 /**
  * Migración única y corregida:
  * - `commune.region_id` en vez de `id_region` para que el app use region_id.
- * - Mantiene el resto de tablas y FKs coherentes con lo que ya definiste.
+ * - Se añade soporte para passwordreset con token_hash + used_at y índices.
  *
  * Nota: Si tienes datos en una tabla `comuna` previa, dime y preparo un script
  * para copiar (mapear) filas desde `comuna` -> `commune`.
@@ -127,18 +127,42 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('updated_at', 'timestamp', (col) => col.defaultTo(sql`now()`))
     .execute();
 
-  // CAMBIAR_PASSWORD
+  // PASSWORDRESET (CAMBIAR_PASSWORD) - tabla para tokens de recuperación
   await db.schema
-    .createTable('cambiar_password')
+    .createTable('passwordreset')
     .ifNotExists()
     .addColumn('id_passwordreset', 'serial', (col) => col.primaryKey())
+    // token almacena el token original solo si lo quieres; preferible usar token_hash
     .addColumn('token', 'varchar(255)', (col) => col.notNull())
+    // hash del token (sha256 hex) para búsquedas seguras
+    .addColumn('token_hash', 'varchar(64)', (col) => col.notNull())
     .addColumn('expiration', 'timestamp', (col) => col.notNull())
     .addColumn('fecha_creacion', 'timestamp', (col) => col.defaultTo(sql`now()`))
+    // marca cuando el token fue utilizado (null = no usado)
+    .addColumn('used_at', 'timestamp') // nullable por defecto si no se usa .notNull()
     .addColumn('run', 'integer', (col) => col.notNull())
     .addForeignKeyConstraint('fk_password_user', ['run'], 'user', ['run'], (cb) =>
       cb.onDelete('cascade'),
     )
+    .execute();
+
+  // Índices para passwordreset (búsqueda por hash / run / expiration)
+  await db.schema
+    .createIndex('idx_passwordreset_token_hash')
+    .on('passwordreset')
+    .columns(['token_hash'])
+    .execute();
+
+  await db.schema
+    .createIndex('idx_passwordreset_run')
+    .on('passwordreset')
+    .columns(['run'])
+    .execute();
+
+  await db.schema
+    .createIndex('idx_passwordreset_expiration')
+    .on('passwordreset')
+    .columns(['expiration'])
     .execute();
 
   // CUENTA_AHORRO
@@ -245,7 +269,14 @@ export const down: Migration['down'] = async (db) => {
   await db.schema.dropTable('address').ifExists().execute();
   await db.schema.dropTable('retiro').ifExists().execute();
   await db.schema.dropTable('cuenta_ahorro').ifExists().execute();
-  await db.schema.dropTable('cambiar_password').ifExists().execute();
+
+  // eliminar índices relacionados con passwordreset antes de borrar la tabla
+  await db.schema.dropIndex('idx_passwordreset_expiration').ifExists().execute();
+  await db.schema.dropIndex('idx_passwordreset_run').ifExists().execute();
+  await db.schema.dropIndex('idx_passwordreset_token_hash').ifExists().execute();
+
+  await db.schema.dropTable('passwordreset').ifExists().execute();
+
   await db.schema.dropTable('dap_instructions').ifExists().execute();
   await db.schema.dropTable('dap').ifExists().execute();
   await db.schema.dropTable('client_profile').ifExists().execute();

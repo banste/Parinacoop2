@@ -1,6 +1,9 @@
 import { Route } from '@angular/router';
 import { ROUTE_TOKENS } from '@app/route-tokens';
 
+const resolveComponent = (modPromise: Promise<any>, exportName: string) =>
+  modPromise.then(m => (m as any)[exportName] ?? (m as any).default);
+
 const routes: Route[] = [
   {
     path: '',
@@ -9,20 +12,20 @@ const routes: Route[] = [
   },
   {
     path: ROUTE_TOKENS.AUTH_PATH,
-    loadComponent: () => import('@layout/auth-layout/auth-layout.component'),
+    loadComponent: () =>
+      resolveComponent(import('@layout/auth-layout/auth-layout.component'), 'AuthLayoutComponent'),
     children: [
       {
         path: ROUTE_TOKENS.LOGIN,
-        loadComponent: () => import('./pages/login/login.component'),
+        loadComponent: () => resolveComponent(import('./pages/login/login.component'), 'LoginComponent'),
       },
       {
         path: ROUTE_TOKENS.REGISTER,
-        loadComponent: () => import('./pages/register/register.component'),
+        loadComponent: () => resolveComponent(import('./pages/register/register.component'), 'RegisterComponent'),
       },
       {
         path: ROUTE_TOKENS.PASSWORD_RECOVERY,
-        loadComponent: () =>
-          import('./pages/password-recovery/password-recovery.component'),
+        loadComponent: () => resolveComponent(import('./pages/forgot-password/forgot-password.component'), 'ForgotPasswordComponent'),
       },
       {
         path: '**',
