@@ -1,3 +1,4 @@
+// src/app/core/auth/pages/login/login.component.ts
 import { NgClass } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
@@ -6,7 +7,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { validateRut, getRutDigits } from '@fdograph/rut-utilities';
 
@@ -31,24 +32,39 @@ type LoginForm = FormGroupTypeBuilder<{
 })
 export default class LoginComponent implements OnInit, OnDestroy {
   loginForm!: LoginForm;
-  loginSubscription!: Subscription;
+  loginSubscription?: Subscription;
+  routeQuerySub?: Subscription;
 
   isSubmitting: boolean = false;
   loginErrorMsg: string = '';
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly loginService: LoginService,
     private readonly router: Router,
+    private readonly route: ActivatedRoute, // detect query params
   ) {}
+
   ngOnInit(): void {
     this.loginForm = this.fb.group({
       run: ['', [Validators.required, runValidator]],
       password: ['', [Validators.required]],
     });
+
+    // Detectar token en query params (ej: /login?token=xxxx) y redirigir a reset-password
+    this.routeQuerySub = this.route.queryParamMap.subscribe((qp) => {
+      const token = qp.get('token') ?? '';
+      if (token) {
+        // Navegar a la ruta de reset-password y pasar el token en query params
+        // Ajusta la ruta si en tu proyecto está bajo /auth/reset-password en vez de /reset-password
+        this.router.navigate(['/reset-password'], { queryParams: { token } });
+      }
+    });
   }
 
   ngOnDestroy(): void {
     this.loginSubscription?.unsubscribe();
+    this.routeQuerySub?.unsubscribe();
   }
 
   onSubmit(): void {
@@ -60,7 +76,7 @@ export default class LoginComponent implements OnInit, OnDestroy {
     };
 
     this.loginErrorMsg = '';
-    this.loginService.login(credentials).subscribe({
+    this.loginSubscription = this.loginService.login(credentials).subscribe({
       next: (response) => {
         console.log(response.accessToken);
 
@@ -89,15 +105,10 @@ export default class LoginComponent implements OnInit, OnDestroy {
     return this.loginForm.get(name) as FormControl;
   }
 
-  // Método agregado: navegación programática a la ruta de recuperación
-  onForgotPassword(event?: MouseEvent): void {
-    if (event) event.preventDefault();
-    console.log('onForgotPassword clicked');
-    // La ruta de recuperación está definida por ROUTE_TOKENS.PASSWORD_RECOVERY ('password-recovery').
-    // Dado que AUTH_PATH === '' en ROUTE_TOKENS, la ruta completa es '/password-recovery'.
-    this.router
-      .navigate(['/', ROUTE_TOKENS.PASSWORD_RECOVERY])
-      .then((result) => console.log('router.navigate result:', result))
-      .catch((err) => console.error('Navigation error to password recovery', err));
+  // Método requerido por la plantilla cuando el usuario hace click en "Olvidé mi clave"
+  onForgotPassword(event?: Event): void {
+    event?.preventDefault();
+    // Navegar a la ruta de recuperación (la que ya tienes: 'password-recovery')
+    this.router.navigate([`/${ROUTE_TOKENS.PASSWORD_RECOVERY}`]);
   }
 }

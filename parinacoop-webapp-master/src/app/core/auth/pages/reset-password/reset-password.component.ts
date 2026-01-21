@@ -27,6 +27,9 @@ export default class ResetPasswordComponent implements OnInit {
   message = '';
   error = '';
 
+  // Regex: al menos una letra y al menos un dígito
+  private passwordPattern = /(?=.*[A-Za-z])(?=.*\d).+/;
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
@@ -40,7 +43,8 @@ export default class ResetPasswordComponent implements OnInit {
         // Pedimos RUN (con o sin DV)
         run: ['', [Validators.required, runValidator]],
         token: ['', [Validators.required]],
-        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        // Nueva validación: minLength + pattern (letra + número)
+        newPassword: ['', [Validators.required, Validators.minLength(8), Validators.pattern(this.passwordPattern)]],
         confirmPassword: ['', [Validators.required]],
       },
       { validators: this.passwordsMatch }
