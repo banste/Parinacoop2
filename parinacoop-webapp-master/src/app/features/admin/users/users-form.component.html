@@ -38,8 +38,23 @@
     <div class="flex gap-2">
       <button type="submit" class="btn btn-primary" [disabled]="saving">{{ saving ? 'Guardando...' : 'Guardar' }}</button>
       <button type="button" class="btn" (click)="cancel()">Cancelar</button>
+      <button type="button" class="btn ml-2" (click)="toggleDebug()" title="Mostrar/Ocultar debug">Debug</button>
     </div>
 
     <div *ngIf="error" class="text-red-600 mt-3">{{ error }}</div>
   </form>
+
+  <!-- Panel de depuración -->
+  <div *ngIf="showDebug" class="mt-4 p-3 border bg-gray-50">
+    <h3 class="font-semibold mb-2">Debug - último payload enviado</h3>
+    <div><strong>Enviado:</strong> {{ sentAt ?? 'Nunca' }}</div>
+    <div class="mt-2">
+      <pre style="white-space:pre-wrap;">{{ lastSentPayload ? (lastSentPayload | json) : 'No hay payload enviado aún' }}</pre>
+    </div>
+
+    <div class="mt-2">
+      <h4 class="font-semibold">Última respuesta / error</h4>
+      <pre style="white-space:pre-wrap;">{{ lastResponse ? (lastResponse | json) : 'Ninguna' }}</pre>
+    </div>
+  </div>
 </div>

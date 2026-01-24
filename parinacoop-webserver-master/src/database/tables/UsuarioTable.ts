@@ -11,4 +11,9 @@ export interface UserTable {
   fecha_creacion?: Date | string | null;
   fecha_actualizacion?: Date | string | null;
   id_direccion?: number | null;
+  password_attempts?: number;
+  enabled?: boolean;
+  created_at?: Date | string | null;
+  updated_at?: Date | string | null;
+
 }

@@ -19,11 +19,17 @@ import { AdminUser } from './user.model';
   templateUrl: './users-form.component.html',
 })
 export default class UsersFormComponent implements OnInit {
-  form!: FormGroup; // creado en el constructor
+  form!: FormGroup;
   saving = false;
   error = '';
   isEdit = false;
   userId?: number;
+
+  // Debugging helpers
+  lastSentPayload: any = null;
+  sentAt?: string;
+  lastResponse?: any;
+  showDebug = true;
 
   constructor(
     private fb: FormBuilder,
@@ -31,7 +37,6 @@ export default class UsersFormComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
   ) {
-    // Crear form aquí, cuando fb ya está disponible
     this.form = this.fb.group({
       name: ['', [Validators.required]],
       run: ['', [Validators.required]],
@@ -48,7 +53,6 @@ export default class UsersFormComponent implements OnInit {
       this.userId = Number(id);
       this.svc.get(this.userId).subscribe({
         next: (u) => {
-          // Normalizar valores al formulario (convertir a string donde corresponde)
           this.form.patchValue({
             name: u.name ?? '',
             run: u.run != null ? String(u.run) : '',
@@ -65,7 +69,6 @@ export default class UsersFormComponent implements OnInit {
     }
   }
 
-  // Helper para usar en plantilla: fc('name')
   fc(name: string): AbstractControl {
     return this.form.get(name) as AbstractControl;
   }
@@ -78,36 +81,58 @@ export default class UsersFormComponent implements OnInit {
 
     this.saving = true;
     this.error = '';
+    this.lastResponse = undefined;
 
     const rawValues = this.form.value;
 
-    // Extraer y normalizar RUN -> solo dígitos (Number) ; si prefieres string quita Number()
+    // Normalizar RUN -> solo dígitos; convertir a Number o undefined
     const runDigits = String(getRutDigits(String(rawValues.run ?? '')) ?? '').trim();
-    const runValue = runDigits !== '' ? Number(runDigits) : undefined;
+    const runValue: number | undefined = runDigits !== '' ? Number(runDigits) : undefined;
 
+    // Construir payload usando undefined para campos no enviados (coincide con Partial<AdminUser>)
     const payload: Partial<AdminUser> = {
-      name: rawValues.name ?? undefined,
+      name: rawValues.name !== null && rawValues.name !== undefined ? String(rawValues.name).trim() : undefined,
       run: runValue,
-      email: rawValues.email ? String(rawValues.email).trim() : undefined,
-      role: rawValues.role ? String(rawValues.role).trim() : undefined,
-      active: typeof rawValues.active === 'boolean' ? rawValues.active : true,
+      email:
+        rawValues.email !== null && rawValues.email !== undefined
+          ? (rawValues.email ? String(rawValues.email).trim() : undefined)
+          : undefined,
+      role: rawValues.role !== null && rawValues.role !== undefined ? String(rawValues.role).trim() : undefined,
+      active: typeof rawValues.active === 'boolean' ? rawValues.active : undefined,
     };
+
+    // Guardamos la "flag" / payload que vamos a enviar para debugging
+    this.lastSentPayload = payload;
+    this.sentAt = new Date().toISOString();
+
+    // DEBUG consola
+    console.log('[DEBUG frontend] payload to send:', payload, 'sentAt=', this.sentAt);
 
     if (this.isEdit && this.userId) {
       this.svc.update(this.userId, payload).subscribe({
-        next: () => this.router.navigate(['/admin/usuarios']),
+        next: (res) => {
+          this.lastResponse = res;
+          this.saving = false;
+          this.router.navigate(['/admin/usuarios']);
+        },
         error: (err) => {
           console.error('update user', err);
           this.error = 'Error al actualizar usuario';
+          this.lastResponse = err;
           this.saving = false;
         },
       });
     } else {
       this.svc.create(payload).subscribe({
-        next: () => this.router.navigate(['/admin/usuarios']),
+        next: (res) => {
+          this.lastResponse = res;
+          this.saving = false;
+          this.router.navigate(['/admin/usuarios']);
+        },
         error: (err) => {
           console.error('create user', err);
           this.error = 'Error al crear usuario';
+          this.lastResponse = err;
           this.saving = false;
         },
       });
@@ -116,5 +141,10 @@ export default class UsersFormComponent implements OnInit {
 
   cancel(): void {
     this.router.navigate(['/admin/usuarios']);
+  }
+
+  // Toggle del panel de depuración
+  toggleDebug(): void {
+    this.showDebug = !this.showDebug;
   }
 }

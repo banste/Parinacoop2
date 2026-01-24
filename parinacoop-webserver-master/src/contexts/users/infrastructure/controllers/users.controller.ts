@@ -1,13 +1,23 @@
-import { Body, Controller, Delete, Get, Param, Put, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UsePipes,
+  ValidationPipe,
+  Logger,
+  NotImplementedException,
+} from '@nestjs/common';
 import { UserApplicationService } from '../../application/services/user-application.service';
-// Local minimal DTO to avoid missing-module errors when the external DTO file
-// is not available. Keep as a class so Nest's ValidationPipe can operate.
-class UpdateUserDto {
-  [key: string]: any;
-}
 
 @Controller('admin/users')
 export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
+
   constructor(private readonly appService: UserApplicationService) {}
 
   @Get()
@@ -20,15 +30,23 @@ export class UsersController {
     return this.appService.get(Number(id));
   }
 
+  @Post()
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  async create(@Body() dto: any) {
+    // Not implemented in application service by default — guardamos la llamada para implementar si lo necesitas
+    this.logger.debug(`[UsersController] create dto=${JSON.stringify(dto)}`);
+    throw new NotImplementedException('Create user not implemented in application service.');
+  }
+
   @Put(':id')
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+  async update(@Param('id') id: string, @Body() dto: any) {
+    // En producción evitamos logs masivos; si necesitas auditoría habilita logging condicional
     return this.appService.update(Number(id), dto);
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
-    await this.appService.remove(Number(id));
-    return { ok: true };
+    return this.appService.remove(Number(id));
   }
 }
