@@ -31,6 +31,7 @@ export default class AdminLayoutComponent {
   navItems: NavItem[] = [
     { label: 'Inicio', link: ROUTE_TOKENS.ADMIN_HOME },
     { label: 'Clientes', link: ROUTE_TOKENS.ADMIN_CLIENTS },
+    { label: 'Usuarios', link: ROUTE_TOKENS.ADMIN_USERS }, // <-- nuevo
     { label: 'DAP - Instrucciones y cuenta', link: ROUTE_TOKENS.ADMIN_DAP_INSTRUCTIONS },
   ];
 

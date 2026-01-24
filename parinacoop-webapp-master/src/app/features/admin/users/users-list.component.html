@@ -1,0 +1,42 @@
+<div class="p-4">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold">Usuarios</h2>
+    <button (click)="goCreate()" class="btn btn-primary">Crear usuario</button>
+  </div>
+
+  <div class="mb-4 flex gap-2">
+    <input [(ngModel)]="q" placeholder="Buscar por nombre, run o email" class="input" />
+    <button (click)="onSearch()" class="btn">Buscar</button>
+  </div>
+
+  <div *ngIf="loading">Cargando...</div>
+  <div *ngIf="error" class="text-red-600">{{ error }}</div>
+
+  <table class="w-full table-auto" *ngIf="!loading && users.length">
+    <thead>
+      <tr>
+        <th class="text-left p-2">ID</th>
+        <th class="text-left p-2">RUN</th>
+        <th class="text-left p-2">Nombre</th>
+        <th class="text-left p-2">Email</th>
+        <th class="text-left p-2">Rol</th>
+        <th class="text-right p-2">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let u of users" class="border-t">
+        <td class="p-2">{{ u.id }}</td>
+        <td class="p-2">{{ u.run ?? '-' }}</td>
+        <td class="p-2">{{ u.name ?? '-' }}</td>
+        <td class="p-2">{{ u.email ?? '-' }}</td>
+        <td class="p-2">{{ u.role ?? '-' }}</td>
+        <td class="p-2 text-right">
+          <button (click)="edit(u)" class="btn btn-sm mr-2">Editar</button>
+          <button (click)="remove(u)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && users.length === 0" class="mt-4 text-gray-600">No hay usuarios</div>
+</div>

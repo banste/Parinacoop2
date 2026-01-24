@@ -15,4 +15,5 @@ export const ROUTE_TOKENS = {
   ADMIN_HOME: 'inicio',
   ADMIN_CLIENTS: 'clientes',
   ADMIN_DAP_INSTRUCTIONS: 'dap-instructions',
+  ADMIN_USERS: 'usuarios',
 } as const;

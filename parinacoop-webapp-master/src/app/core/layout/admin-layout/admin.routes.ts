@@ -21,6 +21,31 @@ const adminRoutes: Routes = [
             (m) => m.ClientsComponent,
           ),
       },
+
+      // Rutas para USERS (CRUD)
+      {
+        path: 'usuarios',
+        children: [
+          {
+            path: '',
+            // espera export default en users-list.component
+            loadComponent: () =>
+              import('@features/admin/users/users-list.component').then((m) => m.default),
+          },
+          {
+            path: 'nuevo',
+            // espera export default en users-form.component
+            loadComponent: () =>
+              import('@features/admin/users/users-form.component').then((m) => m.default),
+          },
+          {
+            path: ':id/editar',
+            loadComponent: () =>
+              import('@features/admin/users/users-form.component').then((m) => m.default),
+          },
+        ],
+      },
+
       {
         path: ROUTE_TOKENS.ADMIN_DAP_INSTRUCTIONS,
         loadComponent: () =>

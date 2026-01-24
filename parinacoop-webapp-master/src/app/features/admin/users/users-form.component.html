@@ -1,0 +1,45 @@
+<div class="p-4 max-w-xl">
+  <h2 class="text-lg font-semibold mb-4">{{ fc('name').value ? 'Editar usuario' : 'Crear usuario' }}</h2>
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <div class="mb-3">
+      <label class="block text-sm">Nombre</label>
+      <input formControlName="name" class="input w-full" />
+      <div *ngIf="fc('name').touched && fc('name').invalid" class="text-red-600 text-sm">Nombre requerido</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="block text-sm">RUN</label>
+      <input formControlName="run" class="input w-full" />
+      <div *ngIf="fc('run').touched && fc('run').invalid" class="text-red-600 text-sm">RUN inválido</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="block text-sm">Email</label>
+      <input formControlName="email" class="input w-full" />
+      <div *ngIf="fc('email').touched && fc('email').invalid" class="text-red-600 text-sm">Email inválido</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="block text-sm">Rol</label>
+      <select formControlName="role" class="input w-full">
+        <option value="">-- Seleccionar --</option>
+        <option value="ADMIN">ADMIN</option>
+        <option value="CLIENT">CLIENT</option>
+      </select>
+      <div *ngIf="fc('role').touched && fc('role').invalid" class="text-red-600 text-sm">Rol requerido</div>
+    </div>
+
+    <div class="mb-3 flex items-center gap-2">
+      <input type="checkbox" formControlName="active" id="active" />
+      <label for="active" class="text-sm">Activo</label>
+    </div>
+
+    <div class="flex gap-2">
+      <button type="submit" class="btn btn-primary" [disabled]="saving">{{ saving ? 'Guardando...' : 'Guardar' }}</button>
+      <button type="button" class="btn" (click)="cancel()">Cancelar</button>
+    </div>
+
+    <div *ngIf="error" class="text-red-600 mt-3">{{ error }}</div>
+  </form>
+</div>

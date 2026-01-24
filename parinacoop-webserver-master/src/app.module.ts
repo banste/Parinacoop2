@@ -10,6 +10,7 @@ import { ClientProfileModule } from './contexts/client-profile/infrastructure/cl
 import { DapModule } from './contexts/dap/infrastructure/dap.module';
 import { ConfigModule } from './config/config.module';
 import { AdminModule } from './contexts/admin/infrastructure/admin.module';
+import { UsersModule } from './contexts/users/infrastructure/users.module'; // <= añadido
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AdminModule } from './contexts/admin/infrastructure/admin.module';
 
     HealthModule,
     AdminModule,
+    UsersModule, // <= añadido aquí
     AuthModule,
     ClientProfileModule,
     DapModule,
