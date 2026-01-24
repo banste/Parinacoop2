@@ -1,60 +1,70 @@
-<div class="p-4 max-w-xl">
-  <h2 class="text-lg font-semibold mb-4">{{ fc('name').value ? 'Editar usuario' : 'Crear usuario' }}</h2>
-
-  <form [formGroup]="form" (ngSubmit)="save()">
-    <div class="mb-3">
-      <label class="block text-sm">Nombre</label>
-      <input formControlName="name" class="input w-full" />
-      <div *ngIf="fc('name').touched && fc('name').invalid" class="text-red-600 text-sm">Nombre requerido</div>
+<section class="max-w-[720px] mx-auto px-4 py-6">
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-5">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900">{{ isEdit ? 'Editar usuario' : 'Crear usuario' }}</h2>
+        <p class="text-sm text-gray-600 mt-1">Gestiona los datos del usuario</p>
+      </div>
+      <div class="text-sm text-gray-500">{{ isEdit ? ('ID: ' + userId) : '' }}</div>
     </div>
 
-    <div class="mb-3">
-      <label class="block text-sm">RUN</label>
-      <input formControlName="run" class="input w-full" />
-      <div *ngIf="fc('run').touched && fc('run').invalid" class="text-red-600 text-sm">RUN inválido</div>
-    </div>
+    <form [formGroup]="form" (ngSubmit)="save()" class="space-y-4">
+      <div class="grid grid-cols-1 gap-4">
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">Nombre</span>
+          <input formControlName="name" type="text"
+            class="mt-1 block w-full border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div *ngIf="fc('name').touched && fc('name').invalid" class="text-red-600 text-sm mt-1">Nombre requerido</div>
+        </label>
 
-    <div class="mb-3">
-      <label class="block text-sm">Email</label>
-      <input formControlName="email" class="input w-full" />
-      <div *ngIf="fc('email').touched && fc('email').invalid" class="text-red-600 text-sm">Email inválido</div>
-    </div>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">RUN</span>
+          <input formControlName="run" type="text"
+            class="mt-1 block w-full border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div *ngIf="fc('run').touched && fc('run').invalid" class="text-red-600 text-sm mt-1">RUN inválido</div>
+        </label>
 
-    <div class="mb-3">
-      <label class="block text-sm">Rol</label>
-      <select formControlName="role" class="input w-full">
-        <option value="">-- Seleccionar --</option>
-        <option value="ADMIN">ADMIN</option>
-        <option value="CLIENT">CLIENT</option>
-      </select>
-      <div *ngIf="fc('role').touched && fc('role').invalid" class="text-red-600 text-sm">Rol requerido</div>
-    </div>
+        <label class="block">
+          <span class="text-sm font-medium text-gray-700">Email</span>
+          <input formControlName="email" type="email"
+            class="mt-1 block w-full border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div *ngIf="fc('email').touched && fc('email').invalid" class="text-red-600 text-sm mt-1">Email inválido</div>
+        </label>
 
-    <div class="mb-3 flex items-center gap-2">
-      <input type="checkbox" formControlName="active" id="active" />
-      <label for="active" class="text-sm">Activo</label>
-    </div>
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm font-medium text-gray-700">Rol</span>
+            <select formControlName="role"
+              class="mt-1 block w-full border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">-- Seleccionar --</option>
+              <option value="ADMIN">ADMIN</option>
+              <option value="CLIENT">CLIENT</option>
+            </select>
+            <div *ngIf="fc('role').touched && fc('role').invalid" class="text-red-600 text-sm mt-1">Rol requerido</div>
+          </label>
 
-    <div class="flex gap-2">
-      <button type="submit" class="btn btn-primary" [disabled]="saving">{{ saving ? 'Guardando...' : 'Guardar' }}</button>
-      <button type="button" class="btn" (click)="cancel()">Cancelar</button>
-      <button type="button" class="btn ml-2" (click)="toggleDebug()" title="Mostrar/Ocultar debug">Debug</button>
-    </div>
+          <label class="block">
+            <span class="text-sm font-medium text-gray-700">Activo</span>
+            <div class="mt-1 flex items-center">
+              <input type="checkbox" formControlName="active" id="active" class="h-4 w-4 text-blue-600 rounded" />
+              <label for="active" class="ml-3 text-sm text-gray-700">Usuario activo</label>
+            </div>
+          </label>
+        </div>
+      </div>
 
-    <div *ngIf="error" class="text-red-600 mt-3">{{ error }}</div>
-  </form>
+      <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 mt-2">
+        <button type="button" class="btn bg-white border border-gray-200 px-4 py-2 rounded" (click)="cancel()">Cancelar</button>
+        <button type="submit" class="inline-flex items-center gap-2 bg-blue-600 text-white rounded px-4 py-2 shadow-sm hover:bg-blue-700 whitespace-nowrap">
+          <app-svg-icon icon="save" svgClass="w-4 h-4 text-white" />
+          <span class="text-sm font-medium">{{ saving ? 'Guardando...' : (isEdit ? 'Guardar cambios' : 'Crear usuario') }}</span>
+        </button>
+      </div>
 
-  <!-- Panel de depuración -->
-  <div *ngIf="showDebug" class="mt-4 p-3 border bg-gray-50">
-    <h3 class="font-semibold mb-2">Debug - último payload enviado</h3>
-    <div><strong>Enviado:</strong> {{ sentAt ?? 'Nunca' }}</div>
-    <div class="mt-2">
-      <pre style="white-space:pre-wrap;">{{ lastSentPayload ? (lastSentPayload | json) : 'No hay payload enviado aún' }}</pre>
-    </div>
-
-    <div class="mt-2">
-      <h4 class="font-semibold">Última respuesta / error</h4>
-      <pre style="white-space:pre-wrap;">{{ lastResponse ? (lastResponse | json) : 'Ninguna' }}</pre>
-    </div>
+      <div *ngIf="error" class="text-red-600 text-sm mt-2">{{ error }}</div>
+    </form>
   </div>
-</div>
+</section>

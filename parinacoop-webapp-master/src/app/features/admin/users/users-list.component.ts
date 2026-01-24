@@ -4,11 +4,12 @@ import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminUsersService } from './admin-users.service';
 import { AdminUser } from './user.model';
+import { SvgIconComponent } from '@app/shared/components'; // barrel export (o usa ruta relativa si no está exportado)
 
 @Component({
   selector: 'app-admin-users-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, SvgIconComponent],
   templateUrl: './users-list.component.html',
 })
 export default class UsersListComponent implements OnInit {

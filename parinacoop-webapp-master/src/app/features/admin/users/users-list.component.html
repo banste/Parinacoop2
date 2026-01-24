@@ -1,42 +1,90 @@
-<div class="p-4">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-lg font-semibold">Usuarios</h2>
-    <button (click)="goCreate()" class="btn btn-primary">Crear usuario</button>
+<section class="max-w-[1100px] mx-auto px-4 py-6">
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900">Usuarios</h1>
+      <p class="text-sm text-gray-600 mt-1">Administración de usuarios — crear, editar y eliminar</p>
+    </div>
+
+    <div class="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div class="flex items-center bg-white border border-gray-200 rounded shadow-sm px-3 py-2 w-full sm:w-auto">
+        <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"></path>
+        </svg>
+        <input
+          [(ngModel)]="q"
+          (keyup.enter)="onSearch()"
+          placeholder="Buscar por nombre, email o RUN"
+          class="w-full text-sm placeholder-gray-400 focus:outline-none"
+        />
+        <button (click)="onSearch()" class="ml-3 text-sm text-blue-600 hover:underline">Buscar</button>
+      </div>
+
+      <button (click)="goCreate()"
+        class="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-50 border border-gray-200 rounded px-4 py-2 shadow-sm whitespace-nowrap">
+        <app-svg-icon icon="plus" svgClass="w-4 h-4 text-blue-600" />
+        <span class="text-sm font-medium">Nuevo usuario</span>
+      </button>
+    </div>
   </div>
 
-  <div class="mb-4 flex gap-2">
-    <input [(ngModel)]="q" placeholder="Buscar por nombre, run o email" class="input" />
-    <button (click)="onSearch()" class="btn">Buscar</button>
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 border-b border-gray-100 flex items-center justify-between">
+      <div class="text-sm text-gray-600">Lista de usuarios</div>
+      <div class="text-sm text-gray-500">Mostrando {{ users.length }} usuarios</div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-100 text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RUN</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Activo</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-100">
+          <tr *ngFor="let u of users" class="hover:bg-gray-50">
+            <td class="px-6 py-3 text-gray-700">{{ u.id }}</td>
+            <td class="px-6 py-3 text-gray-900">{{ u.name ?? '-' }}</td>
+            <td class="px-6 py-3 text-gray-700">{{ u.email ?? '-' }}</td>
+            <td class="px-6 py-3 text-gray-700">{{ u.run ?? '-' }}</td>
+            <td class="px-6 py-3 text-gray-700">{{ u.role ?? '-' }}</td>
+            <td class="px-6 py-3 text-center">
+              <span *ngIf="u.active" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Sí</span>
+              <span *ngIf="!u.active" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">No</span>
+            </td>
+            <td class="px-6 py-3 text-right text-sm">
+              <div class="inline-flex items-center gap-3 whitespace-nowrap">
+                <button (click)="edit(u)" class="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                  <app-svg-icon icon="pencil" svgClass="w-4 h-4 text-blue-600" />
+                  Editar
+                </button>
+                <button (click)="remove(u)" class="inline-flex items-center gap-2 text-sm text-red-600 hover:underline">
+                  <app-svg-icon icon="trash" svgClass="w-4 h-4 text-red-600" />
+                  Eliminar
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="!users?.length && !loading">
+            <td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500">No se encontraron usuarios</td>
+          </tr>
+
+          <tr *ngIf="loading">
+            <td colspan="7" class="px-6 py-8 text-center">
+              <div class="animate-pulse space-y-2">
+                <div class="h-4 bg-gray-100 rounded w-3/4 mx-auto"></div>
+                <div class="h-4 bg-gray-100 rounded w-1/2 mx-auto"></div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-
-  <div *ngIf="loading">Cargando...</div>
-  <div *ngIf="error" class="text-red-600">{{ error }}</div>
-
-  <table class="w-full table-auto" *ngIf="!loading && users.length">
-    <thead>
-      <tr>
-        <th class="text-left p-2">ID</th>
-        <th class="text-left p-2">RUN</th>
-        <th class="text-left p-2">Nombre</th>
-        <th class="text-left p-2">Email</th>
-        <th class="text-left p-2">Rol</th>
-        <th class="text-right p-2">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let u of users" class="border-t">
-        <td class="p-2">{{ u.id }}</td>
-        <td class="p-2">{{ u.run ?? '-' }}</td>
-        <td class="p-2">{{ u.name ?? '-' }}</td>
-        <td class="p-2">{{ u.email ?? '-' }}</td>
-        <td class="p-2">{{ u.role ?? '-' }}</td>
-        <td class="p-2 text-right">
-          <button (click)="edit(u)" class="btn btn-sm mr-2">Editar</button>
-          <button (click)="remove(u)" class="btn btn-sm btn-danger">Eliminar</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div *ngIf="!loading && users.length === 0" class="mt-4 text-gray-600">No hay usuarios</div>
-</div>
+</section>

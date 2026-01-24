@@ -11,11 +11,12 @@ import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AdminUsersService } from './admin-users.service';
 import { getRutDigits } from '@fdograph/rut-utilities';
 import { AdminUser } from './user.model';
+import { SvgIconComponent } from '@app/shared/components'; // barrel export (o usa ruta relativa si no está exportado)
 
 @Component({
   selector: 'app-admin-users-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, SvgIconComponent],
   templateUrl: './users-form.component.html',
 })
 export default class UsersFormComponent implements OnInit {
@@ -24,12 +25,6 @@ export default class UsersFormComponent implements OnInit {
   error = '';
   isEdit = false;
   userId?: number;
-
-  // Debugging helpers
-  lastSentPayload: any = null;
-  sentAt?: string;
-  lastResponse?: any;
-  showDebug = true;
 
   constructor(
     private fb: FormBuilder,
@@ -81,7 +76,6 @@ export default class UsersFormComponent implements OnInit {
 
     this.saving = true;
     this.error = '';
-    this.lastResponse = undefined;
 
     const rawValues = this.form.value;
 
@@ -101,38 +95,21 @@ export default class UsersFormComponent implements OnInit {
       active: typeof rawValues.active === 'boolean' ? rawValues.active : undefined,
     };
 
-    // Guardamos la "flag" / payload que vamos a enviar para debugging
-    this.lastSentPayload = payload;
-    this.sentAt = new Date().toISOString();
-
-    // DEBUG consola
-    console.log('[DEBUG frontend] payload to send:', payload, 'sentAt=', this.sentAt);
-
     if (this.isEdit && this.userId) {
       this.svc.update(this.userId, payload).subscribe({
-        next: (res) => {
-          this.lastResponse = res;
-          this.saving = false;
-          this.router.navigate(['/admin/usuarios']);
-        },
+        next: () => this.router.navigate(['/admin/usuarios']),
         error: (err) => {
           console.error('update user', err);
           this.error = 'Error al actualizar usuario';
-          this.lastResponse = err;
           this.saving = false;
         },
       });
     } else {
       this.svc.create(payload).subscribe({
-        next: (res) => {
-          this.lastResponse = res;
-          this.saving = false;
-          this.router.navigate(['/admin/usuarios']);
-        },
+        next: () => this.router.navigate(['/admin/usuarios']),
         error: (err) => {
           console.error('create user', err);
           this.error = 'Error al crear usuario';
-          this.lastResponse = err;
           this.saving = false;
         },
       });
@@ -141,10 +118,5 @@ export default class UsersFormComponent implements OnInit {
 
   cancel(): void {
     this.router.navigate(['/admin/usuarios']);
-  }
-
-  // Toggle del panel de depuración
-  toggleDebug(): void {
-    this.showDebug = !this.showDebug;
   }
 }
