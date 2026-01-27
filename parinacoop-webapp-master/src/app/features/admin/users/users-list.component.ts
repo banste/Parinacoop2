@@ -62,19 +62,16 @@ export default class UsersListComponent implements OnInit, OnDestroy {
     });
   }
 
-  // llamado desde el template cuando ngModel cambia
   onInput(value: string): void {
     this.q = value;
     this.search$.next(value);
   }
 
-  // Normaliza el valor q: extrae sólo dígitos y devuelve string | undefined (undefined => sin filtro)
   sanitizeQ(raw?: string): string | undefined {
     const s = String(raw ?? '').replace(/\D/g, '').trim();
     return s === '' ? undefined : s;
   }
 
-  // botón buscar (llama load con sanitized q)
   onManualSearch(): void {
     this.load(this.sanitizeQ(this.q));
   }
@@ -96,5 +93,11 @@ export default class UsersListComponent implements OnInit, OnDestroy {
         alert('Error al eliminar usuario');
       },
     });
+  }
+
+  // Navegar a la página de DAPs del usuario
+  goToDaps(user: AdminUser): void {
+    if (!user || !user.id) return;
+    this.router.navigate(['admin', 'usuarios', String(user.id), 'daps']);
   }
 }

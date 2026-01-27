@@ -11,7 +11,6 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"></path>
         </svg>
 
-        <!-- usamos ngModel y ngModelChange para evitar $event.target typing issues -->
         <input
           name="q"
           [(ngModel)]="q"
@@ -51,7 +50,8 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-100">
-          <tr *ngFor="let u of users" class="hover:bg-gray-50">
+          <!-- fila clickeable: click en la fila navega a daps del usuario -->
+          <tr *ngFor="let u of users" class="hover:bg-gray-50 cursor-pointer" (click)="goToDaps(u)">
             <td class="px-6 py-3 text-gray-700">{{ u.id }}</td>
             <td class="px-6 py-3 text-gray-900">{{ u.name ?? '-' }}</td>
             <td class="px-6 py-3 text-gray-700">{{ u.email ?? '-' }}</td>
@@ -64,11 +64,11 @@
             </td>
             <td class="px-6 py-3 text-right text-sm">
               <div class="inline-flex items-center gap-3 whitespace-nowrap">
-                <button (click)="edit(u)" class="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                <button (click)="edit(u); $event.stopPropagation()" class="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">
                   <app-svg-icon icon="pencil" svgClass="w-4 h-4 text-blue-600" />
                   Editar
                 </button>
-                <button (click)="remove(u)" class="inline-flex items-center gap-2 text-sm text-red-600 hover:underline">
+                <button (click)="remove(u); $event.stopPropagation()" class="inline-flex items-center gap-2 text-sm text-red-600 hover:underline">
                   <app-svg-icon icon="trash" svgClass="w-4 h-4 text-red-600" />
                   Eliminar
                 </button>

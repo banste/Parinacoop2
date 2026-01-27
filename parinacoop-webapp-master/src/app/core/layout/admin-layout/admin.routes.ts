@@ -43,6 +43,12 @@ const adminRoutes: Routes = [
             loadComponent: () =>
               import('@features/admin/users/users-form.component').then((m) => m.default),
           },
+          // Nueva ruta: lista de DAPs para un usuario
+          {
+            path: ':id/daps',
+            loadComponent: () =>
+              import('@features/admin/users/users-daps.component').then((m) => m.default),
+          },
         ],
       },
 
