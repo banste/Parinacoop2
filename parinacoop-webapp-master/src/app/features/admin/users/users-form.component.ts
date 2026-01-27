@@ -9,9 +9,8 @@ import {
 } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AdminUsersService } from './admin-users.service';
-import { getRutDigits } from '@fdograph/rut-utilities';
 import { AdminUser } from './user.model';
-import { SvgIconComponent } from '@app/shared/components'; // barrel export (o usa ruta relativa si no está exportado)
+import { SvgIconComponent } from '@app/shared/components';
 
 @Component({
   selector: 'app-admin-users-form',
@@ -50,7 +49,7 @@ export default class UsersFormComponent implements OnInit {
         next: (u) => {
           this.form.patchValue({
             name: u.name ?? '',
-            run: u.run != null ? String(u.run) : '',
+            run: u.run ?? '',
             email: u.email ?? '',
             role: u.role ?? '',
             active: !!u.active,
@@ -79,14 +78,14 @@ export default class UsersFormComponent implements OnInit {
 
     const rawValues = this.form.value;
 
-    // Normalizar RUN -> solo dígitos; convertir a Number o undefined
-    const runDigits = String(getRutDigits(String(rawValues.run ?? '')) ?? '').trim();
-    const runValue: number | undefined = runDigits !== '' ? Number(runDigits) : undefined;
+    // Normalizar RUN -> extraemos sólo dígitos y lo dejamos como string
+    const rawRun = String(rawValues.run ?? '');
+    const runDigits = rawRun.replace(/\D/g, '').trim(); // '20218321' o ''
 
-    // Construir payload usando undefined para campos no enviados (coincide con Partial<AdminUser>)
     const payload: Partial<AdminUser> = {
       name: rawValues.name !== null && rawValues.name !== undefined ? String(rawValues.name).trim() : undefined,
-      run: runValue,
+      // Enviamos run como string (o undefined si vacío)
+      run: runDigits !== '' ? runDigits : undefined,
       email:
         rawValues.email !== null && rawValues.email !== undefined
           ? (rawValues.email ? String(rawValues.email).trim() : undefined)

@@ -22,6 +22,8 @@ export class UsersController {
 
   @Get()
   async list(@Query('q') q?: string) {
+    // Log de depuración para confirmar que el backend recibe el parámetro q
+    this.logger.debug(`[DEBUG UsersController] GET /admin/users q=${String(q ?? '')}`);
     return this.appService.list(q);
   }
 

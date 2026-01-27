@@ -10,8 +10,36 @@ export class UserApplicationService {
     private readonly repository: UserRepository,
   ) {}
 
+  /**
+   * list: si q es numérico (solo dígitos) hacemos filtrado por substring sobre run
+   * en memoria (string include). Si q NO es numérico, delegamos a repository.findAll(q)
+   * para que haga búsqueda por nombre/email/document_number.
+   *
+   * Esta aproximación garantiza resultados parciales (ej. q=8271 => matchea 827112).
+   * Si en el futuro necesitas rendimiento en grandes volúmenes, adaptamos la consulta SQL.
+   */
   async list(q?: string): Promise<{ data: User[]; total: number }> {
-    const data = await this.repository.findAll(q);
+    const qTrim = String(q ?? '').trim();
+
+    // Si q vacío => devolver todo (delegamos al repo)
+    if (qTrim === '') {
+      const dataAll = await this.repository.findAll();
+      return { data: dataAll, total: Array.isArray(dataAll) ? dataAll.length : 0 };
+    }
+
+    // Si q contiene sólo dígitos -> filtrado por RUN parcial (string contains)
+    if (/^\d+$/.test(qTrim)) {
+      // obtenemos todos (o podríamos optimizar en repo) y filtramos por inclusion
+      const all = await this.repository.findAll(); // repo sin filtro
+      const filtered = (all ?? []).filter((u) => {
+        const runStr = String(u.run ?? '').trim();
+        return runStr !== '' && runStr.includes(qTrim);
+      });
+      return { data: filtered, total: filtered.length };
+    }
+
+    // Si q no es numérico, delegamos al repo (búsqueda por nombre/email/document_number)
+    const data = await this.repository.findAll(qTrim);
     return { data, total: Array.isArray(data) ? data.length : 0 };
   }
 

@@ -12,7 +12,11 @@ export class AdminUsersService {
 
   list(params?: { q?: string; page?: number; perPage?: number }): Observable<{ data: AdminUser[]; total?: number }> {
     let httpParams = new HttpParams();
-    if (params?.q) httpParams = httpParams.set('q', params.q);
+    const q = params?.q ?? '';
+    const qTrim = String(q ?? '').trim();
+    if (qTrim !== '') {
+      httpParams = httpParams.set('q', qTrim);
+    }
     if (params?.page) httpParams = httpParams.set('page', String(params.page));
     if (params?.perPage) httpParams = httpParams.set('perPage', String(params.perPage));
     return this.http.get<{ data: AdminUser[]; total?: number }>(`${this.base}`, { params: httpParams });

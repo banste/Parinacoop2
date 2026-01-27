@@ -2,7 +2,7 @@
   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
     <div>
       <h1 class="text-2xl font-semibold text-gray-900">Usuarios</h1>
-      <p class="text-sm text-gray-600 mt-1">Administración de usuarios — crear, editar y eliminar</p>
+      <p class="text-sm text-gray-600 mt-1">Administración de usuarios — buscar por RUN, crear, editar y eliminar</p>
     </div>
 
     <div class="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -10,13 +10,17 @@
         <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"></path>
         </svg>
+
+        <!-- usamos ngModel y ngModelChange para evitar $event.target typing issues -->
         <input
+          name="q"
           [(ngModel)]="q"
-          (keyup.enter)="onSearch()"
-          placeholder="Buscar por nombre, email o RUN"
+          (ngModelChange)="onInput($event)"
+          placeholder="Buscar por RUN (escribe y espera)..."
           class="w-full text-sm placeholder-gray-400 focus:outline-none"
         />
-        <button (click)="onSearch()" class="ml-3 text-sm text-blue-600 hover:underline">Buscar</button>
+
+        <button (click)="onManualSearch()" class="ml-3 text-sm text-blue-600 hover:underline">Buscar</button>
       </div>
 
       <button (click)="goCreate()"
@@ -51,7 +55,8 @@
             <td class="px-6 py-3 text-gray-700">{{ u.id }}</td>
             <td class="px-6 py-3 text-gray-900">{{ u.name ?? '-' }}</td>
             <td class="px-6 py-3 text-gray-700">{{ u.email ?? '-' }}</td>
-            <td class="px-6 py-3 text-gray-700">{{ u.run ?? '-' }}</td>
+            <!-- evitar wrap/truncado en RUN -->
+            <td class="px-6 py-3 text-gray-700 whitespace-nowrap">{{ u.run ?? '-' }}</td>
             <td class="px-6 py-3 text-gray-700">{{ u.role ?? '-' }}</td>
             <td class="px-6 py-3 text-center">
               <span *ngIf="u.active" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Sí</span>

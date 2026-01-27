@@ -1,15 +1,15 @@
-import { IsOptional, IsString, IsEmail, IsBoolean, IsNumber } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsString, IsEmail, IsBoolean } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
   name?: string;
 
+  // Aceptamos run como string (p. ej. "20218321"). Si frontend envía número,
+  // class-transformer puede convertirlo; en la práctica conviene enviar string.
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  run?: number;
+  @IsString()
+  run?: string;
 
   @IsOptional()
   @IsEmail()
