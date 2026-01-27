@@ -1,9 +1,8 @@
-// parinacoop-webapp-master/src/app/features/admin/dap/admin-dap.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
-import { Dap } from '@app/features/dap/models/dap.model';
+import { catchError, tap } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
+import { Dap } from '../../dap/models/dap.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminDapService {
@@ -12,9 +11,9 @@ export class AdminDapService {
 
   constructor(private http: HttpClient) {}
 
+  // Nota: NO incluir '/api' ni '/' al inicio. El interceptor añade el prefijo base.
   getDapListByRun(run: number): Observable<{ daps: any[] } | null> {
-    // <-- quitar el '/api' aquí para evitar duplicarlo con el interceptor/base URL
-    const url = `admin/clients/${run}/daps`;
+    const url = `admin/clients/${run}/daps`; // <<-- ruta relativa correcta
     return this.http.get<{ daps: any[] }>(url).pipe(
       tap((res) => {
         const raw = Array.isArray(res?.daps) ? res.daps : [];
