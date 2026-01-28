@@ -41,4 +41,13 @@ export class AdminDapService {
       }),
     );
   }
+
+  /**
+   * Llama al endpoint admin para activar un DAP por su internalId.
+   * Body: { internalId: string }
+   */
+  activateDapByInternalId(internalId: string): Observable<any> {
+    const url = `admin/daps/activate`;
+    return this.http.post(url, { internalId });
+  }
 }

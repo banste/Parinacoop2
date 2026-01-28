@@ -38,8 +38,10 @@ import { DapContractsRepository } from './repositories/dap-contracts.repository'
 import { DapContractsService } from './dap-contracts.service';
 import { DapContractsController } from './controller/dap-contracts.controller';
 
-// Nuevo: controlador admin para listar DAPs por run (requiere rol ADMIN)
+// Admin controllers
 import { AdminGetDapsController } from './http/admin-get-daps.controller';
+import { AdminDapAttachmentsController } from './http/admin-dap-attachments.controller';
+import { AdminDapContractsController } from './http/admin-dap-contracts.controller';
 
 @Module({
   controllers: [
@@ -49,8 +51,10 @@ import { AdminGetDapsController } from './http/admin-get-daps.controller';
     GetDapPdfsController,
     DapAttachmentsController,
     DapContractsController,
-    // Registrar el nuevo controlador admin
+    // Registrar controladores admin
     AdminGetDapsController,
+    AdminDapAttachmentsController,
+    AdminDapContractsController,
   ],
   providers: [
     GetDapsUseCase,

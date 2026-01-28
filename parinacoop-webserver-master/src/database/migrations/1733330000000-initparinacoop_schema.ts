@@ -127,6 +127,30 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('updated_at', 'timestamp', (col) => col.defaultTo(sql`now()`))
     .execute();
 
+  // NUEVA TABLA: mapeo internal_id asignado por admin a un dap
+  // tabla recomendada para auditoría y trazabilidad: dap_internal_ids
+  await db.schema
+    .createTable('dap_internal_ids')
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('dap_id', 'integer', (col) => col.notNull())
+    .addColumn('internal_id', 'varchar(100)', (col) => col.notNull())
+    .addColumn('created_by_run', 'integer', (col) => col.notNull())
+    .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
+    // foreign keys
+    .addForeignKeyConstraint('fk_dapinternal_dap', ['dap_id'], 'dap', ['id'], (cb) => cb.onDelete('cascade'))
+    .addForeignKeyConstraint('fk_dapinternal_user', ['created_by_run'], 'user', ['run'], (cb) => cb.onDelete('restrict'))
+    .execute();
+
+  // índice para búsquedas rápidas por internal_id y garantizar unicidad si lo deseas
+  // si quieres permitir múltiples asignaciones con el mismo internal_id quita .unique()
+  await db.schema
+    .createIndex('ux_dap_internal_id')
+    .on('dap_internal_ids')
+    .columns(['internal_id'])
+    .unique()
+    .execute();
+
   // PASSWORDRESET (CAMBIAR_PASSWORD) - tabla para tokens de recuperación
   await db.schema
     .createTable('passwordreset')
@@ -276,6 +300,10 @@ export const down: Migration['down'] = async (db) => {
   await db.schema.dropIndex('idx_passwordreset_token_hash').ifExists().execute();
 
   await db.schema.dropTable('passwordreset').ifExists().execute();
+
+  // eliminar índice/ux de dap_internal_ids y la tabla
+  await db.schema.dropIndex('ux_dap_internal_id').ifExists().execute();
+  await db.schema.dropTable('dap_internal_ids').ifExists().execute();
 
   await db.schema.dropTable('dap_instructions').ifExists().execute();
   await db.schema.dropTable('dap').ifExists().execute();

@@ -1,0 +1,71 @@
+.users-daps-container {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* tarjeta */
+.dap-card {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  padding: 16px;
+  transition: box-shadow .12s ease-in-out, transform .06s;
+  min-height: 120px;
+}
+.dap-card:hover {
+  box-shadow: 0 10px 25px rgba(13, 18, 25, 0.06);
+  transform: translateY(-2px);
+}
+
+/* controls */
+.dap-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.dap-input {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+.dap-input:focus {
+  outline: none;
+  border-color: #34d399;
+  box-shadow: 0 0 0 4px rgba(52,211,153,0.06);
+}
+
+/* botón */
+.dap-activate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #059669; /* green-600 */
+  border: none;
+  color: white;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.dap-activate-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* enlaces acción (detalle / adjuntos) */
+button[ng-reflect-ng-class] {
+  /* no-op for readability; specific styling done below */
+}
+button.text-primary-600 {
+  color: #059669;
+}
+
+/* mobile tweaks */
+@media (max-width: 640px) {
+  .dap-card {
+    padding: 12px;
+  }
+  .dap-controls {
+    width: 100%;
+  }
+}

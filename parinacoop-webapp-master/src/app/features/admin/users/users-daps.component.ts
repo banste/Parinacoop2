@@ -1,61 +1,32 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+
 import { AdminUsersService } from './admin-users.service';
 import { AdminDapService } from '../dap/admin-dap.service';
-import { DapItemComponent } from '@app/features/dap/components/dap-item/dap-item.component';
 import { SvgIconComponent } from '@app/shared/components';
 import { Observable } from 'rxjs';
 import { Dap } from '@app/features/dap/models/dap.model';
 
+// Dialog components (standalone) from the dap feature
+import { DapDialogDetailsComponent } from '@app/features/dap/components/dap-dialog-details/dap-dialog-details.component';
+import { DapAttachmentsComponent } from '@app/features/dap/components/dap-attachments/dap-attachments.component';
+
 @Component({
   selector: 'app-admin-users-daps',
   standalone: true,
-  imports: [CommonModule, RouterModule, SvgIconComponent, DapItemComponent, AsyncPipe],
-  template: `
-    <section class="max-w-[1100px] mx-auto px-4 py-6">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-2xl font-semibold text-gray-900">Depósitos a plazo</h1>
-          <p class="text-sm text-gray-600 mt-1">
-            Depósitos del usuario:
-            <span *ngIf="userName; else noUser">{{ userName }}</span>
-            <ng-template #noUser>—</ng-template>
-            <span *ngIf="userRun"> (RUN: {{ userRun }})</span>
-          </p>
-        </div>
-
-        <div>
-          <a routerLink="/admin/usuarios" class="text-sm text-blue-600 hover:underline">← Volver a usuarios</a>
-        </div>
-      </div>
-
-      <div *ngIf="loadingUser" class="mb-4 text-sm text-gray-600">Cargando información del usuario...</div>
-      <div *ngIf="errorMessage" class="mb-4 text-sm text-red-600">{{ errorMessage }}</div>
-
-      <ng-container *ngIf="!errorMessage">
-        <ng-container *ngIf="daps$ | async as daps; else loadingDaps">
-          <ng-container *ngIf="daps?.length; else empty">
-            <div class="space-y-2">
-              <ng-container *ngFor="let dap of daps">
-                <div class="py-1">
-                  <app-dap-item [dap]="dap"></app-dap-item>
-                </div>
-              </ng-container>
-            </div>
-          </ng-container>
-        </ng-container>
-      </ng-container>
-
-      <ng-template #loadingDaps>
-        <div class="text-center py-8">Cargando depósitos...</div>
-      </ng-template>
-
-      <ng-template #empty>
-        <div class="text-center py-8">No se encontraron depósitos para este usuario</div>
-      </ng-template>
-    </section>
-  `,
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatDialogModule,
+    SvgIconComponent,
+    AsyncPipe,
+    DapDialogDetailsComponent,
+    DapAttachmentsComponent,
+  ],
+  templateUrl: './users-daps.component.html',
+  styleUrls: ['./users-daps.component.scss'],
 })
 export default class UsersDapsComponent implements OnInit {
   userName: string | null = null;
@@ -65,10 +36,16 @@ export default class UsersDapsComponent implements OnInit {
   loadingUser = false;
   errorMessage: string | null = null;
 
+  // mapas para estado por dap.id
+  isActivatingMap: Record<number, boolean> = {};
+  activationMsgMap: Record<number, string | null> = {};
+  activationErrMap: Record<number, string | null> = {};
+
   constructor(
     private route: ActivatedRoute,
     private adminUsersSvc: AdminUsersService,
     private adminDapService: AdminDapService,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -129,6 +106,69 @@ export default class UsersDapsComponent implements OnInit {
         this.loadingUser = false;
         this.errorMessage = 'Error al cargar usuario.';
         console.error('UsersDapsComponent: error loading user', err);
+      },
+    });
+  }
+
+  trackById(index: number, item: any) {
+    return item?.id ?? index;
+  }
+
+  activateByInternalId(dap: Dap, internalId: string | null | undefined) {
+    const dapId = dap.id as number;
+    if (!dapId || !internalId || internalId.trim() === '') {
+      if (dapId) {
+        this.activationErrMap[dapId] = 'Debe ingresar una ID interna.';
+      } else {
+        alert('DAP inválido o sin identificador.');
+      }
+      return;
+    }
+
+    // limpiar mensajes previos
+    this.activationErrMap[dapId] = null;
+    this.activationMsgMap[dapId] = null;
+    this.isActivatingMap[dapId] = true;
+
+    this.adminDapService.activateDapByInternalId(String(internalId).trim()).subscribe({
+      next: (res) => {
+        this.isActivatingMap[dapId] = false;
+        this.activationMsgMap[dapId] = res?.message ?? 'Depósito activado correctamente';
+        // refrescar lista
+        const runNum = Number(this.userRun ?? 0);
+        if (runNum > 0) {
+          this.adminDapService.getDapListByRun(runNum).subscribe({ next: () => {}, error: () => {} });
+        }
+      },
+      error: (err) => {
+        this.isActivatingMap[dapId] = false;
+        this.activationErrMap[dapId] = err?.error?.message ?? 'Error al activar depósito';
+        console.error('activateByInternalId error', err);
+      },
+    });
+  }
+
+  // Abre el diálogo de detalles reutilizando el componente que ya existe
+  openDetail(dap: Dap): void {
+    this.dialog.open(DapDialogDetailsComponent, {
+      width: '680px',
+      autoFocus: true,
+      restoreFocus: true,
+      data: dap,
+      panelClass: 'dap-dialog',
+    });
+  }
+
+  // Abre el gestor de adjuntos (componente existente)
+  openAttachments(dap: Dap): void {
+    // si tu DapAttachmentsComponent espera datos distintos, ajusta el "data" en consecuencia
+    this.dialog.open(DapAttachmentsComponent, {
+      width: '720px',
+      maxHeight: '80vh',
+      panelClass: 'dap-dialog',
+      data: {
+        dapId: dap.id,
+        userRun: dap.userRun ?? this.userRun,
       },
     });
   }

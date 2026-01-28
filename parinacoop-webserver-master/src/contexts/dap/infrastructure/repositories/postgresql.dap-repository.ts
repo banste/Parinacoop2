@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { sql } from 'kysely';
 
 import { Database } from '@/database/database';
 
 import { Dap } from '@/contexts/dap/domain/models/Dap';
 import { DapRepository } from '@/contexts/dap/domain/ports/dap.repository';
+import { DapStatus } from '@/contexts/dap/domain/dap-status.enum';
 
 @Injectable()
 export class PostgreSqlDapRepository implements DapRepository {
@@ -109,5 +111,119 @@ export class PostgreSqlDapRepository implements DapRepository {
       .executeTakeFirst();
 
     return row ? new Dap(row) : null;
+  }
+
+  // ------------------------------------------------------------
+  // Nuevos métodos para soportar activación por internal_id
+  // (findByInternalId, updateStatusById, attachInternalId)
+  // ------------------------------------------------------------
+
+  // Busca un DAP por internal_id (usa la tabla dap_internal_ids creada por migración)
+  async findByInternalId(internalId: string): Promise<Dap | null> {
+    const row = await this.db
+      .selectFrom('dap')
+      .innerJoin('dap_internal_ids', 'dap_internal_ids.dap_id', 'dap.id')
+      .where('dap_internal_ids.internal_id', '=', internalId)
+      .select([
+        'dap.id',
+        'dap.user_run as userRun',
+        'dap.type',
+        'dap.currency_type as currencyType',
+        'dap.days',
+        'dap.status',
+        'dap.initial_date as initialDate',
+        'dap.initial_amount as initialAmount',
+        'dap.due_date as dueDate',
+        'dap.profit',
+        'dap.interest_rate_in_period as interestRateInPeriod',
+        'dap.interest_rate_in_month as interestRateInMonth',
+        'dap.final_amount as finalAmount',
+      ])
+      .executeTakeFirst();
+
+    return row ? new Dap(row) : null;
+  }
+
+  // Actualiza el estado (status) por id y devuelve la entidad actualizada
+  // Acepta DapStatus o string; casteamos al tipo que Kysely espera.
+  async updateStatusById(id: number, status: DapStatus | string): Promise<Dap | null> {
+    const update = await this.db
+      .updateTable('dap')
+      // Kysely espera una ValueExpression para columnas con tipos específicos;
+      // para evitar error de tipos en este punto casteamos el valor.
+      .set({ status: status as any })
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
+
+    if (!update) return null;
+
+    const row = {
+      id: update.id,
+      userRun: update.user_run,
+      type: update.type,
+      currencyType: update.currency_type,
+      days: update.days,
+      status: update.status,
+      initialDate: update.initial_date,
+      initialAmount: update.initial_amount,
+      dueDate: update.due_date,
+      profit: update.profit,
+      interestRateInPeriod: update.interest_rate_in_period,
+      interestRateInMonth: update.interest_rate_in_month,
+      finalAmount: update.final_amount,
+    };
+
+    return new Dap(row);
+  }
+
+  // Inserta o actualiza un registro en dap_internal_ids para auditar la asignación
+  async attachInternalId(dapId: number, internalId: string, createdByRun: number): Promise<void> {
+    // SELECT previo para decidir INSERT o UPDATE (manejo sencillo y portable)
+    const existing = await this.db
+      .selectFrom('dap_internal_ids')
+      .where('internal_id', '=', internalId)
+      .select(['id', 'dap_id']) // usar array de columnas (corrección TS)
+      .executeTakeFirst();
+
+    if (existing) {
+      // Si existe, actualizamos la fila para asociarla al dapId y registrar quién lo hizo.
+      await this.db
+        .updateTable('dap_internal_ids')
+        .set({
+          dap_id: dapId,
+          created_by_run: createdByRun,
+          // actualizar la marca temporal a NOW() en la DB usando sql`now()`
+          // casteo 'as any' porque .set espera el tipo exacto de la columna según la interfaz
+          created_at: sql`now()`,
+        } as any)
+        .where('internal_id', '=', internalId)
+        .execute();
+      return;
+    }
+
+    // Si no existe, insertamos (la columna created_at puede ser omitida si DB tiene DEFAULT now())
+    try {
+      await this.db
+        .insertInto('dap_internal_ids')
+        .values({
+          dap_id: dapId,
+          internal_id: internalId,
+          created_by_run: createdByRun,
+          created_at: new Date(),
+        })
+        .execute();
+    } catch (err) {
+      // fallback: en caso de carrera (insert duplicado), hacemos un update
+      try {
+        await this.db
+          .updateTable('dap_internal_ids')
+          .set({ dap_id: dapId, created_by_run: createdByRun })
+          .where('internal_id', '=', internalId)
+          .execute();
+      } catch (innerErr) {
+        console.warn('attachInternalId: fallback update failed', innerErr);
+      }
+    }
   }
 }
