@@ -42,6 +42,7 @@ import { DapContractsController } from './controller/dap-contracts.controller';
 import { AdminGetDapsController } from './http/admin-get-daps.controller';
 import { AdminDapAttachmentsController } from './http/admin-dap-attachments.controller';
 import { AdminDapContractsController } from './http/admin-dap-contracts.controller';
+import { AdminActivateDapController } from './http/admin-activate-dap.controller';
 
 @Module({
   controllers: [
@@ -55,6 +56,7 @@ import { AdminDapContractsController } from './http/admin-dap-contracts.controll
     AdminGetDapsController,
     AdminDapAttachmentsController,
     AdminDapContractsController,
+    AdminActivateDapController,
   ],
   providers: [
     GetDapsUseCase,

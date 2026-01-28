@@ -111,9 +111,16 @@ export default class UsersDapsComponent implements OnInit {
   }
 
   activateByInternalId(dap: Dap, internalId: string | null | undefined) {
-    const dapId = dap.id as number;
-    if (!dapId || !internalId || internalId.trim() === '') {
-      if (dapId) this.activationErrMap[dapId] = 'Debe ingresar una ID interna.';
+    const dapId = Number(dap?.id ?? 0);
+    const internal = String(internalId ?? '').trim();
+
+    if (!dapId || isNaN(dapId)) {
+      if (dapId) this.activationErrMap[dapId] = 'ID de DAP inválido.';
+      return;
+    }
+
+    if (!internal) {
+      this.activationErrMap[dapId] = 'Debe ingresar una ID interna.';
       return;
     }
 
@@ -122,16 +129,17 @@ export default class UsersDapsComponent implements OnInit {
     this.activationMsgMap[dapId] = null;
     this.isActivatingMap[dapId] = true;
 
-    this.adminDapService.activateDapByInternalId(String(internalId).trim()).subscribe({
+    // Console log para depurar el body que se enviará
+    const bodyForDebug = { internalId: internal, dapId };
+    console.log('Activando DAP - request body:', bodyForDebug);
+
+    this.adminDapService.activateDapByInternalId(internal, dapId).subscribe({
       next: (res) => {
         this.isActivatingMap[dapId] = false;
         this.activationMsgMap[dapId] = res?.message ?? 'Depósito activado correctamente';
-
-        // refrescar lista si tenemos run
+        // refrescar lista
         const runNum = Number(this.userRun ?? 0);
-        if (runNum > 0) {
-          this.adminDapService.getDapListByRun(runNum).subscribe({ next: () => {}, error: () => {} });
-        }
+        if (runNum > 0) this.adminDapService.getDapListByRun(runNum).subscribe();
       },
       error: (err) => {
         this.isActivatingMap[dapId] = false;
@@ -142,7 +150,6 @@ export default class UsersDapsComponent implements OnInit {
   }
 
   openDetail(dap: Dap): void {
-    // blur activo para evitar warnings ARIA cuando material oculta el resto del DOM
     try { (document.activeElement as HTMLElement)?.blur(); } catch {}
 
     this.dialog.open(DapDialogDetailsComponent, {
@@ -154,7 +161,6 @@ export default class UsersDapsComponent implements OnInit {
     });
   }
 
-  // Método que abre el diálogo admin de adjuntos
   openAdminAttachments(dap: Dap): void {
     try { (document.activeElement as HTMLElement)?.blur(); } catch {}
 
@@ -166,7 +172,6 @@ export default class UsersDapsComponent implements OnInit {
     });
   }
 
-  // Alias para compatibilidad con la plantilla que esperaba openAttachments(dap)
   openAttachments(dap: Dap): void {
     this.openAdminAttachments(dap);
   }

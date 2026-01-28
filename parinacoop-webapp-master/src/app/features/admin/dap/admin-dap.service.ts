@@ -44,11 +44,14 @@ export class AdminDapService {
 
   /**
    * Activa un DAP usando la internalId (ej: número interno aportado por la empresa).
-   * Body: { internalId: string }
+   * Si se proporciona dapId, el backend asociará el internalId al dap antes de activar.
+   * Body enviado: { internalId: string, dapId?: number }
    */
-  activateDapByInternalId(internalId: string): Observable<any> {
+  activateDapByInternalId(internalId: string, dapId?: number): Observable<any> {
     const url = `admin/daps/activate`;
-    return this.http.post(url, { internalId });
+    const body: any = { internalId: String(internalId ?? '').trim() };
+    if (dapId != null) body.dapId = Number(dapId);
+    return this.http.post(url, body);
   }
 
   /**

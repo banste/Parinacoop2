@@ -1,54 +1,78 @@
-import { Controller, Post, Body, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from '@/contexts/shared/guards/auth.guard';
+import { Body, Controller, HttpStatus, Post, UseGuards, BadRequestException, NotFoundException, InternalServerErrorException, Req } from '@nestjs/common';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { Roles } from '@/contexts/shared/decorators/roles.decorator';
-import { Role } from '@/contexts/shared/enums/roles.enum';
 import { RolesGuard } from '@/contexts/shared/guards/roles.guard';
-import { User } from '@/contexts/shared/decorators/user.decorator';
-import { UserRequest } from '@/utils/interfaces/user-request.interface';
-import { DapRepository } from '../../domain/ports/dap.repository';
-import { DapStatus } from '@/contexts/dap/domain/dap-status.enum';
+import { AuthGuard } from '@/contexts/shared/guards/auth.guard';
+import { Role } from '@/contexts/shared/enums/roles.enum';
 
-@ApiTags('DAP (admin)')
+import { DapRepository } from '@/contexts/dap/domain/ports/dap.repository';
+
+@ApiTags('DAP Admin (activate)')
 @ApiBearerAuth()
 @Roles(Role.ADMIN)
 @UseGuards(AuthGuard, RolesGuard)
 @Controller('admin/daps')
 export class AdminActivateDapController {
-  constructor(private readonly dapRepository: DapRepository) {}
+  constructor(private readonly dapRepo: DapRepository) {}
 
+  @ApiResponse({ status: HttpStatus.OK, description: 'Activar DAP por internalId (y opcionalmente asociarlo a dapId)' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'internalId requerido' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'DAP no encontrado con esa internalId' })
   @Post('activate')
   async activateByInternalId(
-    @User() user: UserRequest,
-    @Body() body: { internalId?: string },
+    @Body() body: { internalId?: string; dapId?: number },
+    @Req() req: Request,
   ) {
-    if (!body?.internalId) throw new BadRequestException('internalId requerido');
+    const internalId = (body?.internalId ?? '').toString().trim();
+    const dapIdFromBody = body?.dapId ?? null;
 
-    const internalId = String(body.internalId).trim();
-    if (!internalId) throw new BadRequestException('internalId inválido');
+    console.log('AdminActivateDapController.activateByInternalId called, body=', { internalId, dapIdFromBody });
 
-    // Buscar DAP por internal_id: este método debe implementarse en el repo
-    const dap = await (this.dapRepository as any).findByInternalId?.(internalId);
-    if (!dap) throw new NotFoundException('DAP no encontrado para ese internalId');
+    if (!internalId) throw new BadRequestException('internalId requerido');
 
-    // Si está pendiente, pasar a active (o forzar siempre)
-    if ((dap.status ?? '').toString() === DapStatus.ACTIVE) {
-      return { ok: true, message: 'El depósito ya está activo', dap };
-    }
+    // Determinar el run/admin que realiza la acción si está disponible en req.user
+    const user = (req as any).user ?? null;
+    const createdByRun = (user?.run ?? user?.rut ?? user?.id) ?? null;
 
-    const updated = await (this.dapRepository as any).updateStatusById?.(dap.id, DapStatus.ACTIVE);
-    if (!updated) throw new BadRequestException('No se pudo actualizar el estado del DAP');
-
-    // Registrar auditoría: insertar en dap_internal_ids que ya creaste en migración
-    if ((this.dapRepository as any).attachInternalId) {
+    // Si viene dapId, primero asociamos (insert/update) el internalId al dap
+    if (dapIdFromBody) {
       try {
-        await (this.dapRepository as any).attachInternalId(dap.id, internalId, Number(user.run));
+        if (typeof (this.dapRepo as any).attachInternalId === 'function') {
+          await (this.dapRepo as any).attachInternalId(dapIdFromBody, internalId, createdByRun ?? 0);
+          console.log('attachInternalId OK', { dapId: dapIdFromBody, internalId, createdByRun });
+        } else {
+          throw new Error('Repositorio no implementa attachInternalId');
+        }
       } catch (err) {
-        // no fatal: log y continuar
-        console.warn('attachInternalId falló', err);
+        console.error('Error associating internalId:', err);
+        throw new InternalServerErrorException('Error asociando internalId al DAP: ' + (err as any)?.message);
       }
+
+      // Luego actualizamos status usando updateStatusById
+      if (typeof (this.dapRepo as any).updateStatusById === 'function') {
+        const updated = await (this.dapRepo as any).updateStatusById(dapIdFromBody, 'ACTIVE');
+        if (!updated) throw new InternalServerErrorException('No se pudo actualizar estado del DAP');
+        return { ok: true, message: 'DAP activado y internalId asociado', dapId: dapIdFromBody };
+      }
+
+      throw new InternalServerErrorException('Repositorio no implementa updateStatusById');
     }
 
-    return { ok: true, message: 'DAP activado', dap: updated };
+    // Si no viene dapId, intentamos buscar por internalId
+    const dap = await (this.dapRepo as any).findByInternalId?.(internalId);
+    console.log('findByInternalId result:', dap ? { id: (dap as any).id } : null);
+    if (!dap) throw new NotFoundException('DAP no encontrado para el internalId');
+
+    const id = (dap as any).id;
+    if (!id) throw new InternalServerErrorException('DAP encontrado sin id');
+
+    if (typeof (this.dapRepo as any).updateStatusById === 'function') {
+      const updated = await (this.dapRepo as any).updateStatusById(id, 'ACTIVE');
+      if (!updated) throw new InternalServerErrorException('No se pudo actualizar estado del DAP');
+      return { ok: true, message: 'DAP activado', dapId: id };
+    }
+
+    throw new InternalServerErrorException('Repositorio no implementa updateStatusById');
   }
 }
