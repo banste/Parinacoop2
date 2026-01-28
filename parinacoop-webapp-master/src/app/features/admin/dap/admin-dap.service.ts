@@ -13,7 +13,7 @@ export class AdminDapService {
 
   // Nota: NO incluir '/api' ni '/' al inicio. El interceptor añade el prefijo base.
   getDapListByRun(run: number): Observable<{ daps: any[] } | null> {
-    const url = `admin/clients/${run}/daps`; // <<-- ruta relativa correcta
+    const url = `admin/clients/${run}/daps`;
     return this.http.get<{ daps: any[] }>(url).pipe(
       tap((res) => {
         const raw = Array.isArray(res?.daps) ? res.daps : [];
@@ -43,11 +43,45 @@ export class AdminDapService {
   }
 
   /**
-   * Llama al endpoint admin para activar un DAP por su internalId.
+   * Activa un DAP usando la internalId (ej: número interno aportado por la empresa).
    * Body: { internalId: string }
    */
   activateDapByInternalId(internalId: string): Observable<any> {
     const url = `admin/daps/activate`;
     return this.http.post(url, { internalId });
+  }
+
+  /**
+   * Variante: activar por dapId numérico (si prefieres endpoint con id en URL)
+   */
+  activateDapById(dapId: number): Observable<any> {
+    const url = `admin/daps/${dapId}/activate`;
+    return this.http.post(url, {});
+  }
+
+  // ---------------- Admin-only endpoints ----------------
+
+  // Admin: listar adjuntos del DAP
+  listAttachmentsAdmin(run: number, dapId: number): Observable<any[]> {
+    const url = `admin/clients/${run}/daps/${dapId}/attachments`;
+    return this.http.get<any[]>(url);
+  }
+
+  // Admin: descargar adjunto (blob)
+  downloadAttachmentAdmin(run: number, dapId: number, attachmentId: number) {
+    const url = `admin/clients/${run}/daps/${dapId}/attachments/${attachmentId}/download`;
+    return this.http.get(url, { responseType: 'blob' as 'json' }) as any;
+  }
+
+  // Admin: listar contratos
+  listContractsAdmin(run: number, dapId: number): Observable<any[]> {
+    const url = `admin/clients/${run}/daps/${dapId}/contracts`;
+    return this.http.get<any[]>(url);
+  }
+
+  // Admin: descargar contrato (blob)
+  downloadContractAdmin(run: number, dapId: number, contractId: number) {
+    const url = `admin/clients/${run}/daps/${dapId}/contracts/${contractId}/download`;
+    return this.http.get(url, { responseType: 'blob' as 'json' }) as any;
   }
 }

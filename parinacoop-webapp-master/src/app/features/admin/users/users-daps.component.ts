@@ -5,13 +5,10 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { AdminUsersService } from './admin-users.service';
 import { AdminDapService } from '../dap/admin-dap.service';
-import { SvgIconComponent } from '@app/shared/components';
+import { DapDialogDetailsComponent } from '@app/features/dap/components/dap-dialog-details/dap-dialog-details.component';
+import { AdminDapAttachmentsComponent } from '../dap/admin-dap-attachments.component';
 import { Observable } from 'rxjs';
 import { Dap } from '@app/features/dap/models/dap.model';
-
-// Dialog components (standalone) from the dap feature
-import { DapDialogDetailsComponent } from '@app/features/dap/components/dap-dialog-details/dap-dialog-details.component';
-import { DapAttachmentsComponent } from '@app/features/dap/components/dap-attachments/dap-attachments.component';
 
 @Component({
   selector: 'app-admin-users-daps',
@@ -20,10 +17,9 @@ import { DapAttachmentsComponent } from '@app/features/dap/components/dap-attach
     CommonModule,
     RouterModule,
     MatDialogModule,
-    SvgIconComponent,
     AsyncPipe,
     DapDialogDetailsComponent,
-    DapAttachmentsComponent,
+    AdminDapAttachmentsComponent,
   ],
   templateUrl: './users-daps.component.html',
   styleUrls: ['./users-daps.component.scss'],
@@ -36,7 +32,6 @@ export default class UsersDapsComponent implements OnInit {
   loadingUser = false;
   errorMessage: string | null = null;
 
-  // mapas para estado por dap.id
   isActivatingMap: Record<number, boolean> = {};
   activationMsgMap: Record<number, string | null> = {};
   activationErrMap: Record<number, string | null> = {};
@@ -49,6 +44,7 @@ export default class UsersDapsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Observable stream of DAPs provided by the AdminDapService
     this.daps$ = this.adminDapService.daps$;
 
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -93,7 +89,7 @@ export default class UsersDapsComponent implements OnInit {
           return;
         }
 
-        // Llamamos al servicio admin para cargar DAPs (Admin token required)
+        // Cargar DAPs usando el servicio admin (actualiza el BehaviorSubject internamente)
         this.adminDapService.getDapListByRun(runNum).subscribe({
           next: () => {},
           error: (err) => {
@@ -117,15 +113,11 @@ export default class UsersDapsComponent implements OnInit {
   activateByInternalId(dap: Dap, internalId: string | null | undefined) {
     const dapId = dap.id as number;
     if (!dapId || !internalId || internalId.trim() === '') {
-      if (dapId) {
-        this.activationErrMap[dapId] = 'Debe ingresar una ID interna.';
-      } else {
-        alert('DAP inválido o sin identificador.');
-      }
+      if (dapId) this.activationErrMap[dapId] = 'Debe ingresar una ID interna.';
       return;
     }
 
-    // limpiar mensajes previos
+    // limpiar mensajes previos y marcar activating
     this.activationErrMap[dapId] = null;
     this.activationMsgMap[dapId] = null;
     this.isActivatingMap[dapId] = true;
@@ -134,7 +126,8 @@ export default class UsersDapsComponent implements OnInit {
       next: (res) => {
         this.isActivatingMap[dapId] = false;
         this.activationMsgMap[dapId] = res?.message ?? 'Depósito activado correctamente';
-        // refrescar lista
+
+        // refrescar lista si tenemos run
         const runNum = Number(this.userRun ?? 0);
         if (runNum > 0) {
           this.adminDapService.getDapListByRun(runNum).subscribe({ next: () => {}, error: () => {} });
@@ -142,14 +135,16 @@ export default class UsersDapsComponent implements OnInit {
       },
       error: (err) => {
         this.isActivatingMap[dapId] = false;
-        this.activationErrMap[dapId] = err?.error?.message ?? 'Error al activar depósito';
+        this.activationErrMap[dapId] = err?.error?.message ?? err?.message ?? 'Error al activar depósito';
         console.error('activateByInternalId error', err);
       },
     });
   }
 
-  // Abre el diálogo de detalles reutilizando el componente que ya existe
   openDetail(dap: Dap): void {
+    // blur activo para evitar warnings ARIA cuando material oculta el resto del DOM
+    try { (document.activeElement as HTMLElement)?.blur(); } catch {}
+
     this.dialog.open(DapDialogDetailsComponent, {
       width: '680px',
       autoFocus: true,
@@ -159,17 +154,20 @@ export default class UsersDapsComponent implements OnInit {
     });
   }
 
-  // Abre el gestor de adjuntos (componente existente)
-  openAttachments(dap: Dap): void {
-    // si tu DapAttachmentsComponent espera datos distintos, ajusta el "data" en consecuencia
-    this.dialog.open(DapAttachmentsComponent, {
-      width: '720px',
-      maxHeight: '80vh',
+  // Método que abre el diálogo admin de adjuntos
+  openAdminAttachments(dap: Dap): void {
+    try { (document.activeElement as HTMLElement)?.blur(); } catch {}
+
+    const runNum = Number(dap.userRun ?? this.userRun);
+    this.dialog.open(AdminDapAttachmentsComponent, {
+      width: '780px',
+      data: { run: runNum, dapId: dap.id },
       panelClass: 'dap-dialog',
-      data: {
-        dapId: dap.id,
-        userRun: dap.userRun ?? this.userRun,
-      },
     });
+  }
+
+  // Alias para compatibilidad con la plantilla que esperaba openAttachments(dap)
+  openAttachments(dap: Dap): void {
+    this.openAdminAttachments(dap);
   }
 }

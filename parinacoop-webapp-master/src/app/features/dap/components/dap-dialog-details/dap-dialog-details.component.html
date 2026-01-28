@@ -19,32 +19,26 @@
 
       <div class="text-right">
         <div class="text-sm text-primary-700">Estado</div>
-
         <div
-          class="font-semibold"
+          class="text-sm font-semibold"
           [ngClass]="{
-            'text-green-700':
-              currentDap.status === DapStatus.ACTIVE ||
-              currentDap.status === DapStatus.PAID,
-            'text-orange-700':
-              currentDap.status === DapStatus.PENDING ||
-              currentDap.status === DapStatus.EXPIRED_PENDING,
+            'text-green-700': currentDap.status === DapStatus.ACTIVE || currentDap.status === DapStatus.PAID,
+            'text-orange-700': currentDap.status === DapStatus.PENDING || currentDap.status === DapStatus.EXPIRED_PENDING,
             'text-red-700': currentDap.status === DapStatus.EXPIRED
           }"
         >
-          {{ currentDap ? (currentDap.status | dapStatus) : '-' }}
+          {{ currentDap.status | dapStatus }}
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Detalles -->
-  <div class="rounded-xl border border-[#dcdcdc] p-4 mb-5">
-    <h3 class="font-semibold text-primary-950 mb-2">Datos del depósito</h3>
-
+  <!-- Datos principales -->
+  <div class="rounded-lg border p-4 bg-white mb-4">
+    <div class="mb-3 text-sm font-medium">Datos del depósito</div>
     <div class="grid grid-cols-2 gap-x-6 gap-y-2 items-start">
       <div class="text-sm text-primary-700">Tipo</div>
-      <div class="text-sm text-primary-900">{{ currentDap ? (currentDap.type | dapType) : '-' }}</div>
+      <div class="text-sm text-primary-900">{{ currentDap.type | dapType }}</div>
 
       <div class="text-sm text-primary-700">Moneda</div>
       <div class="text-sm text-primary-900">{{ currentDap.currencyType ?? '-' }}</div>
@@ -65,13 +59,16 @@
       <div class="text-sm text-primary-900">{{ currentDap && currentDap.finalAmount != null ? (currentDap.finalAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</div>
 
       <div class="text-sm text-primary-700">Intereses</div>
-      <div class="text-sm text-primary-900">{{ currentDap && currentDap.interestRateInPeriod != null ? (currentDap.interestRateInPeriod | percent:'1.2-2') : '-' }}</div>
+      <div class="text-sm text-primary-900">
+        {{ displayInterest != null ? (displayInterest | percent:'1.2-2') : '-' }}
+      </div>
     </div>
   </div>
 
-  <!-- Acciones: descargar solicitud / instructivo -->
+  <!-- Acciones: descargar solicitud / instructivo (ocultas a admin) -->
   <div class="flex gap-2 justify-end">
     <button
+      *ngIf="!isAdmin"
       mat-stroked-button
       color="primary"
       (click)="descargarSolicitudPdf()"
@@ -81,6 +78,7 @@
     </button>
 
     <button
+      *ngIf="!isAdmin"
       mat-stroked-button
       color="primary"
       (click)="descargarInstructivoPdf()"

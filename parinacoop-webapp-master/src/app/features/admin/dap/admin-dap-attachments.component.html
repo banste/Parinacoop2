@@ -1,0 +1,73 @@
+<div class="admin-attachments-dialog p-4 w-full max-w-[920px] box-border">
+  <div class="header flex items-center justify-between mb-3">
+    <div>
+      <h2 class="text-lg font-semibold">Adjuntos — Depósito #{{ data.dapId }}</h2>
+      <div class="text-sm text-gray-600">Cliente RUN: {{ data.run }}</div>
+    </div>
+    <button mat-button (click)="close()">Cerrar</button>
+  </div>
+
+  <div *ngIf="loading" class="py-6 text-center text-sm text-gray-600">Cargando adjuntos...</div>
+
+  <div *ngIf="errorMessage" class="p-3 rounded border bg-red-50 text-red-700 text-sm">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!loading && !errorMessage">
+    <div *ngIf="attachments?.length; else noAttachments" class="space-y-2">
+      <div *ngFor="let a of attachments" class="attachment-row p-3 border rounded flex items-center justify-between">
+        <div>
+          <div class="text-sm font-medium">{{ a.filename }}</div>
+          <div class="text-xs text-gray-500">Tipo: {{ a.type ?? a.mime_type ?? '-' }} • Tamaño: {{ a.size ?? '-' }}</div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button mat-button color="primary" class="btn-view bg-indigo-600 text-white px-3 py-1 rounded text-sm" (click)="preview(a)">
+            Ver
+          </button>
+
+          <button mat-button color="primary" class="download-btn bg-blue-600 text-white px-3 py-1 rounded text-sm" (click)="download(a.id)">
+            Descargar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noAttachments>
+      <div class="p-3 text-sm text-gray-600">No se encontraron adjuntos</div>
+    </ng-template>
+  </div>
+</div>
+
+<!-- PREVIEW OVERLAY -->
+<div class="preview-overlay" *ngIf="isPreviewing">
+  <div class="preview-panel">
+    <div class="preview-header">
+      <div class="preview-title">{{ previewFilename }}</div>
+      <div>
+        <button mat-button (click)="closePreview()">Cerrar</button>
+      </div>
+    </div>
+
+    <div class="preview-body">
+      <ng-container *ngIf="isImage(); else notImage">
+        <!-- Bind SafeResourceUrl directly (no 'as' cast) -->
+        <img [src]="previewUrl" alt="{{ previewFilename }}" class="preview-image" />
+      </ng-container>
+
+      <ng-template #notImage>
+        <ng-container *ngIf="isPdf(); else unsupported">
+          <!-- Bind SafeResourceUrl directly -->
+          <iframe [src]="previewUrl" class="preview-frame"></iframe>
+        </ng-container>
+
+        <ng-template #unsupported>
+          <div class="p-4">
+            <p class="text-sm text-gray-700">Este archivo no se puede visualizar en el navegador.</p>
+            <p class="text-sm text-gray-500">Usa "Descargar" para obtener el archivo localmente.</p>
+          </div>
+        </ng-template>
+      </ng-template>
+    </div>
+  </div>
+</div>
