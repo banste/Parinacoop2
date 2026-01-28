@@ -64,6 +64,8 @@ export class DapService {
           profit: Number(r.profit ?? r.ganancia ?? 0),
           interestRateInMonth: Number(r.interestRateInMonth ?? r.interest_rate_month ?? 0),
           interestRateInPeriod: Number(r.interestRateInPeriod ?? r.interest_rate_period ?? 0),
+          // Nuevo: leer internalId si el backend la devuelve con alguno de los aliases comunes
+          internalId: r.internalId ?? r.internal_id ?? r.dap_internal_id ?? r.internal_id_value ?? null,
         }));
 
         this.dapsSubject.next(normalized.sort((a, b) => (b.id ?? 0) - (a.id ?? 0)));

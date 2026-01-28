@@ -62,6 +62,10 @@
       <div class="text-sm text-primary-900">
         {{ displayInterest != null ? (displayInterest | percent:'1.2-2') : '-' }}
       </div>
+
+      <!-- Nueva fila: ID interna (solo si existe) -->
+      <div class="text-sm text-primary-700">ID interna</div>
+      <div class="text-sm text-primary-900">{{ currentDap.internalId ?? '-' }}</div>
     </div>
   </div>
 

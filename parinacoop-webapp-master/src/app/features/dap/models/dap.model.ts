@@ -17,4 +17,7 @@ export class Dap {
   profit?: number | null;
   interestRateInMonth?: number | null;
   interestRateInPeriod?: number | null;
+
+  // Nuevo: id interna asociada (si existe)
+  internalId?: string | null;
 }

@@ -1,6 +1,5 @@
-// (reemplaza el archivo actual por este; mantuve los imports y el resto igual)
 import { CommonModule, CurrencyPipe, DatePipe, NgClass, PercentPipe } from '@angular/common';
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -19,6 +18,7 @@ import { DapTypePipe } from '../../pipes/dap-type.pipe';
 import { IdPadPipe } from '../../pipes/id-pad.pipe';
 import { DetailComponent } from '../detail.component';
 
+// Auth
 import { AuthService } from '@app/core/auth/services/auth.service';
 
 @Component({
@@ -39,7 +39,7 @@ import { AuthService } from '@app/core/auth/services/auth.service';
   ],
   templateUrl: './dap-dialog-details.component.html',
 })
-export class DapDialogDetailsComponent {
+export class DapDialogDetailsComponent implements OnInit {
   readonly DapStatus = DapStatus;
 
   isDownloadingSolicitud = false;
@@ -47,12 +47,17 @@ export class DapDialogDetailsComponent {
 
   isAdmin = false;
 
+  // loading single DAP details (internal id)
+  loadingDetails = false;
+  detailsError: string | null = null;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public currentDap: Dap,
     private dialogRef: MatDialogRef<DapDialogDetailsComponent>,
     private dapService: DapService,
     private authService: AuthService,
   ) {
+    // determinar rol admin
     this.authService.currentUser$.pipe(take(1)).subscribe((u: any) => {
       if (!u) {
         this.isAdmin = false;
@@ -65,6 +70,56 @@ export class DapDialogDetailsComponent {
         this.isAdmin = String(role).toUpperCase() === 'ADMIN';
       }
     });
+  }
+
+  ngOnInit(): void {
+    // Intentamos cargar el DAP completo al abrir el diálogo para obtener campos adicionales
+    // (por ejemplo internal_id) si el endpoint de listado no los devuelve.
+    this.loadFullDapIfNeeded();
+  }
+
+  private loadFullDapIfNeeded() {
+    // Si ya tenemos internalId, no hacemos petición adicional
+    const existing = (this.currentDap as any).internalId ?? (this.currentDap as any).internal_id;
+    if (existing) return;
+
+    const dapId = Number(this.currentDap?.id ?? 0);
+    // resolver run: preferimos userRun que viene con el DAP, si no usamos el service currentRun
+    const runFromDap = Number((this.currentDap as any)?.userRun ?? this.dapService.getCurrentRun?.());
+    if (!dapId || isNaN(dapId) || !runFromDap || isNaN(runFromDap)) {
+      // no tenemos datos suficientes para pedir el DAP individual
+      return;
+    }
+
+    this.loadingDetails = true;
+    this.detailsError = null;
+
+    this.dapService
+      .getDap(runFromDap, dapId)
+      .pipe(finalize(() => (this.loadingDetails = false)))
+      .subscribe({
+        next: (res: any) => {
+          // El endpoint puede devolver la entidad con distintos nombres de campos.
+          // Solo actualizamos internalId (no sobrescribimos currentDap completo para evitar efectos colaterales).
+          const internal =
+            res?.internal_id ??
+            res?.internalId ??
+            res?.dap_internal_id ??
+            res?.internal_id_value ??
+            null;
+
+          if (internal) {
+            (this.currentDap as any).internalId = internal;
+          } else {
+            // Si el backend devuelve la relación en otra ruta (ej. internal ids), puedes adaptarlo aquí.
+            (this.currentDap as any).internalId = (this.currentDap as any).internalId ?? null;
+          }
+        },
+        error: (err: any) => {
+          console.warn('getDap failed for details', err);
+          this.detailsError = err?.message ?? 'Error al cargar detalles del DAP';
+        },
+      });
   }
 
   close(): void {
@@ -113,23 +168,7 @@ export class DapDialogDetailsComponent {
       });
   }
 
-  // NEW: compute a sensible interest rate to display
-  get displayInterest(): number | null {
-    // prefer explicit interestRateInPeriod if present and non-zero
-    const rawRate = Number((this.currentDap as any)?.interestRateInPeriod ?? (this.currentDap as any)?.interest_rate_in_period ?? NaN);
-    if (!isNaN(rawRate) && rawRate !== 0) return rawRate;
-
-    // fallback: try profit / initialAmount (period rate)
-    const profit = Number((this.currentDap as any)?.profit ?? 0);
-    const initial = Number((this.currentDap as any)?.initialAmount ?? (this.currentDap as any)?.initial_amount ?? 0);
-    if (initial > 0 && !isNaN(profit) && profit !== 0) {
-      // profit / initialAmount produces a decimal (e.g. 0.0038)
-      return profit / initial;
-    }
-
-    return null;
-  }
-
+  // helpers
   private saveBlob(blob: Blob, fileName: string): void {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -149,5 +188,18 @@ export class DapDialogDetailsComponent {
       console.error(`${label} download unknown error`, err);
       alert(`${label} - Error desconocido`);
     }
+  }
+
+  // getter usado en plantilla (ya existía en tu componente anterior)
+  get displayInterest(): number | null {
+    const rawRate = Number((this.currentDap as any)?.interestRateInPeriod ?? (this.currentDap as any)?.interest_rate_in_period ?? NaN);
+    if (!isNaN(rawRate) && rawRate !== 0) return rawRate;
+
+    const profit = Number((this.currentDap as any)?.profit ?? 0);
+    const initial = Number((this.currentDap as any)?.initialAmount ?? (this.currentDap as any)?.initial_amount ?? 0);
+    if (initial > 0 && !isNaN(profit) && profit !== 0) {
+      return profit / initial;
+    }
+    return null;
   }
 }
