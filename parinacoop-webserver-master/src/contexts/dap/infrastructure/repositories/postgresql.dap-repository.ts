@@ -63,26 +63,31 @@ export class PostgreSqlDapRepository implements DapRepository {
 
   // Obtener todos los DAP de un usuario
   async getDapsByUserRun(run: number): Promise<Dap[]> {
+    // Ahora hacemos LEFT JOIN con dap_internal_ids para traer internal_id si existe
     const result = await this.db
       .selectFrom('dap')
+      .leftJoin('dap_internal_ids', 'dap_internal_ids.dap_id', 'dap.id')
       .where('user_run', '=', run)
       .select([
-        'id',
-        'user_run as userRun',
-        'type',
-        'currency_type as currencyType',
-        'days',
-        'status',
-        'initial_date as initialDate',
-        'initial_amount as initialAmount',
-        'due_date as dueDate',
-        'profit',
-        'interest_rate_in_period as interestRateInPeriod',
+        'dap.id',
+        'dap.user_run as userRun',
+        'dap.type',
+        'dap.currency_type as currencyType',
+        'dap.days',
+        'dap.status',
+        'dap.initial_date as initialDate',
+        'dap.initial_amount as initialAmount',
+        'dap.due_date as dueDate',
+        'dap.profit',
+        'dap.interest_rate_in_period as interestRateInPeriod',
         'dap.interest_rate_in_month as interestRateInMonth',
-        'final_amount as finalAmount',
+        'dap.final_amount as finalAmount',
+        // agregamos internal_id (alias internalId) para que el frontend lo reciba en camelCase
+        'dap_internal_ids.internal_id as internalId',
       ])
       .execute();
 
+    // Mapear cada fila a la entidad Dap — la propiedad internalId se pasa en el objeto row
     return result.map((row) => new Dap(row));
   }
 
@@ -113,11 +118,6 @@ export class PostgreSqlDapRepository implements DapRepository {
     return row ? new Dap(row) : null;
   }
 
-  // ------------------------------------------------------------
-  // Nuevos métodos para soportar activación por internal_id
-  // (findByInternalId, updateStatusById, attachInternalId)
-  // ------------------------------------------------------------
-
   // Busca un DAP por internal_id (usa la tabla dap_internal_ids creada por migración)
   async findByInternalId(internalId: string): Promise<Dap | null> {
     const row = await this.db
@@ -142,6 +142,23 @@ export class PostgreSqlDapRepository implements DapRepository {
       .executeTakeFirst();
 
     return row ? new Dap(row) : null;
+  }
+
+  // ------------------------------------------------------------
+  // Nuevos métodos para soportar activación por internal_id
+  // (findInternalIdByDapId, updateStatusById, attachInternalId)
+  // ------------------------------------------------------------
+
+  // Devuelve el internal_id asociado a un dapId o null si no existe
+  async findInternalIdByDapId(dapId: number): Promise<string | null> {
+    const row = await this.db
+      .selectFrom('dap_internal_ids')
+      .select(['internal_id'])
+      .where('dap_internal_ids.dap_id', '=', dapId)
+      .executeTakeFirst();
+
+    if (!row) return null;
+    return (row as any).internal_id ?? null;
   }
 
   // Actualiza el estado (status) por id y devuelve la entidad actualizada
