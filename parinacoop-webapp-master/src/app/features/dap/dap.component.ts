@@ -27,7 +27,8 @@ export class DapComponent implements OnInit, OnDestroy {
   userDaps$?: Observable<Dap[] | null>;
 
   // Totals derivados directamente desde daps$
-  totals$!: Observable<{ profit: number; activeDaps: number }>;
+  // Ahora devolvemos totalInvested (suma de initialAmount) y activeCount (número de DAPs con status ACTIVE)
+  totals$!: Observable<{ totalInvested: number; activeCount: number }>;
 
   private onDestroy$ = new Subject<void>();
 
@@ -40,22 +41,25 @@ export class DapComponent implements OnInit, OnDestroy {
     this.userDaps$ = this.dapService.daps$;
 
     // Derivar los totales desde la lista de daps recibida.
-    // Forzamos Number(...) para manejar casos donde la API devuelva strings.
     this.totals$ = (this.userDaps$ ?? this.dapService.daps$).pipe(
-      // map sobre el arreglo; si es null => totales 0
       map((daps) => {
         const list = daps ?? [];
         const totals = list.reduce(
           (prev, curr) => {
-            // Consideramos sólo depósitos ACTIVE (idéntico a la lógica previa del servicio)
-            if (curr?.status !== DapStatus.ACTIVE) return prev;
-            const profit = Number(curr?.profit ?? 0);
             const initial = Number(curr?.initialAmount ?? 0);
-            prev.profit += isNaN(profit) ? 0 : profit;
-            prev.activeDaps += isNaN(initial) ? 0 : initial;
+
+            // totalInvested = suma de todos los montos iniciales (capital), sin filtrar por estado
+            prev.totalInvested += isNaN(initial) ? 0 : initial;
+
+            // activeCount = contar DAPs con estado ACTIVE
+            const status = String(curr?.status ?? '').toLowerCase();
+            if (status === String(DapStatus.ACTIVE).toLowerCase()) {
+              prev.activeCount += 1;
+            }
+
             return prev;
           },
-          { profit: 0, activeDaps: 0 },
+          { totalInvested: 0, activeCount: 0 },
         );
         console.debug('DAP totals (derived):', totals);
         return totals;
@@ -69,7 +73,7 @@ export class DapComponent implements OnInit, OnDestroy {
       )
       .subscribe((user) => {
         // Llamada que poblará daps$ y por ende totals$
-        this.dapService.getDapList(user.run);
+        this.dapService.getDapList((user as any).run);
       });
   }
 

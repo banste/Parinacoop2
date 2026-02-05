@@ -13,7 +13,8 @@ export type SVGIcon =
   | 'back'
   | 'save'
   | 'pencil'
-  | 'trash';
+  | 'trash'
+  | 'user'; // <-- agregado 'user'
 
 @Component({
   selector: 'app-svg-icon',

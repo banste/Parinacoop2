@@ -10,7 +10,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { AsyncPipe, NgClass } from '@angular/common';
-import { Subject, Observable, takeUntil, filter } from 'rxjs';
+import { Subject, Observable, takeUntil, filter, first } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -75,18 +75,10 @@ export default class ProfileComponent implements OnInit, OnDestroy {
   isEditing = false;
   isSubmitting = false;
 
-  private lastProfileSnapshot: any = null; // para restaurar al cancelar edición
+  // Indica que el perfil no existe en backend (404). Usamos esto para no activar edición automática.
+  profileMissing = false;
 
-  // Campos que permitimos editar (contacto y dirección)
-  private readonly editableFields = [
-    'email',
-    'cellphone',
-    'street',
-    'number',
-    'detail',
-    'regionId',
-    'communeId',
-  ];
+  private lastProfileSnapshot: any = null; // para restaurar al cancelar edición
 
   constructor(
     private authService: AuthService,
@@ -101,13 +93,19 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     this.regions$ = this.locationService.regions$;
     this.communes$ = this.locationService.communes$;
 
+    // cargar regiones al inicio (LocationService se encarga de cachear)
+    try {
+      (this.locationService as any).getRegions?.();
+    } catch {
+      // noop
+    }
+
     // 1) Pedir perfil con el run del usuario logueado
     this.authService.currentUser$
       .pipe(takeUntil(this.onDestroy$), filter((user) => !!user))
       .subscribe((user) => {
         const runNumber = Number((user as any).run);
-
-        if (Number.isNaN(runNumber)) {
+        if (!runNumber || isNaN(runNumber)) {
           this.loading = false;
           alert('RUN inválido en sesión');
           return;
@@ -125,6 +123,7 @@ export default class ProfileComponent implements OnInit, OnDestroy {
             this.disableAllControls();
             this.loading = false;
             this.isEditing = false;
+            this.profileMissing = false;
           });
 
         // Intentar cargar desde backend
@@ -136,12 +135,12 @@ export default class ProfileComponent implements OnInit, OnDestroy {
           error: (err) => {
             this.loading = false;
             if (err?.status === 404) {
-              // Perfil no existe -> permitir crear desde UI
-              // Habilitar campos editables + documentNumber (usuario debe ingresarlo)
-              this.enableEditableFields();
-              this.profileForm.get('documentNumber')?.enable();
-              this.isEditing = true;
+              // Perfil no existe -> marcar profileMissing pero NO entrar en edición automáticamente.
+              // El usuario podrá entrar a editar (crear) con el botón "Modificar perfil".
+              this.profileMissing = true;
+              // Pre-fill the run so user doesn't have to type it when creating profile
               this.profileForm.get('run')?.setValue(String(runNumber));
+              // Keep the form disabled (view mode). Do NOT enable fields automatically.
               return;
             }
             alert('No se pudo cargar el perfil (revisa Network/Console).');
@@ -161,20 +160,15 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     return this.profileForm.get(name) as FormControl;
   }
 
-  // Habilita SOLO los campos de contacto/dirección
+  // Habilita TODOS los campos para edición excepto 'run'
   private enableEditableFields(): void {
-    // Habilitar solo los editables definidos
-    this.editableFields.forEach((f) => {
-      const ctrl = this.profileForm.get(f);
+    Object.keys(this.profileForm.controls).forEach((key) => {
+      if (key === 'run') return; // run no es editable
+      const ctrl = this.profileForm.get(key);
       ctrl?.enable();
+      // actualizar validación al habilitar
+      ctrl?.updateValueAndValidity({ onlySelf: true });
     });
-    // mantener datos personales deshabilitados por defecto
-    this.profileForm.get('run')?.disable();
-    this.profileForm.get('names')?.disable();
-    this.profileForm.get('firstLastName')?.disable();
-    this.profileForm.get('secondLastName')?.disable();
-    // documentNumber lo dejamos deshabilitado por defecto; en flujo de creación se habilita explícitamente
-    this.profileForm.get('documentNumber')?.disable();
   }
 
   // Deshabilita todos los controles (modo lectura total)
@@ -185,62 +179,129 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Toggle edit mode: al entrar habilitamos solo campos editables
+  // Toggle edit mode: habilitar todos los campos salvo 'run'
   toggleEdit(): void {
     if (!this.isEditing) {
+      // Si el perfil estaba faltando (creación), permitimos editar documentNumber también
       this.enableEditableFields();
-      // si quieres que al hacer click en "Modificar" también permita editar documentNumber:
-      // this.profileForm.get('documentNumber')?.enable();
+      if (this.profileMissing) {
+        this.profileForm.get('documentNumber')?.enable();
+      }
       this.isEditing = true;
       return;
     }
 
-    // si ya estaba en edición -> cancelar y restaurar snapshot
+    // cancelar edición -> restaurar snapshot y deshabilitar todo
     this.isEditing = false;
-    this.disableAllControls();
     if (this.lastProfileSnapshot) {
       this.patchForm(this.lastProfileSnapshot);
+    } else if (this.profileMissing) {
+      // limpiar si estábamos creando y no había snapshot
+      this.profileForm.patchValue({
+        documentNumber: '',
+        names: '',
+        firstLastName: '',
+        secondLastName: '',
+        email: '',
+        cellphone: '',
+        street: '',
+        number: null,
+        detail: '',
+        regionId: 0,
+        communeId: 0,
+      });
     }
+    this.disableAllControls();
   }
 
   // Rellena el formulario a partir del profile object devuelto desde el backend
   private patchForm(profile: any): void {
+    // Mapear valores reales (no escribir "Vacio" en los controles)
     this.profileForm.patchValue({
       run: String(profile.run ?? ''),
-      // documentNumber como string; usar '' si no viene
-      documentNumber: profile.documentNumber ?? '',
+      documentNumber: String(profile.documentNumber ?? ''),
       names: profile.names ?? '',
       firstLastName: profile.firstLastName ?? '',
       secondLastName: profile.secondLastName ?? '',
       email: profile.email ?? '',
       cellphone: profile.cellphone ?? '',
+      // dirección: dejar en blanco si no existe; template mostrará placeholder "Vacio"
       street: profile.street ?? '',
       number: profile.number ?? null,
       detail: profile.detail ?? '',
-      regionId: profile.regionId ?? 0,
-      communeId: profile.communeId ?? 0,
+      regionId: Number(profile.regionId ?? 0),
+      communeId: Number(profile.communeId ?? 0),
     });
 
-    // Si hay regionId, disparar fetch de comunas
-    const reg = Number(profile.regionId ?? 0);
-    if (reg > 0) {
-      this.getCommunes(reg);
+    // Si viene regionId > 0, cargar comunas y setear communeId cuando las comunas lleguen
+    const regionId = Number(profile.regionId ?? 0);
+    const communeId = Number(profile.communeId ?? 0);
+    if (regionId && regionId > 0) {
+      this.loadCommunesAndSet(regionId, communeId);
+    } else {
+      // limpiar comunas si no hay region
+      try {
+        (this.locationService as any).communesSubject?.next([]);
+      } catch {
+        // noop
+      }
     }
   }
 
-  // Maneja el submit del formulario: arma DTO y llama al servicio
+  // Carga comunas para una región y asigna communeId cuando la lista ya está cargada
+  private loadCommunesAndSet(regionId: number, communeId: number): void {
+    // Pedir comunas al backend
+    this.locationService.getCommunesByRegionId(regionId);
+
+    // Suscribirse una sola vez al stream de communes$ y setear communeId cuando haya datos
+    this.communes$?.pipe(first()).subscribe((list) => {
+      if (!list || list.length === 0) {
+        // nada que asignar
+        return;
+      }
+      // si communeId válido y está en la lista, setearlo; si no, dejar 0
+      const exists = list.some((c) => Number(c.id) === Number(communeId));
+      if (exists) {
+        this.profileForm.get('communeId')?.setValue(Number(communeId));
+      } else {
+        // dejar 0 para que aparezca "Seleccione una comuna"
+        this.profileForm.get('communeId')?.setValue(0);
+      }
+    });
+  }
+
+  // Helper para mostrar placeholder o valor para elementos de solo lectura.
+  // Si control vacío y no estamos en edición devuelve 'Vacio', si está en edición devuelve '' (no placeholder).
+  getPlaceholder(ctrlName: string, defaultText = 'Vacio'): string {
+    const ctrl = this.profileForm.get(ctrlName);
+    const val = ctrl?.value;
+    if (!this.isEditing && (val === null || val === undefined || val === '')) return defaultText;
+    return '';
+  }
+
+  // Devuelve una cadena para mostrar en spans de solo lectura (útil si usas <span>{{ getDisplayValue('street') }}</span>)
+  getDisplayValue(ctrlName: string, defaultText = 'Vacio'): string {
+    const ctrl = this.profileForm.get(ctrlName);
+    const val = ctrl?.value;
+    if (val === null || val === undefined || val === '') return defaultText;
+    return String(val);
+  }
+
+  // -----------------------------
+  // MÉTODOS DE ENVÍO Y UTILIDAD
+  // -----------------------------
+
+  // Método invocado por (submit)="onSubmit()" en la plantilla
   onSubmit(): void {
+    // Al enviar validamos todo el formulario (excepto run que está deshabilitado)
     if (this.profileForm.invalid) {
-      this.profileForm.markAllAsTouched();
-      alert('Corrige los errores del formulario antes de enviar.');
+      alert('Formulario inválido. Revisa los campos requeridos.');
       return;
     }
 
-    this.isSubmitting = true;
-
+    // Construir DTO para el backend
     const dto: UpdateProfileDto = {
-      run: Number(this.profileForm.get('run')?.value ?? 0),
-      // enviar documentNumber como string tal y como está en el form
+      run: Number(this.profileForm.get('run')?.value),
       documentNumber: String(this.profileForm.get('documentNumber')?.value ?? ''),
       names: String(this.profileForm.get('names')?.value ?? ''),
       firstLastName: String(this.profileForm.get('firstLastName')?.value ?? ''),
@@ -254,43 +315,47 @@ export default class ProfileComponent implements OnInit, OnDestroy {
       communeId: Number(this.profileForm.get('communeId')?.value ?? 0),
     };
 
+    this.isSubmitting = true;
     this.profileService.updateProfile(dto).subscribe({
-      next: () => {
-        alert('Perfil actualizado correctamente');
-        // refrescar el perfil desde backend
+      next: (res) => {
+        // actualizamos snapshot y deshabilitamos edición
+        this.lastProfileSnapshot = {
+          ...dto,
+        };
+        this.disableAllControls();
+        this.isEditing = false;
+        this.isSubmitting = false;
+        this.profileMissing = false;
+        // recargar perfil desde el servicio para notificar otros subscriptores
         this.profileService.getCurrentProfile(dto.run).subscribe({
           next: () => {
-            this.isSubmitting = false;
-            this.disableAllControls();
-            this.isEditing = false;
+            // opcional: mostrar mensaje
           },
-          error: (err) => {
-            console.warn('No se pudo refrescar perfil tras actualizar', err);
-            this.isSubmitting = false;
-            this.disableAllControls();
-            this.isEditing = false;
+          error: () => {
+            // noop
           },
         });
       },
       error: (err) => {
-        console.error('Error actualizando perfil', err);
-        const serverMsg = err?.error ?? err;
-        alert(`Error al actualizar el perfil: ${JSON.stringify(serverMsg)}`);
+        console.error('updateProfile error', err);
         this.isSubmitting = false;
+        alert('No se pudo actualizar el perfil. Revisa la consola y la red.');
       },
     });
   }
 
-  // Llama al LocationService para cargar comunas de una región seleccionada
+  // Método invocado por (selectionChange)="getCommunes($event.value)" — carga comunas para la región seleccionada
   getCommunes(regionId: number): void {
-    if (!regionId) return;
-    const svc: any = this.locationService as any;
-    if (typeof svc.getCommunesByRegionId === 'function') {
-      svc.getCommunesByRegionId(regionId);
-    } else if (typeof svc.getCommunes === 'function') {
-      svc.getCommunes(regionId);
-    } else {
-      console.warn('LocationService no expone getCommunesByRegionId/getCommunes');
+    if (!regionId || regionId <= 0) {
+      // limpiar comunas si region inválida
+      try {
+        (this.locationService as any).communesSubject?.next([]);
+      } catch {
+        // noop si no existe internamente
+      }
+      return;
     }
+    // Llama al service para poblar communes$
+    this.locationService.getCommunesByRegionId(regionId);
   }
 }

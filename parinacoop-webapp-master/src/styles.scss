@@ -1,13 +1,9 @@
-// Custom Theming for Angular Material
-// For more information: https://material.angular.io/guide/theming
 @use '@angular/material' as mat;
-// Plus imports for other components in your app.
-// Include the common styles for Angular Material. We include this here so that you only
-// have to load a single css file for Angular Material in your app.
-// Be sure that you only ever include this mixin once!
+
+/* ===== Angular Material core/mixins ===== */
 @include mat.core();
 
-// Define the theme object.
+/* Define the theme object */
 $parinacoop-webapp-theme: mat.define-theme(
   (
     color: (
@@ -21,24 +17,161 @@ $parinacoop-webapp-theme: mat.define-theme(
   )
 );
 
-// Include theme styles for core and each component used in your app.
-// Alternatively, you can import and @include the theme mixins for each component
-// that you are using.
+/* IMPORTANT: For M3 (MDC) themes the mixins must be wrapped in a selector.
+   We use :root so theme styles are applied globally and Sass validation passes. */
 :root {
   @include mat.all-component-themes($parinacoop-webapp-theme);
+
+  /* Variables de marca */
+  --pc-accent: #ff7a00;
+  --pc-link: #0b64ff;
+  --pc-muted: #6b7280;
+  --pc-bg: #fbfbfc;
+  --pc-font-family: 'Manrope', 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-// Comment out the line below if you want to use the pre-defined typography utility classes.
-// For more information: https://material.angular.io/guide/typography#using-typography-styles-in-your-application.
-// @include mat.typography-hierarchy($parinacoop-webapp-theme);
+/* Escalado global: aumentar tamaño base en +10% */
+html {
+  font-size: 110%; /* incrementa rem/em en ~10% */
+}
 
-// Comment out the line below if you want to use the deprecated `color` inputs.
-// @include mat.color-variants-backwards-compatibility($parinacoop-webapp-theme);
-/* You can add global styles to this file, and also import other style files */
+/* Tailwind directives (deja si realmente usas Tailwind y está configurado) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Tiny fix for material outline notch */
 .mdc-notched-outline__notch {
   border-right: none;
 }
+
+/* Global dialog styling para panelClass 'dap-dialog' */
+.dap-dialog .mat-dialog-container {
+  padding: 0 !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+.dap-dialog .dialog-header {
+  background: #f08b00;
+  color: #fff;
+  padding: 14px 18px;
+  font-weight: 700;
+}
+.dap-dialog .dialog-body { padding: 18px; }
+
+/* ===== UTILIDADES DE FALLBACK (por si Tailwind no está activo) ===== */
+/* AUMENTADO max-width a 1110px para ganar 10px horizontales */
+.max-w-1100 { max-width: 1110px !important; }
+.mx-auto { margin-left: auto !important; margin-right: auto !important; }
+.px-4 { padding-left: 16px !important; padding-right: 16px !important; }
+.px-1 { padding-left: 4px !important; padding-right: 4px !important; }
+.py-4 { padding-top: 16px !important; padding-bottom: 16px !important; }
+.mt-4 { margin-top: 16px !important; }
+.mb-4 { margin-bottom: 16px !important; }
+.flex { display: flex !important; }
+.items-center { align-items: center !important; }
+.items-start { align-items: flex-start !important; }
+.justify-center { justify-content: center !important; }
+.justify-end { justify-content: flex-end !important; }
+.gap-4 { gap: 16px !important; }
+.gap-6 { gap: 24px !important; }
+.w-full { width: 100% !important; }
+.text-sm { font-size: 0.875rem !important; }
+
+/* ===== ESTILOS DEL CUERPO DAP (summary + lista) ===== */
+.dap-page, .dap-page * { box-sizing: border-box; }
+
+.dap-page {
+  font-family: var(--pc-font-family);
+  color: #222;
+  background: var(--pc-bg);
+}
+
+/* Contenedor boxed: soporta tanto la clase con corchetes (HTML generado) como la clase alternativa
+   AUMENTADO max-width a 1110px para reflejar la ampliación horizontal de 10px */
+.dap-page [class~="max-w-[1100px]"],
+.dap-page .max-w-1100,
+.dap-page .container-1100 {
+  max-width: 1110px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+/* encabezado/title */
+.dap-page .title-row { display: flex !important; gap: 12px !important; align-items: flex-start !important; margin-bottom: 12px !important; }
+.dap-page .accent { width: 36px !important; height: 6px !important; margin-top: 10px !important; background: var(--pc-accent) !important; border-radius: 3px !important; }
+.dap-page .title-block h1 { font-size: 20px !important; font-weight: 700 !important; margin: 0 !important; color: #111827 !important; }
+.dap-page .title-block .subtitle { color: var(--pc-muted) !important; font-size: 13px !important; margin-top: 6px !important; }
+
+/* summary cards */
+.dap-page .dap-summary {
+  display: flex !important;
+  gap: 18px !important;
+  justify-content: center !important;
+  margin: 8px 0 12px 0 !important;
+}
+.dap-page .dap-summary-card {
+  width: 18rem !important;
+  background: #fff !important;
+  border: 1px solid rgba(14,20,30,0.06) !important;
+  border-radius: 8px !important;
+  padding: 18px 20px !important;
+  box-shadow: 0 6px 14px rgba(15,23,42,0.04) !important;
+  text-align: center !important;
+}
+.dap-page .dap-summary-card .label { color: var(--pc-muted) !important; font-size: 13px !important; margin-bottom: 6px !important; }
+.dap-page .dap-summary-card .value { font-size: 20px !important; font-weight: 700 !important; color: #111827 !important; margin-bottom: 6px !important; }
+.dap-page .dap-summary-card .hint { color: #98a3ad !important; font-size: 12px !important; }
+
+/* CTA */
+.dap-page .cta-link { color: var(--pc-accent) !important; text-decoration: none !important; font-weight: 600 !important; }
+.dap-page .cta-link:hover { text-decoration: underline !important; }
+
+/* lista de tarjetas */
+.dap-page .dap-list { margin-top: 14px !important; padding-bottom: 30px !important; }
+
+.dap-page .dap-card-full {
+  display: flex !important;
+  align-items: center !important;
+  gap: 20px !important;
+  background: #fff !important;
+  border: 1px solid rgba(14,20,30,0.06) !important;
+  border-radius: 10px !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.03) !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+}
+
+/* columnas */
+.dap-page .dap-card-full .left-column { min-width: 160px !important; max-width: 200px !important; display:flex !important; flex-direction:column !important; gap:6px !important; }
+.dap-page .dap-card-full .center-columns { flex: 1 1 auto !important; display:block !important; }
+.dap-page .dap-card-full .row { display:flex !important; gap:24px !important; align-items:center !important; flex-wrap:wrap !important; }
+.dap-page .dap-card-full .col { min-width:120px !important; display:flex !important; flex-direction:column !important; gap:6px !important; }
+.dap-page .dap-card-full .actions-column { display:flex !important; flex-direction:column !important; gap:8px !important; align-items:flex-end !important; min-width:110px !important; }
+
+/* tipografías */
+.dap-page .label { display:block !important; color: var(--pc-muted) !important; font-size:12px !important; }
+.dap-page .id { font-weight:700 !important; color:#111827 !important; }
+.dap-page .col .value { font-weight:700 !important; color:#111827 !important; font-size:14px !important; }
+.dap-page .action { color: var(--pc-link) !important; font-weight:600 !important; text-decoration:none !important; cursor:pointer !important; }
+
+/* responsive */
+@media (max-width:880px) {
+  .dap-page .dap-summary { flex-direction:column !important; align-items:center !important; gap:12px !important; }
+  .dap-page .dap-card-full { flex-direction:column !important; align-items:stretch !important; gap:10px !important; padding:12px !important; }
+  .dap-page .dap-card-full .left-column { flex-direction:row !important; gap:12px !important; align-items:center !important; min-width:0 !important; }
+  .dap-page .dap-card-full .actions-column { flex-direction:row !important; justify-content:flex-start !important; gap:16px !important; min-width:0 !important; }
+  .dap-page .dap-card-full .row { flex-direction:column !important; gap:8px !important; }
+}
+.whatsapp-icon {
+  color: #f5b630; /* amarillo */
+  width: 20px;    /* ajusta si quieres más grande */
+  height: 20px;
+  display: inline-block;
+}
+
+/* Forzar tamaño del svg (si el componente concatena clases) */
+.whatsapp-icon svg { width: 20px; height: 20px; color: inherit; }

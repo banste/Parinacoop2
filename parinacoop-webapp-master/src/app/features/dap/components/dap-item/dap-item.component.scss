@@ -1,7 +1,7 @@
 /* Asegurar que cada fila use grid idéntico a la cabecera y tenga altura mínima uniforme */
 .dap-item-article {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) 12%;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) 12%;
   gap: 0.75rem 1.5rem; /* gap-x-6 equivalente */
   align-items: center; /* centra verticalmente contenido */
   min-height: 64px; /* altura uniforme — ajustar si quieres más/menos */
@@ -13,6 +13,20 @@
   min-width: 0; /* importante para que truncate funcione en grid */
 }
 
+/* operación pill style (inline, discreto) */
+.op-value {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #064e3b;
+  background: #f6fdf8;
+  border: 1px solid #e6f7ec;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+/* truncado para tipo */
 .cell-type .truncate {
   display: inline-block;
   max-width: 100%;
@@ -21,18 +35,19 @@
   white-space: nowrap;
 }
 
-/* Ajustes de alineación por columna (opcional, ya usamos clases en HTML) */
+/* alineaciones por columna (coinciden con las cabeceras) */
 .cell-id { display:flex; align-items:center; justify-content:flex-start; padding-left:4px; }
+.cell-op { display:flex; align-items:center; justify-content:center; }
 .cell-type { display:flex; align-items:center; justify-content:flex-start; }
 .cell-due, .cell-amount, .cell-status { display:flex; align-items:center; justify-content:center; }
-.cell-actions { display:flex; align-items:center; justify-content:flex-end; }
+.cell-actions { display:flex; align-items:center; justify-content:flex-end; padding-right:6px; }
 
-/* Alternar fondo ligero en hover para mejor lectura */
+/* Hover ligero */
 .dap-item-article:hover {
-  background-color: #ffffff; /* mantener blanco pero puedes usar #fbfbfb si quieres */
+  background-color: #ffffff; /* mantener blanco para consistencia */
 }
 
-/* Responsive: en pantallas muy pequeñas apilar (mantener legibilidad) */
+/* Responsive: en pantallas muy pequeñas apilar */
 @media (max-width: 520px) {
   .dap-item-article {
     grid-template-columns: 1fr;
@@ -43,5 +58,9 @@
   .cell-actions {
     justify-content: flex-start;
     padding-top: 6px;
+  }
+
+  .cell-type .truncate {
+    white-space: normal; /* permitir wrap en móvil */
   }
 }

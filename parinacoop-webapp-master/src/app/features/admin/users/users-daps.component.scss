@@ -1,71 +1,214 @@
 .users-daps-container {
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #111827;
 }
 
-/* tarjeta */
+/* Card */
 .dap-card {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
   background: #fff;
-  border: 1px solid #e6e6e6;
+  border: 1px solid #eef2f6;
   border-radius: 10px;
   padding: 16px;
-  transition: box-shadow .12s ease-in-out, transform .06s;
-  min-height: 120px;
-}
-.dap-card:hover {
-  box-shadow: 0 10px 25px rgba(13, 18, 25, 0.06);
-  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(13, 18, 25, 0.04);
 }
 
-/* controls */
+/* Main content (left) */
+.dap-main {
+  flex: 1 1 auto;
+  min-width: 0; /* important to allow shrinking inside flex */
+}
+
+/* Header row: title + links */
+.dap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: nowrap; /* avoid wrapping on larger screens */
+}
+
+.dap-title .muted.small {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Inline ID + operation row */
+.id-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+/* number styling */
+.id {
+  font-weight: 700;
+  margin-top: 4px;
+  font-size: 16px;
+  color: #111827;
+}
+
+/* operation (internal id) */
+.operation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.op-label.muted.small {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.op-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #064e3b;
+  background: #f6fdf8;
+  border: 1px solid #e6f7ec;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+/* Links */
+.dap-links .link {
+  color: #d97706;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.dap-links .link:hover {
+  text-decoration: underline;
+}
+.dap-links .dot {
+  margin: 0 6px;
+  color: #d97706;
+}
+
+/* Info grid: forzar 5 columnas en escritorio */
+.dap-info {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px 24px;
+  align-items: start;
+}
+
+/* Info cell */
+.info-cell .muted.small {
+  font-size: 12px;
+  color: #6b7280;
+}
+.info-cell .value {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* Status badges (más contrastantes) */
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  box-sizing: border-box;
+  color: #fff; /* default to white text for strong badges */
+  border: none;
+}
+
+/* ACTIVE: verde fuerte (fondo sólido, texto blanco) */
+.status-active {
+  background: #059669; /* green-600 */
+  box-shadow: 0 2px 6px rgba(5,150,105,0.12);
+}
+
+/* PENDING: amarillo/ámbar fuerte (fondo sólido, texto blanco) */
+.status-pending {
+  background: #f59e0b; /* amber-500 */
+  box-shadow: 0 2px 6px rgba(245,158,11,0.12);
+}
+
+/* EXPIRED: rojo suave (puede mantenerse más discreto) */
+.status-expired {
+  color: #7f1d1d;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.04);
+}
+
+/* Controls (right column) */
 .dap-controls {
+  width: 240px;
+  flex: 0 0 240px;
   display: flex;
   flex-direction: column;
+  gap: 10px;
   align-items: stretch;
-}
-.dap-input {
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 0.95rem;
-}
-.dap-input:focus {
-  outline: none;
-  border-color: #34d399;
-  box-shadow: 0 0 0 4px rgba(52,211,153,0.06);
+  box-sizing: border-box;
 }
 
-/* botón */
+.dap-input {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
 .dap-activate-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #059669; /* green-600 */
-  border: none;
+  background: #059669;
   color: white;
-  font-weight: 600;
+  border: none;
+  padding: 10px;
   border-radius: 6px;
-  padding: 10px 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 .dap-activate-btn:disabled {
-  opacity: 0.65;
+  opacity: 0.6;
   cursor: not-allowed;
 }
-
-/* enlaces acción (detalle / adjuntos) */
-button[ng-reflect-ng-class] {
-  /* no-op for readability; specific styling done below */
-}
-button.text-primary-600 {
-  color: #059669;
+.icon-bolt {
+  font-size: 16px;
+  line-height: 1;
 }
 
-/* mobile tweaks */
-@media (max-width: 640px) {
+/* messages */
+.msg {
+  font-size: 12px;
+  margin-top: 6px;
+}
+.msg.ok { color: #065f46; }
+.msg.err { color: #991b1b; }
+
+/* Responsive: only stack when REALLY narrow (mobile phones) */
+@media (max-width: 520px) {
   .dap-card {
-    padding: 12px;
+    flex-direction: column;
+    gap: 12px;
   }
   .dap-controls {
     width: 100%;
+    flex: 1 1 auto;
+  }
+  .dap-info {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dap-header {
+    flex-wrap: wrap; /* allow header to wrap on mobile */
+  }
+  .id-row {
+    gap: 8px;
+    flex-wrap: wrap;
   }
 }

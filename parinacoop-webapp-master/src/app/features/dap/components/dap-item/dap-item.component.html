@@ -1,34 +1,39 @@
-<div class="flex items-start gap-4">
+<div class="dap-item-row">
   <article
-    class="relative grid grid-cols-[repeat(5,minmax(0,1fr))_12%] gap-x-6 place-items-center rounded-lg border border-[#dcdcdc] bg-nav-color py-4 px-4 text-sm [&>div]:flex [&>div]:flex-col flex-1 leading-relaxed whitespace-normal"
+    class="dap-item-article grid grid-cols-[repeat(6,minmax(0,1fr))_12%] gap-x-6 items-center rounded-lg border border-gray-200 bg-white py-3 px-4 text-sm leading-relaxed whitespace-normal"
   >
-    <div>
-      <span class="font-medium">Depósito a Plazo</span>
-      <span>{{ dap.id | idPad }}</span>
+    <!-- 1: Depósito (ID) - usar pipe idPad solo (sin prefijo adicional) -->
+    <div class="cell cell-id">
+      <span class="text-gray-900">{{ dap.id | idPad }}</span>
     </div>
 
-    <div>
-      <span class="font-medium">Tipo de depósito</span>
-      <span>{{ dap.type | dapType }}</span>
+    <!-- 2: Número de operación (internalId) -->
+    <div class="cell cell-op text-center">
+      <span class="op-value">{{ dap.internalId ?? '-' }}</span>
     </div>
 
-    <div>
-      <span class="font-medium">Vencimiento</span>
-      <span>{{ dap.dueDate ? (dap.dueDate | date: 'dd-MM-yyyy') : '-' }}</span>
+    <!-- 3: Tipo de depósito - alineado a la izquierda y truncado si es necesario -->
+    <div class="cell cell-type text-left">
+      <span class="text-gray-700 truncate" title="{{ dap.type }}">{{ dap.type | dapType }}</span>
     </div>
 
-    <div>
-      <span class="font-medium">Monto a recibir</span>
-      <span>{{ dap.finalAmount != null ? (dap.finalAmount | currency: 'CLP':'symbol':'1.0-0') : '-' }}</span>
+    <!-- 4: Vencimiento -->
+    <div class="cell cell-due text-center">
+      <span class="text-gray-700">{{ dap.dueDate ? (dap.dueDate | date: 'dd-MM-yyyy') : '-' }}</span>
     </div>
 
-    <div>
-      <span class="font-medium">Estado depósito</span>
-      <span>{{ dap.status | dapStatus }}</span>
+    <!-- 5: Monto a recibir -->
+    <div class="cell cell-amount text-center">
+      <span class="text-gray-700">{{ dap.finalAmount != null ? (dap.finalAmount | currency: 'CLP':'symbol':'1.0-0') : '-' }}</span>
     </div>
 
-    <!-- Última columna: acciones (más ancha, links en una sola línea con espacio) -->
-    <div class="flex items-center justify-end pr-6">
+    <!-- 6: Estado depósito -->
+    <div class="cell cell-status text-center">
+      <span class="text-gray-700">{{ dap.status | dapStatus }}</span>
+    </div>
+
+    <!-- 7: Acciones -->
+    <div class="cell cell-actions flex items-center justify-end pr-2">
       <div class="flex gap-6 items-center text-sm whitespace-nowrap">
         <a
           class="text-primary-600 hover:underline cursor-pointer whitespace-nowrap"

@@ -8,14 +8,18 @@ import {
   MaxLength,
   Min,
   Matches,
-  IsPositive,
 } from 'class-validator';
 
+/**
+ * DTO que recibe la petición PATCH desde el frontend.
+ * - documentNumber se acepta como string (ej. "12.345.678") para no fallar la validación cuando el frontend envía puntos.
+ * - regionId / communeId son opcionales (si UI no las selecciona no se devolverá 400).
+ */
 export class UpdateProfileHttpDto {
-  @Type(() => Number)
-  @IsInt()
-  @Min(100000000)
-  documentNumber!: number;
+  @IsString()
+  @Matches(/^[0-9.\-]+$/, { message: 'documentNumber must contain only digits, dots or hyphens' })
+  @IsNotEmpty()
+  documentNumber!: string;
 
   @IsString()
   @MaxLength(50)
@@ -51,22 +55,24 @@ export class UpdateProfileHttpDto {
 
   @Type(() => Number)
   @IsInt()
-  @IsPositive()
+  @Min(1)
   number!: number;
 
-  // detail ahora opcional en HTTP; el dominio puede recibir '' si lo prefieres
   @IsOptional()
   @IsString()
   @MaxLength(50)
   detail?: string;
 
+  // Opcional: si no se envían, no fallará la validación en el controller
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @IsPositive()
-  communeId!: number;
+  @Min(1)
+  communeId?: number;
 
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @IsPositive()
-  regionId!: number;
+  @Min(1)
+  regionId?: number;
 }

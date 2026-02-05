@@ -1,112 +1,100 @@
-<section class="users-daps-container max-w-[1200px] mx-auto px-4 py-6">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-2xl font-semibold text-gray-900">Depósitos a plazo</h1>
-      <p class="text-sm text-gray-600 mt-1">
-        Depósitos del usuario:
-        <span *ngIf="userName; else noUser">{{ userName }}</span>
-        <ng-template #noUser>—</ng-template>
-        <span *ngIf="userRun"> (RUN: {{ userRun }})</span>
-      </p>
-    </div>
-
-    <div>
-      <a routerLink="/admin/usuarios" class="text-sm text-blue-600 hover:underline">← Volver a usuarios</a>
-    </div>
+<section class="users-daps-container max-w-[1100px] mx-auto px-4 py-6">
+  <div class="mb-6">
+    <a routerLink="/admin/users" class="text-sm text-primary-600 hover:underline">← Volver a usuarios</a>
+    <h1 class="text-2xl font-semibold mt-3">Depósitos a plazo</h1>
+    <div class="text-sm text-gray-600">Depósitos del usuario: {{ userName }} (RUN: {{ userRun }})</div>
   </div>
 
-  <div *ngIf="loadingUser" class="mb-4 text-sm text-gray-600">Cargando información del usuario...</div>
-  <div *ngIf="errorMessage" class="mb-4 text-sm text-red-600">{{ errorMessage }}</div>
+  <ng-container *ngIf="daps$ | async as daps; else loadingDaps">
+    <ng-container *ngIf="daps?.length; else empty">
+      <div class="space-y-4">
+        <ng-container *ngFor="let dap of daps; trackBy: trackById">
+          <article class="dap-card">
+            <div class="dap-main">
+              <header class="dap-header">
+                <div class="dap-title">
+                  <div class="muted small">Depósito a Plazo</div>
 
-  <ng-container *ngIf="!errorMessage">
-    <ng-container *ngIf="daps$ | async as daps; else loadingDaps">
-      <ng-container *ngIf="daps?.length; else empty">
-        <div class="space-y-4">
-          <ng-container *ngFor="let dap of daps; trackBy: trackById">
-            <!-- Tarjeta DAP -->
-            <article class="dap-card flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4">
-              <!-- Información -->
-              <div class="dap-info flex-1 pr-2">
-                <div class="flex items-start justify-between">
-                  <div>
-                    <div class="text-xs text-gray-500">Depósito a Plazo</div>
-                    <div class="text-sm font-semibold text-gray-900">Nº {{ dap.id }}</div>
-                  </div>
+                  <!-- row with ID and operation (internalId) -->
+                  <div class="id-row">
+                    <div class="id">Nº {{ dap.id }}</div>
 
-                  <div class="flex items-center gap-4 text-xs text-gray-500">
-                    <button class="text-primary-600 hover:underline focus:outline-none" (click)="openDetail(dap)">
-                      Ver detalle
-                    </button>
-
-                    <button class="text-gray-500 hover:text-gray-700 focus:outline-none" (click)="openAttachments(dap)">
-                      Adjuntos
-                    </button>
-                  </div>
-                </div>
-
-                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-                  <div>
-                    <div class="text-xs text-gray-500">Tipo</div>
-                    <div class="text-gray-800">{{ dap.type ?? '-' }}</div>
-                  </div>
-
-                  <div>
-                    <div class="text-xs text-gray-500">Vencimiento</div>
-                    <div class="text-gray-800">{{ dap.dueDate ? (dap.dueDate | date:'dd-MM-yyyy') : '-' }}</div>
-                  </div>
-
-                  <div>
-                    <div class="text-xs text-gray-500">Monto a recibir</div>
-                    <div class="text-gray-800">${{ dap.finalAmount | number:'1.0-0' }}</div>
-                  </div>
-
-                  <div>
-                    <div class="text-xs text-gray-500">Estado</div>
-                    <div
-                      class="font-semibold"
-                      [ngClass]="{
-                        'text-green-700': dap.status === 'active' || dap.status === 'paid',
-                        'text-orange-700': dap.status === 'pending' || dap.status === 'expired-pending',
-                        'text-red-700': dap.status === 'expired'
-                      }"
-                    >
-                      {{ dap.status }}
+                    <!-- Número de operación: muestra internalId al lado derecho del número -->
+                    <div class="operation">
+                      <div class="op-label muted small">Número de operación</div>
+                      <div class="op-value">{{ dap.internalId ?? '-' }}</div>
                     </div>
                   </div>
+                </div>
 
-                  <div>
-                    <div class="text-xs text-gray-500">Plazo (días)</div>
-                    <div class="text-gray-800">{{ dap.days ?? '-' }}</div>
+                <nav class="dap-links">
+                  <a class="link" (click)="openDetail(dap)">Ver detalle</a>
+                  <span class="dot">•</span>
+                  <a class="link" (click)="openAttachments(dap)">Adjuntos</a>
+                </nav>
+              </header>
+
+              <div class="dap-info">
+                <div class="info-cell">
+                  <div class="muted small">Tipo</div>
+                  <div class="value">{{ dap.type ?? '-' }}</div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="muted small">Vencimiento</div>
+                  <div class="value">{{ dap.dueDate ? (dap.dueDate | date:'dd-MM-yyyy') : '-' }}</div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="muted small">Monto a recibir</div>
+                  <div class="value">${{ dap.finalAmount | number:'1.0-0' }}</div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="muted small">Estado</div>
+                  <div
+                    class="value status-badge"
+                    [ngClass]="{
+                      'status-active': (dap.status?.toString()?.toLowerCase() === 'active') || (dap.status?.toString()?.toLowerCase() === 'paid'),
+                      'status-pending': dap.status?.toString()?.toLowerCase() === 'pending' || dap.status?.toString()?.toLowerCase() === 'expired-pending',
+                      'status-expired': dap.status?.toString()?.toLowerCase() === 'expired'
+                    }"
+                  >
+                    {{ dap.status }}
                   </div>
                 </div>
+
+                <div class="info-cell">
+                  <div class="muted small">Plazo (días)</div>
+                  <div class="value">{{ dap.days ?? '-' }}</div>
+                </div>
               </div>
+            </div>
 
-              <!-- Control admin: input ancho + botón -->
-              <div class="dap-controls w-full md:w-80 flex-shrink-0 flex flex-col items-stretch gap-2">
-                <input
-                  #internalInput
-                  type="text"
-                  class="dap-input w-full border rounded px-3 py-2 text-sm"
-                  placeholder="ID interna del DAP"
-                  aria-label="ID interna del DAP"
-                />
+            <aside class="dap-controls">
+              <input
+                #internalInput
+                type="text"
+                class="dap-input"
+                placeholder="ID interna del DAP"
+                aria-label="ID interna del DAP"
+              />
 
-                <button
-                  class="dap-activate-btn w-full inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded"
-                  (click)="activateByInternalId(dap, internalInput.value)"
-                  [disabled]="isActivatingMap[dap.id]"
-                >
-                  <span class="material-icons" aria-hidden="true" style="font-size:16px;line-height:1;">bolt</span>
-                  <span>{{ isActivatingMap[dap.id] ? 'Activando...' : 'Activar' }}</span>
-                </button>
+              <button
+                class="dap-activate-btn"
+                (click)="activateByInternalId(dap, internalInput.value)"
+                [disabled]="isActivatingMap[dap.id]"
+              >
+                <span class="material-icons icon-bolt" aria-hidden="true">bolt</span>
+                <span>{{ isActivatingMap[dap.id] ? 'Activando...' : 'Activar' }}</span>
+              </button>
 
-                <div *ngIf="activationMsgMap[dap.id]" class="text-xs text-green-700 mt-1">{{ activationMsgMap[dap.id] }}</div>
-                <div *ngIf="activationErrMap[dap.id]" class="text-xs text-red-600 mt-1">{{ activationErrMap[dap.id] }}</div>
-              </div>
-            </article>
-          </ng-container>
-        </div>
-      </ng-container>
+              <div *ngIf="activationMsgMap[dap.id]" class="msg ok">{{ activationMsgMap[dap.id] }}</div>
+              <div *ngIf="activationErrMap[dap.id]" class="msg err">{{ activationErrMap[dap.id] }}</div>
+            </aside>
+          </article>
+        </ng-container>
+      </div>
     </ng-container>
   </ng-container>
 

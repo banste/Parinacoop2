@@ -1,51 +1,76 @@
-<header class="flex flex-col items-center">
-  <div class="grid w-full place-items-center bg-nav-color">
-    <div class="flex w-full max-w-7xl items-center justify-between px-10">
-      <div class="grid w-56 place-items-start">
-        <img
-          src="images/logo-parinacoop.png"
-          class="h-20"
-          alt="Parinacoop cooperativa de ahorro y crédito"
-        />
+<header class="home-header">
+  <div class="header-top">
+    <div class="pc-container header-inner">
+      <!-- Left: logo -->
+      <div class="logo-area">
+        <img src="images/logo-parinacoop.png" class="logo-img" alt="Parinacoop cooperativa de ahorro y crédito" />
       </div>
-      <div class="grid w-56 place-items-end">
-        <button
-          class="flex items-center gap-2 text-secondary-500 hover:underline"
-          type="button"
-          (click)="logout()"
-        >
-          Cerrar sesión
-          <app-svg-icon icon="logout" />
-        </button>
+
+      <!-- Center: contact (PNG WhatsApp) -->
+      <div class="center-area">
+        <div class="contact">
+          <img
+            src="images/icono-wsp.png"
+            srcset="images/icono-wsp@2x.png 2x"
+            alt="WhatsApp"
+            class="whatsapp-img"
+            width="28"
+            height="28"
+          />
+          <span class="contact-number">+56 9 3238 2725</span>
+        </div>
+      </div>
+
+      <!-- Right: perfil y logout - usar userName calculado en el componente -->
+      <div class="profile-area">
+        <ng-container *ngIf="userName; else guest">
+          <div class="profile-info">
+            <div class="avatar" aria-hidden="true">
+              <app-svg-icon icon="user" svgClass="w-6 h-6"></app-svg-icon>
+            </div>
+            <div class="profile-text">
+              <div class="hello">Hola, {{ userName }}</div>
+              <a [routerLink]="['/cliente/perfil']" class="profile-link">Mi Perfil</a>
+            </div>
+          </div>
+
+          <button class="logout-btn" type="button" (click)="logout()">
+            <span class="logout-text">Salir</span>
+            <app-svg-icon icon="logout"></app-svg-icon>
+          </button>
+        </ng-container>
+
+        <ng-template #guest>
+          <div class="profile-info">
+            <div class="avatar" aria-hidden="true"><app-svg-icon icon="user"></app-svg-icon></div>
+            <div class="profile-text">
+              <div class="hello">Hola</div>
+              <a [routerLink]="['/cliente/login']" class="profile-link">Identifícate</a>
+            </div>
+          </div>
+        </ng-template>
       </div>
     </div>
   </div>
-  <nav class="relative">
-    <div
-      #linkBackdrop
-      class="absolute bottom-0 left-[var(--left)] h-[2px] w-44 bg-primary-500 transition-all duration-200"
-    ></div>
-    <ul class="flex text-black">
-      @for (navItem of navItems; track $index) {
-        <li>
-          <a
-            [ngClass]="[
-              'inline-block h-8 w-44 select-none content-center rounded-b text-center transition-colors duration-200',
-              'hover:text-primary-500',
-              navItem.disabled
-                ? 'pointer-events-none cursor-default text-gray-400'
-                : '',
-            ]"
-            [routerLink]="navItem.disabled ? null : [navItem.link]"
-            routerLinkActive="text-primary-500"
-            aria-current="page"
-            >{{ navItem.label }}</a
-          >
-        </li>
-      }
+
+  <!-- Navigation -->
+  <nav class="pc-container nav-area">
+    <div #linkBackdrop class="nav-backdrop"></div>
+    <ul class="nav-list">
+      <li *ngFor="let item of navItems">
+        <a
+          [ngClass]="['nav-link', item.disabled ? 'disabled' : '']"
+          [routerLink]="item.disabled ? null : [item.link]"
+          routerLinkActive="active"
+          aria-current="page"
+        >
+          {{ item.label }}
+        </a>
+      </li>
     </ul>
   </nav>
 </header>
+
 <main class="overflow-y-auto">
   <router-outlet />
 </main>
