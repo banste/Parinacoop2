@@ -1,51 +1,89 @@
-/* dap.component.scss */
-/* Definimos variables en .dap-section (heredadas por header y filas) */
+/* Archivo: src/app/features/dap/dap.component.scss
+   Ajuste: header de la tabla DAP más alto (alto, icono y centrado de celdas)
+*/
+
 .dap-section {
-  --dap-cols: 140px 160px 150px 130px 180px 120px 140px 80px; /* suma = 1100 */
+  /* columnas escaladas 1.2x (suma = 1584px) */
+  --dap-cols: 202px 230px 216px 187px 259px 173px 202px 115px;
   --pc-yellow: #f49404;
-  --cell-h-pad: 12px; /* padding horizontal por celda */
+  --cell-h-pad: 15px; /* padding horizontal por celda */
 }
 
-/* Tabla centrada y con ancho fijo 1100px */
-.dap-table-wrapper { display: flex; justify-content: center; }
+/* Wrapper del título (icono y texto) */
+/* Icono ligeramente más grande para adaptarse al header más alto */
+.dap-header-wrap .dap-icon {
+  width: 90px;
+  height: 90px;
+  background: var(--pc-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+}
+
+/* Contenedor de la tabla: ancho fijo escalado 20% (1584px) y centrado */
+.dap-table-wrapper {
+  display: flex;
+  justify-content: center;
+}
 .dap-table {
-  width: 1120px;       /* ancho fijo que pediste */
+  width: 1600px;
   margin: 0 auto;
   box-sizing: border-box;
-  padding: 0;          /* no padding que afecte la anchura interna */
+  padding: 0; /* no padding que afecte la anchura interna */
 }
 
-/* CABECERA: grid con columnas fijas (sumadas = 1100), NO usamos column-gap */
+/* CABECERA: grid con columnas fijas (sin column-gap para evitar overflow) */
+/* Aumentado en altura: padding, min-height, font-size, y centrado vertical de contenido */
 .dap-header {
   display: grid;
   grid-template-columns: var(--dap-cols);
-  column-gap: 0;               /* IMPORTANT: quitar gap para evitar overflow */
+  column-gap: 0;
   align-items: center;
-  padding: 10px 0;
-  border-radius: 8px;
+  padding: 28px 0;          /* mayor padding vertical para aumentar la altura */
+  min-height: 120px;        /* garantiza altura mínima del header */
+  border-radius: 10px;
   background: var(--pc-yellow);
   color: #1f2937;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 20px;          /* fuente del header aumentada */
+  line-height: 1.2;
   box-shadow: 0 1px 0 rgba(0,0,0,0.03) inset;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   box-sizing: border-box;
 }
 
-/* Padding horizontal consistente en títulos (hace el "espacio visual") */
+/* Títulos centrados y con padding horizontal consistente.
+   Importante: cada celda de la cabecera se comporta como un flex container
+   para centrar verticalmente el texto en el header alto. */
 .dap-header > * {
   padding: 0 var(--cell-h-pad);
   min-width: 0;
   text-align: center;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;    /* centra verticalmente el texto en cada celda */
+  justify-content: center;/* centra horizontalmente el texto en cada celda */
+  vertical-align: middle;
 }
 
 /* Separación vertical entre filas (cuando se usa .space-y-3) */
-.dap-table .space-y-3 { gap: 12px; }
+.dap-table .space-y-3 { gap: 14px; }
 
-/* Responsive */
-@media (max-width: 880px) {
-  .dap-header { font-size: 13px; padding: 8px 0; }
-  .dap-table { width: 100%; padding: 0 12px; } /* en móvil dejamos que el wrapper fluya */
+/* Ajustes visuales adicionales (respetar alineación con filas) */
+.dap-table .dap-header,
+.dap-table .dap-item-article { box-sizing: border-box; }
+
+/* Responsive: en pantallas más pequeñas la tabla fluye y el header reduce su altura */
+@media (max-width: 1100px) {
+  .dap-table { width: 100%; padding: 0 12px; }
+  .dap-header { font-size: 18px; padding: 18px 0; min-height: auto; }
+  .dap-header > * { padding: 0 10px; }
+}
+
+/* Mobile: mantener legibilidad y reducir icono/header */
+@media (max-width: 680px) {
+  .dap-header-wrap .dap-icon { width: 56px; height: 56px; border-radius: 8px; }
+  .dap-header { font-size: 14px; padding: 12px 0; }
   .dap-header > * { padding: 0 8px; }
 }

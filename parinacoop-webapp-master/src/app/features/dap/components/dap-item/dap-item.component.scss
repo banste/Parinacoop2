@@ -1,58 +1,74 @@
-/* dap-item.component.scss */
-/* Usamos la misma grid (var(--dap-cols)) y NO column-gap; el espaciado viene del padding de cada celda */
+/* Filas y celdas escaladas 20% */
+
+/* Fila: misma grid que header (var(--dap-cols)), sin gap horizontal */
 .dap-item-article {
   width: 100%;
   display: grid;
   grid-template-columns: var(--dap-cols);
-  column-gap: 0;                  /* SIN gap: evita overflow */
+  column-gap: 0;
   align-items: center;
-  min-height: 56px;
+  min-height: 68px;                /* 56px * 1.2 */
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid rgba(0,0,0,0.04);
-  padding: 8px 0;
+  padding: 10px 0;                 /* vertical aumentado */
   box-sizing: border-box;
 }
 
-/* Celdas: aplicamos el mismo padding horizontal que la cabecera */
+/* Celdas: centradas y con padding horizontal consistente */
 .dap-item-article .cell {
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center;       /* centra contenido horizontalmente */
+  justify-content: center;         /* centra contenido */
   text-align: center;
-  padding: 0 var(--cell-h-pad, 12px); /* usa la variable definida en .dap-section */
+  padding: 0 var(--cell-h-pad);    /* padding horizontal escalado */
+  font-size: 17px;                 /* contenido de celda aumentado (~14px * 1.2) */
   box-sizing: border-box;
 }
 
-/* Si quieres la primera columna ligeramente más pegada al borde, ajusta padding en .dap-table
-   (no en la celda porque rompe la alineación). */
+/* --- AGRANDAR "HEADER" del DAP ITEM (primera celda / título del item) --- */
+/* Aumenta fuente, peso y padding vertical únicamente en la celda de nombre/id */
+.dap-item-article .cell-id {
+  font-size: 20px;         /* mayor tamaño para el "header" del item */
+  font-weight: 700;
+  padding-top: 18px;
+  padding-bottom: 12px;
+  line-height: 1.1;
+  align-items: center;     /* asegura centrado vertical dentro de la celda */
+  justify-content: center; /* mantiene centrado horizontal si corresponde */
+}
 
-/* Badge internalId */
+/* Badge internalId ajustado */
 .op-value {
   display: inline-block;
-  font-size: 12px;
+  font-size: 14px;                 /* 12px * 1.2 */
   font-weight: 600;
   color: #064e3b;
   background: #f6fdf8;
   border: 1px solid #e6f7ec;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 5px 10px;               /* 4/8 -> 5/10 */
+  border-radius: 8px;
   box-sizing: border-box;
 }
 
-/* Acciones: iconos centrados y compactos */
+/* Acciones: iconos y botones escalados */
 .dap-item-article .cell-actions {
   white-space: nowrap;
   min-width: 0;
   justify-content: center;
 }
-.actions-inner { display:flex; gap:12px; align-items:center; justify-content:center; }
+.actions-inner {
+  display: flex;
+  gap: 14px;                       /* 12px * 1.2 */
+  align-items: center;
+  justify-content: center;
+}
 
 /* Botones */
 .action-btn {
-  width: 36px;
-  height: 36px;
+  width: 44px;                     /* 36px * 1.2 */
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -63,10 +79,131 @@
 }
 .action-btn:hover { background: rgba(15,23,42,0.06); }
 
-/* Mobile: apilar filas para legibilidad */
+/* SVG icon sizes dentro de los botones (siempre puedes ajustar) */
+.action-btn svg { width: 20px; height: 20px; } /* ~16/18 *1.2 => 20px */
+
+/* Separación entre filas */
+.dap-table .dap-item-article + .dap-item-article { margin-top: 14px; }
+
+/* Mobile: apilar filas y reducir tamaños (mantener legibilidad) */
 @media (max-width: 680px) {
-  .dap-item-article { grid-template-columns: 1fr; column-gap: 0; gap: 8px; padding: 8px; min-height: auto; }
-  .dap-item-article .cell { display: block; width: 100%; text-align: left; justify-content: flex-start; padding: 0 12px; }
+  .dap-item-article {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+    gap: 10px;
+    padding: 10px;
+    min-height: auto;
+  }
+  .dap-item-article .cell {
+    display: block;
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    padding: 0 16px;
+    font-size: 15px;
+  }
+  /* Reducir el "header" en móvil para no ocupar demasiado */
+  .dap-item-article .cell-id {
+    font-size: 16px;
+    padding-top: 10px;
+    padding-bottom: 8px;
+    font-weight: 700;
+  }
   .dap-item-article .cell-actions { justify-content: flex-start; white-space: normal; }
-  .actions-inner { gap: 8px; }
+  .actions-inner { gap: 10px; }
+}
+
+/* ------------------------------------------------------------------
+   Ajustes adicionales de iconos (mantengo tu override posterior)
+   ------------------------------------------------------------------ */
+.action-btn { 
+  width: 40px; 
+  height: 40px; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  border-radius: 50%; 
+  background: transparent; 
+  border: none; 
+  cursor: pointer;
+  color: #f49404; /* color del icono */
+}
+
+.action-btn .icon {
+  width: 40px;     /* ajusta aquí el tamaño visible del icono */
+  height: 40px;
+  display: block;  /* evita alineaciones extrañas */
+  fill: currentColor; /* se asegura que use la color del botón */
+  vertical-align: middle;
+  shape-rendering: geometricPrecision; /* mejora el render */
+}
+
+/* ---------------------------
+   Estado: punto de color + label
+   --------------------------- */
+.status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 12px;
+  box-shadow: 0 0 0 4px rgba(0,0,0,0.02) inset;
+}
+
+/* Colores para los estados */
+.status-green { background: #10b981; }  /* verde */
+.status-yellow { background: #f59e0b; } /* amarillo/ámbar */
+.status-default { background: #9ca3af; } /* gris si otro estado */
+
+/* Texto del label */
+.status-label {
+  font-weight: 600;
+  text-transform: none;
+  color: #111827;
+  font-size: 14px;
+}
+
+/* Aseguramos que la celda de estado esté centrada */
+.dap-item-article .cell-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive: reducir punto y gap en móviles */
+@media (max-width: 680px) {
+  .status-dot { width: 10px; height: 10px; flex: 0 0 10px; }
+  .status-item { gap: 8px; }
+  .status-label { font-size: 14px; }
+}
+
+/* Alinear el bloque de estado a la izquierda y asegurar que la etiqueta quede justificada a la izquierda */
+.dap-item-article .cell-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* <- alinea todo a la izquierda */
+  padding-left: var(--cell-h-pad, 12px); /* opcional: respeta el padding horizontal del resto de celdas */
+}
+
+/* Asegurar que el label esté alineado a la izquierda (no centrado) */
+.status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+/* El texto del label a la izquierda */
+.status-label {
+  font-weight: 600;
+  text-transform: none;
+  color: #111827;
+  font-size: 14px;
+  text-align: left;
 }
