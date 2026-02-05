@@ -30,9 +30,11 @@
 }
 
 /* Left / logo */
-.logo-area {
-  display: flex;
-  align-items: center;
+.logo-area .logo-img {
+  width: 360px;
+  height: auto;
+  display: block;
+  max-width: 100%;
 }
 
 /* Contact (icono PNG + número) - centrado dentro de su caja */
@@ -163,4 +165,11 @@
   margin: 24px auto;
   padding: 0 16px;
   box-sizing: border-box;
+}
+/* Responsive: reducir en pantallas pequeñas */
+@media (max-width: 980px) {
+  .logo-area .logo-img { width: 300px; } /* reduce a 300px en tablet */
+}
+@media (max-width: 680px) {
+  .logo-area .logo-img { width: 220px; } /* móvil */
 }

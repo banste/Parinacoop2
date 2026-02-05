@@ -1,37 +1,39 @@
 <div class="max-w-[1400px] mx-auto px-4">
   <div class="flex justify-center gap-6 mt-4 mb-6 flex-wrap">
     <ng-container *ngIf="totals$ | async as totals; else totalsLoading">
-      <div class="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-4 w-64 text-center">
-        <div class="text-sm text-gray-600 mb-2">Monto total invertido</div>
-        <div class="text-xl font-semibold text-gray-900">
+      <div class="bg-white rounded-lg border border-gray-400 shadow-md px-8 py-6 w-72 text-center dap-summary-card">
+        <div class="text-base text-gray-600 mb-2">Monto total invertido</div>
+        <div class="text-2xl font-semibold text-gray-900">
           {{ (totals?.totalInvested ?? 0) | currency:'CLP':'symbol':'1.0-0' }}
         </div>
-        <div class="text-xs text-gray-500">Pesos chilenos (CLP)</div>
+        <div class="text-sm text-gray-500">Pesos chilenos (CLP)</div>
       </div>
 
-      <div class="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-4 w-64 text-center">
-        <div class="text-sm text-gray-600 mb-2">Inversiones activas</div>
-        <div class="text-xl font-semibold text-gray-900">
+      <div class="bg-white rounded-lg border border-gray-400 shadow-md px-8 py-6 w-72 text-center dap-summary-card">
+        <div class="text-base text-gray-600 mb-2">Inversiones activas</div>
+        <div class="text-2xl font-semibold text-gray-900">
           {{ (totals?.activeCount ?? 0) }}
         </div>
-        <div class="text-xs text-gray-500">Depósitos activos</div>
+        <div class="text-sm text-gray-500">Depósitos activos</div>
       </div>
 
       <a
         [routerLink]="['nuevo-deposito']"
-        class="block bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-4 w-64 text-center no-underline focus:outline-none focus:ring-2 focus:ring-primary-300 hover:shadow-md transition"
+        class="block bg-white rounded-lg border border-gray-400 shadow-md px-8 py-6 w-72 text-center no-underline focus:outline-none focus:ring-2 focus:ring-primary-300 hover:shadow-lg transition dap-summary-card"
         aria-label="Realizar depósito a plazo"
       >
         <div class="w-full flex flex-col items-center justify-center h-full">
-          <div class="text-sm text-gray-600 mb-3">Tomar Nueva Inversion</div>
-        </div>
+  <div class="dap-summary-cta">
+    Tomar Nueva Inversion
+  </div>
+</div>
       </a>
     </ng-container>
 
     <ng-template #totalsLoading>
-      <div class="w-64 h-20 bg-gray-50 rounded border animate-pulse"></div>
-      <div class="w-64 h-20 bg-gray-50 rounded border animate-pulse"></div>
-      <div class="w-64 h-20 bg-gray-50 rounded border animate-pulse"></div>
+      <div class="w-72 h-24 bg-gray-50 rounded border animate-pulse"></div>
+      <div class="w-72 h-24 bg-gray-50 rounded border animate-pulse"></div>
+      <div class="w-72 h-24 bg-gray-50 rounded border animate-pulse"></div>
     </ng-template>
   </div>
 </div>

@@ -15,13 +15,16 @@ import {
 } from '@angular/router';
 import { CommonModule, NgClass, AsyncPipe } from '@angular/common';
 import { Subject, Subscription, Observable } from 'rxjs';
-import { filter, takeUntil, filter as rxFilter } from 'rxjs/operators';
+import { filter, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '@app/core/auth/services/auth.service';
 import { SvgIconComponent } from '@app/shared/components';
 import { ROUTE_TOKENS } from '@app/route-tokens';
 import { ProfileService } from '@app/features/profile/services/profile.service';
 import { User } from '@app/shared/models/user.model';
+
+/* FooterComponent importado para poder usar <app-footer /> en la plantilla */
+import { FooterComponent } from '../auth-layout/components/footer/footer.component';
 
 type NavItem = {
   label: string;
@@ -40,9 +43,10 @@ type NavItem = {
     RouterLinkActive,
     NgClass,
     AsyncPipe,
+    FooterComponent, // agregado para usar <app-footer /> en la plantilla
   ],
   templateUrl: './home-layout.component.html',
-  styleUrl: './home-layout.component.scss',
+  styleUrls: ['./home-layout.component.scss'],
 })
 export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   readonly ROUTE_TOKENS = ROUTE_TOKENS;

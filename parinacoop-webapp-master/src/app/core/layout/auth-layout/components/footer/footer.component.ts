@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { SvgIconComponent } from '@app/shared/components';
 
 @Component({
   selector: 'app-footer',
   standalone: true,
-  imports: [SvgIconComponent],
+  imports: [CommonModule, SvgIconComponent],
   templateUrl: './footer.component.html',
+  styleUrls: ['./footer.component.scss'],
 })
 export class FooterComponent {
   mail: string = 'cooperativa@parinacoop.cl';

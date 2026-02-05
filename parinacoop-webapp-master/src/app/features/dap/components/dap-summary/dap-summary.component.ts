@@ -9,6 +9,7 @@ import { Observable } from 'rxjs';
   standalone: true,
   imports: [CommonModule, AsyncPipe, RouterLink, CurrencyPipe],
   templateUrl: './dap-summary.component.html',
+  styleUrls: ['./dap-summary.component.scss'],
 })
 export class DapSummaryComponent {
   // Espera la misma forma que totals$ en DapComponent
