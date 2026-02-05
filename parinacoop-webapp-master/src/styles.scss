@@ -23,7 +23,8 @@ $parinacoop-webapp-theme: mat.define-theme(
   @include mat.all-component-themes($parinacoop-webapp-theme);
 
   /* Variables de marca */
-  --pc-accent: #ff7a00;
+  --pc-accent: #f49404; /* unify accent / yellow */
+  --pc-yellow: #f49404; /* explicit yellow variable */
   --pc-link: #0b64ff;
   --pc-muted: #6b7280;
   --pc-bg: #fbfbfc;
@@ -52,7 +53,7 @@ html {
   overflow: hidden;
 }
 .dap-dialog .dialog-header {
-  background: #f08b00;
+  background: var(--pc-accent);
   color: #fff;
   padding: 14px 18px;
   font-weight: 700;
@@ -60,8 +61,8 @@ html {
 .dap-dialog .dialog-body { padding: 18px; }
 
 /* ===== UTILIDADES DE FALLBACK (por si Tailwind no está activo) ===== */
-/* AUMENTADO max-width a 1110px para ganar 10px horizontales */
-.max-w-1100 { max-width: 1110px !important; }
+/* AUMENTADO max-width a 1200px para dar más espacio horizontal */
+.max-w-1100 { max-width: 1200px !important; }
 .mx-auto { margin-left: auto !important; margin-right: auto !important; }
 .px-4 { padding-left: 16px !important; padding-right: 16px !important; }
 .px-1 { padding-left: 4px !important; padding-right: 4px !important; }
@@ -88,11 +89,11 @@ html {
 }
 
 /* Contenedor boxed: soporta tanto la clase con corchetes (HTML generado) como la clase alternativa
-   AUMENTADO max-width a 1110px para reflejar la ampliación horizontal de 10px */
+   AUMENTADO max-width a 1200px */
 .dap-page [class~="max-w-[1100px]"],
 .dap-page .max-w-1100,
 .dap-page .container-1100 {
-  max-width: 1110px !important;
+  max-width: 1200px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   padding-left: 16px !important;
@@ -166,12 +167,14 @@ html {
   .dap-page .dap-card-full .actions-column { flex-direction:row !important; justify-content:flex-start !important; gap:16px !important; min-width:0 !important; }
   .dap-page .dap-card-full .row { flex-direction:column !important; gap:8px !important; }
 }
-.whatsapp-icon {
-  color: #f5b630; /* amarillo */
-  width: 20px;    /* ajusta si quieres más grande */
-  height: 20px;
-  display: inline-block;
-}
+/* usando el color hex directo */
+.contact .whatsapp-icon { color: #f49404; }
 
-/* Forzar tamaño del svg (si el componente concatena clases) */
-.whatsapp-icon svg { width: 20px; height: 20px; color: inherit; }
+/* opcional: control de tamaño y alineación */
+.contact .whatsapp-icon {
+  transform: scale(1.2);
+  transform-origin: center;
+  display: inline-block; /* asegura que el transform funcione bien */
+  vertical-align: middle;
+}
+.contact .contact-number { margin-left: 8px; color: #111827; font-weight: 600; }

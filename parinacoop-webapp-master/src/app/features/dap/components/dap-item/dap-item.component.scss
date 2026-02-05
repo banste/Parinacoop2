@@ -1,66 +1,80 @@
-/* Asegurar que cada fila use grid idéntico a la cabecera y tenga altura mínima uniforme */
 .dap-item-article {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) 12%;
-  gap: 0.75rem 1.5rem; /* gap-x-6 equivalente */
-  align-items: center; /* centra verticalmente contenido */
-  min-height: 64px; /* altura uniforme — ajustar si quieres más/menos */
+  grid-template-columns: var(--dap-cols);
+  align-items: center;
+
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+
+  padding: 12px 8px;
+  font-size: 14px;
+}
+
+/* CELDAS */
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centro horizontal */
+  text-align: center;
+
+  padding: 6px 8px;
+  min-height: 44px;
   box-sizing: border-box;
+  color: #111827;
 }
 
-/* celdas: asegurar overflow y truncado en 'tipo' */
-.dap-item-article .cell {
-  min-width: 0; /* importante para que truncate funcione en grid */
+/* Primera columna */
+.cell-id {
+  justify-content: flex-start;
+  text-align: left;
+  padding-left: 12px;
+  font-weight: 700;
 }
 
-/* operación pill style (inline, discreto) */
-.op-value {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #064e3b;
-  background: #f6fdf8;
-  border: 1px solid #e6f7ec;
-  padding: 4px 8px;
-  border-radius: 6px;
-  box-sizing: border-box;
+/* Acciones */
+.cell-actions {
+  justify-content: flex-end;
+  padding-right: 12px;
 }
 
-/* truncado para tipo */
-.cell-type .truncate {
-  display: inline-block;
-  max-width: 100%;
+/* Evita quiebres */
+.cell-op,
+.cell-amount,
+.cell-interest {
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* alineaciones por columna (coinciden con las cabeceras) */
-.cell-id { display:flex; align-items:center; justify-content:flex-start; padding-left:4px; }
-.cell-op { display:flex; align-items:center; justify-content:center; }
-.cell-type { display:flex; align-items:center; justify-content:flex-start; }
-.cell-due, .cell-amount, .cell-status { display:flex; align-items:center; justify-content:center; }
-.cell-actions { display:flex; align-items:center; justify-content:flex-end; padding-right:6px; }
-
-/* Hover ligero */
-.dap-item-article:hover {
-  background-color: #ffffff; /* mantener blanco para consistencia */
+/* Acciones */
+.actions-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 }
 
-/* Responsive: en pantallas muy pequeñas apilar */
-@media (max-width: 520px) {
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  color: #f49404;
+}
+
+.action-btn:hover {
+  background: rgba(244, 148, 4, 0.15);
+}
+
+@media (max-width: 1100px) {
   .dap-item-article {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    min-height: auto;
-  }
-
-  .cell-actions {
-    justify-content: flex-start;
-    padding-top: 6px;
-  }
-
-  .cell-type .truncate {
-    white-space: normal; /* permitir wrap en móvil */
+    min-width: 1100px;
   }
 }

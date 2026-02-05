@@ -1,55 +1,40 @@
-<div class="dap-item-row">
-  <article
-    class="dap-item-article grid grid-cols-[repeat(6,minmax(0,1fr))_12%] gap-x-6 items-center rounded-lg border border-gray-200 bg-white py-3 px-4 text-sm leading-relaxed whitespace-normal"
-  >
-    <!-- 1: Depósito (ID) - usar pipe idPad solo (sin prefijo adicional) -->
-    <div class="cell cell-id">
-      <span class="text-gray-900">{{ dap.id | idPad }}</span>
-    </div>
+<article class="dap-item-article" role="row" aria-label="Fila depósito" [attr.data-id]="dap.id">
+  <div class="cell cell-id">N° {{ formatId(dap.id) }}</div>
 
-    <!-- 2: Número de operación (internalId) -->
-    <div class="cell cell-op text-center">
-      <span class="op-value">{{ dap.internalId ?? '-' }}</span>
-    </div>
+  <!-- usar internalId (o fallback '-') -->
+  <div class="cell cell-op"><span class="op-value">{{ dap.internalId ?? '-' }}</span></div>
 
-    <!-- 3: Tipo de depósito - alineado a la izquierda y truncado si es necesario -->
-    <div class="cell cell-type text-left">
-      <span class="text-gray-700 truncate" title="{{ dap.type }}">{{ dap.type | dapType }}</span>
-    </div>
+  <!-- usar el helper de fecha que ya tiene el componente -->
+  <div class="cell cell-date">{{ formatInvestmentDate(dap) }}</div>
 
-    <!-- 4: Vencimiento -->
-    <div class="cell cell-due text-center">
-      <span class="text-gray-700">{{ dap.dueDate ? (dap.dueDate | date: 'dd-MM-yyyy') : '-' }}</span>
-    </div>
+  <!-- dueDate (si tu modelo usa otra clave cámbiala aquí) -->
+  <div class="cell cell-due">{{ dap.dueDate ? (dap.dueDate | date: 'dd-MM-yyyy') : '-' }}</div>
 
-    <!-- 5: Monto a recibir -->
-    <div class="cell cell-amount text-center">
-      <span class="text-gray-700">{{ dap.finalAmount != null ? (dap.finalAmount | currency: 'CLP':'symbol':'1.0-0') : '-' }}</span>
-    </div>
+  <!-- finalAmount o el campo real en tu Dap model -->
+  <div class="cell cell-amount">{{ dap.finalAmount != null ? (dap.finalAmount | currency: 'CLP':'symbol':'1.0-0') : '-' }}</div>
 
-    <!-- 6: Estado depósito -->
-    <div class="cell cell-status text-center">
-      <span class="text-gray-700">{{ dap.status | dapStatus }}</span>
-    </div>
+  <!-- Interés: usamos la función getInterestAmount que ya maneja aliases -->
+  <div class="cell cell-interest">
+    <ng-container *ngIf="getInterestAmount(dap) as interest; else noInterest">
+      {{ interest | currency: 'CLP':'symbol':'1.0-0' }}
+    </ng-container>
+    <ng-template #noInterest>-</ng-template>
+  </div>
 
-    <!-- 7: Acciones -->
-    <div class="cell cell-actions flex items-center justify-end pr-2">
-      <div class="flex gap-6 items-center text-sm whitespace-nowrap">
-        <a
-          class="text-primary-600 hover:underline cursor-pointer whitespace-nowrap"
-          (click)="openDialog(dap)"
-        >
-          Ver detalle
-        </a>
+  <div class="cell cell-status">{{ formatStatus(dap.status) }}</div>
 
-        <a
-          class="text-primary-600 hover:underline cursor-pointer whitespace-nowrap"
-          (click)="openAttachments(dap)"
-          role="button"
-        >
-          Adjuntos
-        </a>
-      </div>
+  <!-- Acciones: dos botones con SVG inline (evita dependencia a app-svg-icon) -->
+  <div class="cell cell-actions">
+    <div class="actions-inner">
+      <button type="button" class="action-btn detail-btn" (click)="onViewDetail()" aria-label="Ver detalle" title="Ver detalle">
+        <svg class="detail-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="20" height="20" fill="currentColor"><path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"/></svg>
+        <span class="sr-only">Ver detalle</span>
+      </button>
+
+      <button type="button" class="action-btn attach-btn" (click)="onViewAttachments()" aria-label="Adjuntos" title="Adjuntos">
+        <svg class="attach-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="currentColor"><path d="M572.694 292.093L500.27 416.248A63.997 63.997 0 0 1 444.989 448H45.025c-18.523 0-30.064-20.093-20.731-36.093l72.424-124.155A64 64 0 0 1 152 256h399.964c18.523 0 30.064 20.093 20.73 36.093zM152 224h328v-48c0-26.51-21.49-48-48-48H272l-64-64H48C21.49 64 0 85.49 0 112v278.046l69.077-118.418C86.214 242.25 117.989 224 152 224z"/></svg>
+        <span class="sr-only">Adjuntos</span>
+      </button>
     </div>
-  </article>
-</div>
+  </div>
+</article>
