@@ -1,19 +1,24 @@
-<article class="dap-item-article" role="row" aria-label="Fila depósito" [attr.data-id]="dap.id">
-  <div class="cell cell-id">N° {{ formatId(dap.id) }}</div>
+<article class="dap-item-article" role="row" aria-label="Fila depósito" [attr.data-id]="dap?.id">
+  <!-- 1: Depósito (ID) -->
+  <div class="cell cell-id">N° {{ formatId(dap?.id) }}</div>
 
-  <!-- usar internalId (o fallback '-') -->
-  <div class="cell cell-op"><span class="op-value">{{ dap.internalId ?? '-' }}</span></div>
+  <!-- 2: Número de operación -->
+  <div class="cell cell-op">
+    <span class="op-value">{{ dap?.internalId ?? '-' }}</span>
+  </div>
 
-  <!-- usar el helper de fecha que ya tiene el componente -->
+  <!-- 3: Fecha inversión -->
   <div class="cell cell-date">{{ formatInvestmentDate(dap) }}</div>
 
-  <!-- dueDate (si tu modelo usa otra clave cámbiala aquí) -->
-  <div class="cell cell-due">{{ dap.dueDate ? (dap.dueDate | date: 'dd-MM-yyyy') : '-' }}</div>
+  <!-- 4: Vencimiento -->
+  <div class="cell cell-due">{{ dap?.dueDate ? (dap.dueDate | date: 'dd-MM-yyyy') : '-' }}</div>
 
-  <!-- finalAmount o el campo real en tu Dap model -->
-  <div class="cell cell-amount">{{ dap.finalAmount != null ? (dap.finalAmount | currency: 'CLP':'symbol':'1.0-0') : '-' }}</div>
+  <!-- 5: Monto a recibir -->
+  <div class="cell cell-amount">
+    {{ dap?.finalAmount != null ? (dap.finalAmount | currency: 'CLP':'symbol':'1.0-0') : '-' }}
+  </div>
 
-  <!-- Interés: usamos la función getInterestAmount que ya maneja aliases -->
+  <!-- 6: Interés -->
   <div class="cell cell-interest">
     <ng-container *ngIf="getInterestAmount(dap) as interest; else noInterest">
       {{ interest | currency: 'CLP':'symbol':'1.0-0' }}
@@ -21,19 +26,36 @@
     <ng-template #noInterest>-</ng-template>
   </div>
 
-  <div class="cell cell-status">{{ formatStatus(dap.status) }}</div>
+  <!-- 7: Estado -->
+  <div class="cell cell-status">{{ formatStatus(dap?.status) }}</div>
 
-  <!-- Acciones: dos botones con SVG inline (evita dependencia a app-svg-icon) -->
+  <!-- 8: Acciones (emitimos eventos al padre) -->
   <div class="cell cell-actions">
     <div class="actions-inner">
-      <button type="button" class="action-btn detail-btn" (click)="onViewDetail()" aria-label="Ver detalle" title="Ver detalle">
-        <svg class="detail-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="20" height="20" fill="currentColor"><path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"/></svg>
-        <span class="sr-only">Ver detalle</span>
+      <button
+        type="button"
+        class="action-btn detail-btn"
+        (click)="onViewDetailClick()"
+        aria-label="Ver detalle"
+        title="Ver detalle"
+      >
+        <!-- SVG icono info -->
+        <svg class="detail-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="16" height="16" fill="currentColor">
+          <path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm32 372c0 6.627-5.373 12-12 12h-40c-6.627 0-12-5.373-12-12v-88c0-6.627 5.373-12 12-12h12v-32h-12c-6.627 0-12-5.373-12-12v-8c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v140h12c6.627 0 12 5.373 12 12v8z"/>
+        </svg>
       </button>
 
-      <button type="button" class="action-btn attach-btn" (click)="onViewAttachments()" aria-label="Adjuntos" title="Adjuntos">
-        <svg class="attach-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="currentColor"><path d="M572.694 292.093L500.27 416.248A63.997 63.997 0 0 1 444.989 448H45.025c-18.523 0-30.064-20.093-20.731-36.093l72.424-124.155A64 64 0 0 1 152 256h399.964c18.523 0 30.064 20.093 20.73 36.093zM152 224h328v-48c0-26.51-21.49-48-48-48H272l-64-64H48C21.49 64 0 85.49 0 112v278.046l69.077-118.418C86.214 242.25 117.989 224 152 224z"/></svg>
-        <span class="sr-only">Adjuntos</span>
+      <button
+        type="button"
+        class="action-btn attach-btn"
+        (click)="onViewAttachmentsClick()"
+        aria-label="Adjuntos"
+        title="Adjuntos"
+      >
+        <!-- SVG icono adjuntos -->
+        <svg class="attach-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="16" height="16" fill="currentColor">
+          <path d="M216.4 0C132.2 0 64 68.2 64 152.4v207.2C64 443.8 132.2 512 216.4 512c84.2 0 152.4-68.2 152.4-152.4V168c0-13.3-10.7-24-24-24s-24 10.7-24 24v191.6c0 57.9-47 104.8-104.8 104.8-57.9 0-104.8-47-104.8-104.8V152.4C111.2 95.9 153.4 56 216.4 56c63 0 105.2 39.9 114.8 96.4 3.7 20.6 22.4 34 43 30.4 20.6-3.7 34-22.4 30.4-43C403.6 63.6 325.2 0 216.4 0z"/>
+        </svg>
       </button>
     </div>
   </div>

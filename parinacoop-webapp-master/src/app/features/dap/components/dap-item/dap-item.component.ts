@@ -1,93 +1,62 @@
-import { CommonModule, AsyncPipe, DatePipe, CurrencyPipe, NgClass } from '@angular/common';
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Dap } from '../../models/dap.model';
-import { DapStatusPipe } from '../../pipes/dap-status.pipe';
-import { DapTypePipe } from '../../pipes/dap-type.pipe';
-import { IdPadPipe } from '../../pipes/id-pad.pipe';
 
 @Component({
   selector: 'app-dap-item',
   standalone: true,
-  imports: [
-    CommonModule,
-    NgClass,
-    DatePipe,
-    CurrencyPipe,
-    DapStatusPipe,
-    DapTypePipe,
-    IdPadPipe,
-    AsyncPipe,
-  ],
+  imports: [CommonModule, CurrencyPipe, DatePipe],
   templateUrl: './dap-item.component.html',
   styleUrls: ['./dap-item.component.scss'],
-  providers: [DatePipe]
 })
 export class DapItemComponent {
-  @Input({ required: true }) dap!: Dap;
+  @Input() dap!: Dap | any;
+
+  // Emitimos los eventos para que DapComponent los maneje (openDialog/openAttachments)
   @Output() viewDetail = new EventEmitter<Dap>();
   @Output() viewAttachments = new EventEmitter<Dap>();
 
-  constructor(private datePipe: DatePipe) {}
+  // Helpers sencillos — reemplaza por tus implementaciones si ya existen
+  formatId(id: any): string {
+    if (id == null) return '-';
+    const s = String(id);
+    return s.padStart(6, '0');
+  }
 
-  // -----------------------
-  // Utility / formatters
-  // -----------------------
-  formatInvestmentDate(dapObj: any): string {
-    if (!dapObj) { return '-'; }
-    const candidates = [
-      'initial_date', 'initialDate', 'initial_at',
-      'investmentDate','investment_date','investment_at',
-      'createdAt','created_at','created',
-      'dateCreated','date_created','date',
-      'startDate','start_date','fecha','fechaCreacion','fecha_creacion'
-    ];
-    let raw: any = null;
-    for (const key of candidates) {
-      if (key in dapObj && dapObj[key]) { raw = dapObj[key]; break; }
+  formatInvestmentDate(dap: any): string {
+    // si ya tienes un helper en el componente real, úsalo. Aquí una versión segura.
+    const raw = dap?.investmentDate ?? dap?.createdAt ?? dap?.date;
+    if (!raw) return '-';
+    try {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return String(raw);
+      return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {
+      return String(raw);
     }
-    if (!raw) { return '-'; }
-    const formatted = this.datePipe.transform(raw, 'dd-MM-yyyy');
-    return formatted ?? '-';
   }
 
-  formatId(rawId: any): string {
-    if (rawId === null || rawId === undefined) { return ''; }
-    const s = String(rawId);
-    const digits = s.replace(/\D/g, '');
-    return digits ? digits.padStart(6, '0') : s;
-  }
-
-  formatStatus(status: string | undefined | null): string {
-    if (!status) { return '-'; }
-    return String(status).toUpperCase();
-  }
-
-  // devuelve el monto de interes (profit) o lo calcula (final - initial) cuando es posible
-  getInterestAmount(dapObj: any): number | null {
-    if (!dapObj) return null;
-    const profitAliases = [dapObj.profit, dapObj.ganancia, dapObj.interestAmount, dapObj.interes, dapObj.interest];
-    for (const p of profitAliases) {
-      const n = Number(p ?? NaN);
-      if (!isNaN(n) && n !== 0) return n;
-    }
-
-    const finalA = Number(dapObj.finalAmount ?? dapObj.final_amount ?? dapObj.final);
-    const initA = Number(dapObj.initialAmount ?? dapObj.initial_amount ?? dapObj.initial);
-    if (!isNaN(finalA) && !isNaN(initA)) {
-      const diff = finalA - initA;
-      return isNaN(diff) ? null : diff;
+  getInterestAmount(dap: any): number | null {
+    // intenta varios campos que puedan existir en el modelo
+    const candidates = ['interestAmount', 'interest', 'accruedInterest', 'gain'];
+    for (const k of candidates) {
+      const v = dap?.[k];
+      if (v != null && !isNaN(Number(v))) return Number(v);
     }
     return null;
   }
 
-  // -----------------------
-  // Emit events to parent
-  // -----------------------
-  onViewDetail(): void {
+  formatStatus(status: any): string {
+    if (status == null) return '-';
+    return String(status).toUpperCase();
+  }
+
+  // Métodos locales que llaman a los emitters (útiles si quieres lógica previa)
+  onViewDetailClick(): void {
     this.viewDetail.emit(this.dap);
   }
 
-  onViewAttachments(): void {
+  onViewAttachmentsClick(): void {
     this.viewAttachments.emit(this.dap);
   }
 }

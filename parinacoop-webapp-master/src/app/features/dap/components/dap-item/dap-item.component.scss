@@ -1,80 +1,72 @@
+/* dap-item.component.scss */
+/* Usamos la misma grid (var(--dap-cols)) y NO column-gap; el espaciado viene del padding de cada celda */
 .dap-item-article {
+  width: 100%;
   display: grid;
   grid-template-columns: var(--dap-cols);
+  column-gap: 0;                  /* SIN gap: evita overflow */
   align-items: center;
-
+  min-height: 56px;
   background: #ffffff;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-
-  padding: 12px 8px;
-  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.04);
+  padding: 8px 0;
+  box-sizing: border-box;
 }
 
-/* CELDAS */
-.cell {
+/* Celdas: aplicamos el mismo padding horizontal que la cabecera */
+.dap-item-article .cell {
+  min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center; /* centro horizontal */
+  justify-content: center;       /* centra contenido horizontalmente */
   text-align: center;
-
-  padding: 6px 8px;
-  min-height: 44px;
+  padding: 0 var(--cell-h-pad, 12px); /* usa la variable definida en .dap-section */
   box-sizing: border-box;
-  color: #111827;
 }
 
-/* Primera columna */
-.cell-id {
-  justify-content: flex-start;
-  text-align: left;
-  padding-left: 12px;
-  font-weight: 700;
+/* Si quieres la primera columna ligeramente más pegada al borde, ajusta padding en .dap-table
+   (no en la celda porque rompe la alineación). */
+
+/* Badge internalId */
+.op-value {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #064e3b;
+  background: #f6fdf8;
+  border: 1px solid #e6f7ec;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-sizing: border-box;
 }
 
-/* Acciones */
-.cell-actions {
-  justify-content: flex-end;
-  padding-right: 12px;
-}
-
-/* Evita quiebres */
-.cell-op,
-.cell-amount,
-.cell-interest {
+/* Acciones: iconos centrados y compactos */
+.dap-item-article .cell-actions {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
+  justify-content: center;
 }
+.actions-inner { display:flex; gap:12px; align-items:center; justify-content:center; }
 
-/* Acciones */
-.actions-inner {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-
+/* Botones */
 .action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
+  border-radius: 50%;
+  border: none;
+  background: transparent;
   cursor: pointer;
-  color: #f49404;
 }
+.action-btn:hover { background: rgba(15,23,42,0.06); }
 
-.action-btn:hover {
-  background: rgba(244, 148, 4, 0.15);
-}
-
-@media (max-width: 1100px) {
-  .dap-item-article {
-    min-width: 1100px;
-  }
+/* Mobile: apilar filas para legibilidad */
+@media (max-width: 680px) {
+  .dap-item-article { grid-template-columns: 1fr; column-gap: 0; gap: 8px; padding: 8px; min-height: auto; }
+  .dap-item-article .cell { display: block; width: 100%; text-align: left; justify-content: flex-start; padding: 0 12px; }
+  .dap-item-article .cell-actions { justify-content: flex-start; white-space: normal; }
+  .actions-inner { gap: 8px; }
 }

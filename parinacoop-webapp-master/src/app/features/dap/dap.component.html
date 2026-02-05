@@ -1,8 +1,9 @@
-<section class="w-full bg-white" style="--dap-cols: 140px 160px 150px 130px 180px 120px 140px 90px; padding-left: 80px;">
+<section class="dap-section w-full bg-white">
   <!-- Cabecera (solo título) -->
-  <div class="max-w-[1400px] mx-auto px-4 py-4">
+  <div class="dap-header-wrap max-w-[1400px] mx-auto px-4 py-4">
     <div class="flex items-center gap-4">
-      <div class="flex items-center justify-center rounded-md" style="width:48px; height:48px; background: #f49404;">
+      <div class="dap-icon flex items-center justify-center rounded-md">
+        <!-- SVG (icono) - dejamos el svg en el html -->
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="24" height="24" aria-hidden="true" focusable="false">
           <path fill="#ffffff" d="M608 32H32C14.33 32 0 46.33 0 64v384c0 17.67 14.33 32 32 32h576c17.67 0 32-14.33 32-32V64c0-17.67-14.33-32-32-32zM176 327.88V344c0 4.42-3.58 8-8 8h-16c-4.42 0-8-3.58-8-8v-16.29c-11.29-.58-22.27-4.52-31.37-11.35-3.9-2.93-4.1-8.77-.57-12.14l11.75-11.21c2.77-2.64 6.89-2.76 10.13-.73 3.87 2.42 8.26 3.72 12.82 3.72h28.11c6.5 0 11.8-5.92 11.8-13.19 0-5.95-3.61-11.19-8.77-12.73l-45-13.5c18.59-5.58 31.58-23.42 31.58-43.39 0-24.52 19.05-44.44 42.67-45.07V152c0-4.42 3.58-8 8-8h16c4.42 0 8 3.58 8 8v16.29c11.29.58 22.27 4.51 31.37 11.35 3.9 2.93 4.1 8.77.57 12.14l-11.75 11.21c-2.77 2.64-6.89 2.76-10.13.73-3.87-2.43-8.26-3.72-12.82-3.72h-28.11c-6.5 0-11.8 5.92-11.8 13.19 0 5.95 3.61 11.19 8.77 12.73l45 13.5c18.59 5.58 31.58 23.42 31.58 43.39 0 24.53-19.05 44.44-42.67 45.07zM416 312c0 4.42-3.58 8-8 8H296c-4.42 0-8-3.58-8-8v-16c0-4.42 3.58-8 8-8h112c4.42 0 8 3.58 8 8v16zm160 0c0 4.42-3.58 8-8 8h-80c-4.42 0-8-3.58-8-8v-16c0-4.42 3.58-8 8-8h80c4.42 0 8 3.58 8 8v16zm0-96c0 4.42-3.58 8-8 8H296c-4.42 0-8-3.58-8-8v-16c0-4.42 3.58-8 8-8h272c4.42 0 8 3.58 8 8v16z"/>
         </svg>
@@ -15,86 +16,50 @@
     </div>
   </div>
 
-  <!-- Resumen (mantener igual) -->
-  <div class="max-w-[1400px] mx-auto px-4">
-    <div class="flex justify-center gap-6 mt-4 mb-6 flex-wrap">
-      <ng-container *ngIf="totals$ | async as totals; else totalsLoading">
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-4 w-64 text-center">
-          <div class="text-sm text-gray-600 mb-2">Monto total invertido</div>
-          <div class="text-xl font-semibold text-gray-900">
-            {{ (totals?.totalInvested ?? 0) | currency:'CLP':'symbol':'1.0-0' }}
-          </div>
-          <div class="text-xs text-gray-500">Pesos chilenos (CLP)</div>
-        </div>
+  <!-- Resumen: componente separado (no tocar) -->
+  <app-dap-summary [totals$]="totals$"></app-dap-summary>
 
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-4 w-64 text-center">
-          <div class="text-sm text-gray-600 mb-2">Inversiones activas</div>
-          <div class="text-xl font-semibold text-gray-900">
-            {{ (totals?.activeCount ?? 0) }}
+  <!-- Tabla: cabecera alineada con la variable --dap-cols (definida en SCSS) -->
+  <section class="dap-table-wrapper">
+    <div class="dap-table">
+      <ng-container *ngIf="userDaps$ | async as userDaps; else loading">
+        <ng-container *ngIf="userDaps?.length; else empty">
+          <div class="mb-2">
+            <article class="dap-header" role="rowgroup">
+              <div>Depósito a Plazo</div>
+              <div>N° de operación</div>
+              <div>Fecha de inversión</div>
+              <div>Vencimiento</div>
+              <div>Monto a recibir</div>
+              <div>Interés</div>
+              <div>Estado depósito</div>
+              <div>Acciones</div>
+            </article>
           </div>
-          <div class="text-xs text-gray-500">Depósitos activos</div>
-        </div>
 
-        <a
-          [routerLink]="['nuevo-deposito']"
-          class="block bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-4 w-64 text-center no-underline focus:outline-none focus:ring-2 focus:ring-primary-300 hover:shadow-md transition"
-          aria-label="Realizar depósito a plazo"
-        >
-          <div class="w-full flex flex-col items-center justify-center h-full">
-            <div class="text-sm text-gray-600 mb-3">Tomar Nueva Inversion</div>
+          <div class="space-y-3">
+            <ng-container *ngFor="let dap of userDaps; trackBy: trackById">
+              <!-- bind outputs so parent receives events and opens dialogs -->
+              <app-dap-item
+                [dap]="dap"
+                (viewDetail)="openDialog($event)"
+                (viewAttachments)="openAttachments($event)"
+              ></app-dap-item>
+            </ng-container>
           </div>
-        </a>
+        </ng-container>
+
+        <ng-template #empty>
+          <div class="text-center py-8 text-gray-500">No tienes depósitos a plazo.</div>
+        </ng-template>
       </ng-container>
 
-      <ng-template #totalsLoading>
-        <div class="w-64 h-20 bg-gray-50 rounded border animate-pulse"></div>
-        <div class="w-64 h-20 bg-gray-50 rounded border animate-pulse"></div>
-        <div class="w-64 h-20 bg-gray-50 rounded border animate-pulse"></div>
+      <ng-template #loading>
+        <div class="space-y-2">
+          <div class="w-full h-20 bg-gray-50 rounded border animate-pulse"></div>
+          <div class="w-full h-20 bg-gray-50 rounded border animate-pulse"></div>
+        </div>
       </ng-template>
     </div>
-  </div>
-
-  <!-- Tabla: cabecera alineada con la variable --dap-cols -->
-  <section class="px-1 pb-2 dap-table">
-    <ng-container *ngIf="userDaps$ | async as userDaps; else loading">
-      <ng-container *ngIf="userDaps?.length; else empty">
-        <div class="mb-2">
-          <article
-            class="dap-header"
-            style="display: grid; grid-template-columns: var(--dap-cols); align-items:center; padding:14px 0; border-radius:10px; background: var(--pc-yellow); border: 1px solid rgba(0,0,0,0.06); color:#1f2937; font-weight:700; font-size:15px;"
-          >
-            <div class="text-sm text-left pl-1">Depósito a Plazo</div>
-            <div class="text-sm text-center">N° de operación</div>
-            <div class="text-sm text-center">Fecha de inversión</div>
-            <div class="text-sm text-center">Vencimiento</div>
-            <div class="text-sm text-center">Monto a recibir</div>
-            <div class="text-sm text-center">Interés</div>
-            <div class="text-sm text-center">Estado depósito</div>
-            <div class="text-sm text-right pr-2">Acciones</div>
-          </article>
-        </div>
-
-        <div class="space-y-3">
-          <ng-container *ngFor="let dap of userDaps; trackBy: trackById">
-            <app-dap-item
-              [dap]="dap"
-              (viewDetail)="openDialog($event)"
-              (viewAttachments)="openAttachments($event)"
-            ></app-dap-item>
-          </ng-container>
-        </div>
-      </ng-container>
-
-      <ng-template #empty>
-        <div class="text-center py-8 text-gray-500">No tienes depósitos a plazo.</div>
-      </ng-template>
-    </ng-container>
-
-    <ng-template #loading>
-      <div class="space-y-2">
-        <div class="w-full h-20 bg-gray-50 rounded border animate-pulse"></div>
-        <div class="w-full h-20 bg-gray-50 rounded border animate-pulse"></div>
-      </div>
-    </ng-template>
   </section>
 </section>
