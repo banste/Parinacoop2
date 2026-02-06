@@ -1,0 +1,182 @@
+/* DAP Attachments - namespaced styles to avoid conflicts
+   Palette: accent #f49404, white #ffffff, background #faf9fd
+*/
+
+:host, .dap-attachments-root {
+  --dap-accent: #f49404;
+  --dap-accent-dark: #d17d03;
+  --bg: #faf9fd;
+  --panel: #ffffff;
+  --muted: #6b7280;
+  display: block;
+  box-sizing: border-box;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #0f1724;
+  background: transparent;
+}
+
+/* Wrapper/body */
+.dap-body { background: transparent; }
+
+/* Header */
+.dap-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 12px;
+}
+.dap-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+.dap-subtext {
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.dap-close-btn {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Grid layout */
+.dap-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* Upload card */
+.dap-card-upload {
+  background: var(--panel);
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 36, 0.04);
+  padding: 12px;
+  box-shadow: 0 8px 18px rgba(2,6,23,0.04);
+}
+.dap-card-title {
+  font-weight: 600;
+  color: #2b2b2b;
+  margin-bottom: 8px;
+}
+
+/* File selector row */
+.dap-file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dap-btn-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(244,148,4,0.12);
+  color: var(--dap-accent);
+  cursor: pointer;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(2,6,23,0.03);
+}
+.dap-btn-file.disabled,
+.dap-btn-file[aria-disabled="true"] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.dap-selected-name { color: var(--muted); font-size: 0.9rem; }
+.dap-no-file { color: var(--muted); font-size: 0.9rem; }
+
+/* Actions */
+.dap-card-actions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dap-btn-upload {
+  background: var(--dap-accent);
+  color: #fff;
+  border: none;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.dap-btn-upload[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: linear-gradient(90deg, rgba(244,148,4,0.12), rgba(244,148,4,0.06));
+  color: rgba(15,23,36,0.45);
+}
+.dap-msg { color: var(--muted); }
+
+/* Uploaded list */
+.dap-uploaded-list {
+  margin-top: 4px;
+}
+.dap-list-title {
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+/* Attachment row */
+.dap-attachment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel);
+  border: 1px solid rgba(15,23,36,0.04);
+  padding: 10px 12px;
+  border-radius: 8px;
+  gap: 12px;
+  box-shadow: 0 6px 12px rgba(2,6,23,0.03);
+}
+.dap-attachment-left { display:flex; flex-direction:column; gap:4px; }
+.dap-filename { font-weight:700; color:#0f1724; }
+.dap-meta { color: var(--muted); font-size: 12px; }
+
+/* actions */
+.dap-actions .dap-btn-download {
+  background: var(--panel);
+  border: 1px solid var(--dap-accent);
+  color: var(--dap-accent);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dap-actions .dap-btn-download:hover {
+  background: var(--dap-accent);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* Info box */
+.dap-info-message {
+  background: #fffaf0;
+  border: 1px solid rgba(244,148,4,0.12);
+  color: var(--muted);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* Empty state */
+.dap-no-attachments { color: var(--muted); padding: 10px; }
+
+/* Responsive */
+@media (min-width: 720px) {
+  .dap-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .dap-attachment-row { flex-direction: column; align-items: flex-start; }
+  .dap-actions { width: 100%; display:flex; justify-content:flex-end; }
+  .dap-card-actions { flex-direction: column; align-items: stretch; }
+  .dap-btn-upload { width: 100%; }
+}

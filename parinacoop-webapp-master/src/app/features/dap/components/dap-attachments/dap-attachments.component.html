@@ -1,0 +1,69 @@
+<div class="dap-attachments-root box-border w-full">
+  <div class="dap-header-row">
+    <div>
+      <div class="dap-title">Adjuntos — Depósito #{{ dapId ? (dapId | number) : '' }}</div>
+      <div class="dap-subtext">Sube comprobantes asociados al DAP (PNG/JPG)</div>
+    </div>
+    <div>
+      <button type="button" class="dap-close-btn" (click)="close()">Cerrar</button>
+    </div>
+  </div>
+
+  <div class="dap-body p-4 space-y-4">
+    <div *ngIf="attachmentsLocked" class="dap-info-message">
+      Ya existen adjuntos para este depósito o las subidas están bloqueadas por el sistema. No se permiten nuevas subidas.
+    </div>
+
+    <div class="dap-grid">
+      <div class="dap-card-upload">
+        <div class="dap-card-body">
+          <div class="dap-card-title">Comprobante (JPG/PNG, ≤ 5MB)</div>
+
+          <div class="dap-file-row">
+            <label [attr.for]="'receipt-file-' + dapId" class="dap-btn-file" [class.disabled]="attachmentsLocked || receiptUploaded" [attr.aria-disabled]="(attachmentsLocked || receiptUploaded) ? true : null">
+              Seleccionar archivo
+            </label>
+
+            <input id="{{'receipt-file-' + dapId}}"
+                   type="file"
+                   accept="image/jpeg,image/png"
+                   (change)="onFileSelected($event)"
+                   style="display: none;"
+                   [disabled]="attachmentsLocked || receiptUploaded" />
+
+            <span class="dap-selected-name" *ngIf="selectedReceiptName">{{ selectedReceiptName }}</span>
+            <span class="dap-no-file" *ngIf="!selectedReceiptName">Ningún archivo seleccionado</span>
+          </div>
+
+          <div class="dap-card-actions">
+            <button (click)="uploadSelected()" [disabled]="attachmentsLocked || receiptUploaded || !selectedReceipt" class="dap-btn-upload">
+              Subir comprobante
+            </button>
+            <span class="dap-msg" *ngIf="message">{{ message }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dap-uploaded-list">
+        <div class="dap-list-title">Archivos subidos</div>
+
+        <div *ngIf="attachments?.length; else noAttachments" class="dap-list-rows">
+          <div *ngFor="let a of attachments" class="dap-attachment-row">
+            <div class="dap-attachment-left">
+              <div class="dap-filename">{{ a.filename }}</div>
+              <div class="dap-meta">Tipo: {{ a.type || $any(a).mime_type || '-' }} • Subido: {{ a.created_at | date:'dd-MM-yyyy HH:mm' }}</div>
+            </div>
+
+            <div class="dap-actions">
+              <button type="button" class="dap-btn-download" (click)="download(a.id)">Descargar</button>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noAttachments>
+          <div class="dap-no-attachments">No se encontraron adjuntos</div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</div>

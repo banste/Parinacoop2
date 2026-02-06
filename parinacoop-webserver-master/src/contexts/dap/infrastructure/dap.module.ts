@@ -28,7 +28,7 @@ import { DapInstructionsStore } from './dap-instructions.store';
 import { ClientRepository } from '@/contexts/client-profile/domain/ports/client.repository';
 import { PostgreSqlClientRepository } from '@/contexts/client-profile/infrastructure/repositories/postgresql.client-repository';
 
-// Attachments
+// Attachments: Postgres-backed repository implementation
 import { DapAttachmentsRepository } from './repositories/dap-attachments.repository';
 import { DapAttachmentsService } from './dap-attachments.service';
 import { DapAttachmentsController } from './controller/dap-attachments.controller';
@@ -80,7 +80,7 @@ import { AdminActivateDapController } from './http/admin-activate-dap.controller
       useClass: PostgreSqlClientRepository,
     },
 
-    // attachments: register concrete repository and token expected by the service
+    // Register Postgres-backed attachments repository and map it to the token expected by the service
     DapAttachmentsRepository,
     {
       provide: 'ATTACHMENTS_REPOSITORY',
