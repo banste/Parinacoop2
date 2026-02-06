@@ -1,6 +1,17 @@
-import { Inject, Injectable, InternalServerErrorException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { join } from 'path';
-import { promises as fsPromises, existsSync, statSync } from 'fs';
+import { promises as fsPromises } from 'fs';
+import { MailService } from '@/contexts/shared/providers/mail.service';
+import { UserRepository } from '@/contexts/admin/domain/ports/user.repository';
+import { Role } from '@/contexts/shared/enums/roles.enum';
 
 export interface AttachmentRecord {
   id: number;
@@ -16,14 +27,23 @@ export interface AttachmentRecord {
 
 @Injectable()
 export class DapAttachmentsService {
+  private readonly logger = new Logger(DapAttachmentsService.name);
+
   private MAX_RECEIPT = 5 * 1024 * 1024; // 5MB
   private MAX_SIGNED = 10 * 1024 * 1024; // 10MB
   private ALLOWED_RECEIPT_EXT = ['.png', '.jpg', '.jpeg'];
   private ALLOWED_SIGNED_EXT = ['.pdf'];
 
   constructor(
-    @Inject('ATTACHMENTS_REPOSITORY') private readonly attachmentsRepo: any, // repo must expose createAttachment, listByDap, findByIdAndDap, deleteById
-  ) {}
+    @Inject('ATTACHMENTS_REPOSITORY') private readonly attachmentsRepo: any,
+    @Optional() private readonly mailService?: MailService,
+    @Optional() @Inject('ADMIN_USER_REPOSITORY') private readonly adminUserRepo?: UserRepository,
+  ) {
+    const repoName = (attachmentsRepo && attachmentsRepo.constructor && attachmentsRepo.constructor.name) || 'unknown';
+    this.logger.log(`Attachments repository injected: ${repoName}`);
+    this.logger.log(`MailService injected: ${!!this.mailService}`);
+    this.logger.log(`AdminUserRepository injected: ${!!this.adminUserRepo}`);
+  }
 
   private getUploadsRoot(): string {
     return process.env.UPLOADS_ROOT ?? join(process.cwd(), 'uploads');
@@ -51,6 +71,9 @@ export class DapAttachmentsService {
     return map[ext] ?? 'application/octet-stream';
   }
 
+  /**
+   * Sube el attachment, lo persiste y (opcional) notifica por email a administradores.
+   */
   async uploadAttachment(
     run: number,
     dapId: number,
@@ -85,107 +108,179 @@ export class DapAttachmentsService {
     try {
       await fsPromises.mkdir(clientDir, { recursive: true });
     } catch (e) {
+      this.logger.error('Error creando carpeta de uploads', e as any);
       throw new InternalServerErrorException('No se pudo crear carpeta de uploads');
     }
 
-    const safeName = filename.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
-    const targetName = `${Date.now()}_${safeName}`;
-    const targetPathAbsolute = join(clientDir, targetName);
-
+    // Guardar archivo en disco
+    const storageName = `${Date.now()}_${filename.replace(/\s+/g, '_')}`;
+    const filePath = join(clientDir, storageName);
     try {
-      await fsPromises.writeFile(targetPathAbsolute, buffer);
+      await fsPromises.writeFile(filePath, buffer);
     } catch (e) {
-      throw new InternalServerErrorException('Error guardando archivo en disco');
+      this.logger.error('Error escribiendo archivo en disco', e as any);
+      throw new InternalServerErrorException('No se pudo guardar el archivo en el servidor');
     }
 
-    const storageRelative = targetPathAbsolute.startsWith(uploadsRoot)
-      ? targetPathAbsolute.slice(uploadsRoot.length).replace(/^[/\\]/, '')
-      : targetPathAbsolute;
-
-    const recToCreate: Partial<AttachmentRecord> = {
+    const record: any = {
       dap_id: dapId,
       filename,
-      storage_path: storageRelative,
+      storage_path: filePath,
       type,
       uploaded_by_run: run,
       created_at: new Date(),
-      mime_type: type === 'receipt' ? this.mimeTypeForExt(ext) : 'application/pdf',
+      mime_type: this.mimeTypeForExt(ext),
       size,
     };
 
+    // Persistir en repo (DB)
     let saved: any = null;
     try {
-      if (!this.attachmentsRepo || typeof this.attachmentsRepo.createAttachment !== 'function') {
-        // fallback simple if repo not provided
-        saved = {
-          id: Date.now(),
-          ...(recToCreate as any),
-        };
-      } else {
-        saved = await this.attachmentsRepo.createAttachment(recToCreate);
-      }
-    } catch (e) {
-      // cleanup file on failure
-      try {
-        if (existsSync(targetPathAbsolute)) await fsPromises.unlink(targetPathAbsolute);
-      } catch {}
-      throw new InternalServerErrorException('Error persistiendo registro del attachment');
+      saved = await this.attachmentsRepo.createAttachment(record);
+      this.logger.log('Attachment saved record: ' + JSON.stringify(saved));
+    } catch (err) {
+      this.logger.error('Error persisting attachment record to DB', err as any);
+      this.logger.debug('Attempted record: ' + JSON.stringify(record));
+      // Re-lanzar para que el controlador devuelva 500 (comportamiento actual)
+      throw err;
     }
 
-    return saved as AttachmentRecord;
+    // Notificación por email a administradores (no bloqueante, errores solo se loguean)
+    if (this.mailService) {
+      let adminEmails: string[] = [];
+
+      try {
+        if (this.adminUserRepo && typeof this.adminUserRepo.getByRole === 'function') {
+          const admins = await this.adminUserRepo.getByRole(Role.ADMIN);
+          if (Array.isArray(admins) && admins.length > 0) {
+            adminEmails = admins
+              .map((u: any) => {
+                try {
+                  if (typeof u.toValue === 'function') {
+                    const v = u.toValue();
+                    return v?.profile?.email ?? v?.email ?? null;
+                  }
+                  return u?.profile?.email ?? u?.email ?? null;
+                } catch {
+                  return null;
+                }
+              })
+              .filter((e: any) => typeof e === 'string' && e.length > 0);
+          }
+        }
+
+        if (adminEmails.length === 0 && process.env.DAP_ADMIN_EMAILS) {
+          adminEmails = process.env.DAP_ADMIN_EMAILS.split(',').map((s) => s.trim()).filter(Boolean);
+        }
+
+        if (adminEmails.length > 0) {
+          const subject = `[Parinacoop] Nuevo adjunto DAP #${dapId} (cliente ${run})`;
+          const html = `
+            <p>Se ha subido un nuevo adjunto al DAP <strong>#${dapId}</strong> por el RUN <strong>${run}</strong>.</p>
+            <ul>
+              <li>Archivo: ${saved.filename}</li>
+              <li>Tipo: ${saved.type}</li>
+              <li>Tamaño: ${saved.size} bytes</li>
+              <li>Almacenado en: ${saved.storage_path}</li>
+            </ul>
+            <p>Puede descargarlo desde el panel administrativo.</p>
+          `;
+
+          const attachments: any[] = [];
+          if (saved.storage_path) {
+            attachments.push({ filename: saved.filename, path: saved.storage_path });
+          }
+
+          try {
+            await this.mailService.sendMail({
+              to: adminEmails,
+              subject,
+              html,
+              attachments,
+            });
+            this.logger.log(`Notificación enviada a administradores: ${adminEmails.join(',')}`);
+          } catch (mailErr) {
+            this.logger.error('Error enviando notificación por mail tras upload', mailErr as any);
+          }
+        } else {
+          this.logger.warn('No hay administradores configurados (DB ni DAP_ADMIN_EMAILS). No se envía notificación.');
+        }
+      } catch (resolveErr) {
+        this.logger.error('Error resolviendo administradores para notificación', resolveErr as any);
+      }
+    } else {
+      this.logger.debug('MailService no disponible; no se enviará notificación tras upload.');
+    }
+
+    return saved;
   }
 
-  async listAttachments(run: number, dapId: number): Promise<AttachmentRecord[]> {
-    if (!this.attachmentsRepo || typeof this.attachmentsRepo.listByDap !== 'function') return [];
+  async listAttachments(run: number, dapId: number) {
     return this.attachmentsRepo.listByDap(run, dapId);
   }
 
-  async getAttachment(run: number, dapId: number, attachmentId: number): Promise<AttachmentRecord | null> {
-    if (!this.attachmentsRepo || typeof this.attachmentsRepo.findByIdAndDap !== 'function') return null;
-    const rec = await this.attachmentsRepo.findByIdAndDap(attachmentId, dapId, run);
-    return rec ?? null;
-  }
-
-  async getAttachmentFileInfo(run: number, dapId: number, attachmentId: number) {
-    const rec = await this.getAttachment(run, dapId, attachmentId);
+  async getAttachment(run: number, dapId: number, attachmentId: number) {
+    if (this.attachmentsRepo && typeof this.attachmentsRepo.findByIdAndDap === 'function') {
+      return this.attachmentsRepo.findByIdAndDap(attachmentId, dapId, run);
+    }
+    const rec = await (this.attachmentsRepo.findById ? this.attachmentsRepo.findById(attachmentId) : null);
     if (!rec) return null;
-    const uploadsRoot = this.getUploadsRoot();
-    const filePath = (rec as any).storage_path && (rec as any).storage_path.startsWith('/')
-      ? (rec as any).storage_path
-      : join(uploadsRoot, (rec as any).storage_path ?? rec.filename);
-    const exists = existsSync(filePath);
-    const fileSize = exists ? statSync(filePath).size : 0;
-    return {
-      filePath,
-      filename: rec.filename,
-      mimeType: rec.mime_type,
-      size: fileSize,
-      record: rec,
-    };
+    if (rec.dap_id !== dapId) return null;
+    if (rec.uploaded_by_run != null && rec.uploaded_by_run !== run) return null;
+    return rec;
   }
 
-  async deleteAttachment(run: number, dapId: number, attachmentId: number): Promise<void> {
-    const rec = await this.getAttachment(run, dapId, attachmentId);
-    if (!rec) throw new NotFoundException('Attachment not found');
-
-    const uploadsRoot = this.getUploadsRoot();
-    const filePath = (rec as any).storage_path && (rec as any).storage_path.startsWith('/')
-      ? (rec as any).storage_path
-      : join(uploadsRoot, (rec as any).storage_path ?? rec.filename);
-
-    if (this.attachmentsRepo && typeof this.attachmentsRepo.deleteById === 'function') {
-      await this.attachmentsRepo.deleteById(attachmentId);
-    }
-
-    try {
-      if (existsSync(filePath)) await fsPromises.unlink(filePath);
-    } catch (e) {
-      // ignore deletion error
-    }
-  }
-
-  // Optional server-side lock method (no-op unless you implement actual DAP update)
   async lockAttachments(run: number, dapId: number): Promise<void> {
+    if (this.attachmentsRepo && typeof this.attachmentsRepo.lockByDap === 'function') {
+      await this.attachmentsRepo.lockByDap(run, dapId);
+    } else {
+      this.logger.debug(`lockAttachments noop (repo has no lock). run=${run} dapId=${dapId}`);
+    }
+  }
+
+  async deleteAttachment(attachmentIdOrRun: number, dapId?: number, attachmentId?: number) {
+    if (dapId !== undefined && attachmentId !== undefined) {
+      const run = attachmentIdOrRun;
+      const aId = attachmentId;
+
+      let rec = null;
+      if (this.attachmentsRepo && typeof this.attachmentsRepo.findByIdAndDap === 'function') {
+        rec = await this.attachmentsRepo.findByIdAndDap(aId, dapId, run);
+      } else if (this.attachmentsRepo && typeof this.attachmentsRepo.findById === 'function') {
+        rec = await this.attachmentsRepo.findById(aId);
+        if (rec && rec.dap_id !== dapId) rec = null;
+        if (rec && rec.uploaded_by_run != null && rec.uploaded_by_run !== run) rec = null;
+      } else {
+        const list = await this.attachmentsRepo.listByDap(run, dapId).catch(() => []);
+        rec = (list || []).find((r: any) => Number(r.id) === Number(aId)) ?? null;
+      }
+
+      if (!rec) throw new NotFoundException('Adjunto no encontrado');
+
+      await this.attachmentsRepo.deleteById(aId);
+
+      try {
+        if (rec.storage_path) {
+          await fsPromises.unlink(rec.storage_path).catch(() => {});
+        }
+      } catch (e) {
+        this.logger.debug('Error borrando archivo físico tras eliminar attachment:', e as any);
+      }
+      return;
+    }
+
+    // deleteAttachment(attachmentId)
+    const aId = attachmentIdOrRun;
+    const existing = await (this.attachmentsRepo.findById ? this.attachmentsRepo.findById(aId) : null);
+    if (!existing) throw new NotFoundException('Adjunto no encontrado');
+    await this.attachmentsRepo.deleteById(aId);
+    try {
+      if (existing.storage_path) {
+        await fsPromises.unlink(existing.storage_path).catch(() => {});
+      }
+    } catch (e) {
+      this.logger.debug('Error borrando archivo físico tras eliminar attachment:', e as any);
+    }
     return;
   }
 }

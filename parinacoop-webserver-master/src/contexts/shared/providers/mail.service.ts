@@ -81,4 +81,24 @@ export class MailService {
       throw err;
     }
   }
+
+  /**
+   * Envío genérico de correo. Devuelve el resultado de nodemailer.sendMail.
+   * Uso: await mailService.sendMail({ to, subject, html, attachments })
+   */
+  async sendMail(mailOptions: nodemailer.SendMailOptions) {
+    const from = process.env.SMTP_FROM || 'no-reply@parinacoop.cl';
+    const options: nodemailer.SendMailOptions = { from, ...mailOptions };
+
+    try {
+      const info = await this.transporter.sendMail(options);
+      const preview = this.usingEthereal ? nodemailer.getTestMessageUrl(info) : undefined;
+      this.logger.log(`Correo enviado a ${options.to} (messageId=${(info as any).messageId ?? ''})`);
+      if (preview) this.logger.log(`Ethereal preview URL: ${preview}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Error enviando correo (sendMail)', err as any);
+      throw err;
+    }
+  }
 }

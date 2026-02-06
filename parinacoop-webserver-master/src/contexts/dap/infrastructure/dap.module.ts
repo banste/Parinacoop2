@@ -28,12 +28,16 @@ import { DapInstructionsStore } from './dap-instructions.store';
 import { ClientRepository } from '@/contexts/client-profile/domain/ports/client.repository';
 import { PostgreSqlClientRepository } from '@/contexts/client-profile/infrastructure/repositories/postgresql.client-repository';
 
-// Attachments: Postgres-backed repository implementation
+// Attachments: repository implementation (Postgres-backed)
 import { DapAttachmentsRepository } from './repositories/dap-attachments.repository';
 import { DapAttachmentsService } from './dap-attachments.service';
 import { DapAttachmentsController } from './controller/dap-attachments.controller';
 
-// Contracts
+// Admin user repo (registramos localmente para evitar importar AdminModule y circularidad)
+import { PostgreSqlUserRepository } from '@/contexts/admin/infrastructure/persistence/postgresql.user-repository';
+// nota: el token que usaremos para inyectar aquí es 'ADMIN_USER_REPOSITORY'
+
+/* Contracts */
 import { DapContractsRepository } from './repositories/dap-contracts.repository';
 import { DapContractsService } from './dap-contracts.service';
 import { DapContractsController } from './controller/dap-contracts.controller';
@@ -80,7 +84,7 @@ import { AdminActivateDapController } from './http/admin-activate-dap.controller
       useClass: PostgreSqlClientRepository,
     },
 
-    // Register Postgres-backed attachments repository and map it to the token expected by the service
+    // Attachments: Postgres-backed repository (persist to DB)
     DapAttachmentsRepository,
     {
       provide: 'ATTACHMENTS_REPOSITORY',
@@ -91,6 +95,13 @@ import { AdminActivateDapController } from './http/admin-activate-dap.controller
     // contracts
     DapContractsRepository,
     DapContractsService,
+
+    // Registrar localmente el repo de usuarios admin y exponerlo con el token 'ADMIN_USER_REPOSITORY'
+    PostgreSqlUserRepository,
+    {
+      provide: 'ADMIN_USER_REPOSITORY',
+      useExisting: PostgreSqlUserRepository,
+    },
   ],
 })
 export class DapModule {}
