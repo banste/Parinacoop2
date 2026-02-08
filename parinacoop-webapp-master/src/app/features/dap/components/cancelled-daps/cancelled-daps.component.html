@@ -1,0 +1,37 @@
+<div class="cancelled-daps-card">
+  <header class="card-header">
+    <h3 class="card-title">Depósitos cancelados</h3>
+  </header>
+
+  <section class="card-body">
+    <div *ngIf="loading" class="loading">Cargando depósitos cancelados…</div>
+
+    <div *ngIf="!loading && error" class="error">
+      {{ error }}
+    </div>
+
+    <div *ngIf="!loading && !error && (!daps || daps.length === 0)" class="empty">
+      No hay depósitos cancelados.
+    </div>
+
+    <ul *ngIf="!loading && !error && daps && daps.length > 0" class="dap-list">
+      <li *ngFor="let d of daps" class="dap-item">
+        <div class="dap-main">
+          <div class="dap-id">#{{ d.id }}</div>
+          <div class="dap-meta">
+            <div class="dap-type">{{ d.type }}</div>
+            <div class="dap-amount">{{ d.finalAmount | number:'1.0-2' }} {{ d.currencyType }}</div>
+          </div>
+        </div>
+
+        <div class="dap-right">
+          <div class="dap-status">{{ d.status | dapStatus }}</div>
+          <div class="dap-dates">
+            <small>Creado: {{ d.initialDate | date:'short' }}</small>
+            <small>Vence: {{ d.dueDate | date:'short' }}</small>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </section>
+</div>

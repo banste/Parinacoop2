@@ -51,10 +51,11 @@ type NavItem = {
 export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   readonly ROUTE_TOKENS = ROUTE_TOKENS;
 
+  // <-- SOLO estas dos entradas. Mantengo la estructura NavItem para que locateLinkBackdrop siga funcionando.
   navItems: NavItem[] = [
-    { label: 'Inicio', link: ROUTE_TOKENS.CLIENT_HOME },
     { label: 'Depósitos a Plazo', link: ROUTE_TOKENS.DAP },
-    { label: 'Perfil', link: ROUTE_TOKENS.PROFILE },
+    // Historial apunta a /cliente/depositos-a-plazo/cancelled (ruta relativa a DAP)
+    { label: 'Historial', link: `${ROUTE_TOKENS.DAP}/cancelled` },
   ];
 
   @ViewChild('linkBackdrop') linkBackdrop?: ElementRef<HTMLDivElement>;
@@ -155,6 +156,8 @@ export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDes
   }
 
   locateLinkBackdrop(path: string): void {
+    // El cálculo del índice sigue siendo por inclusión de la cadena `link`.
+    // Si la ruta actual contiene la cadena del navItem, se posiciona el linkBackdrop.
     const index = this.navItems.findIndex((item) => path.includes(item.link));
     if (this.linkBackdrop) {
       this.linkBackdrop.nativeElement.style.setProperty('--left', `${Math.max(index, 0) * 11}rem`);

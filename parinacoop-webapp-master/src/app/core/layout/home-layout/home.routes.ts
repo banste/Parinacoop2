@@ -20,6 +20,16 @@ const homeRoutes: Routes = [
         path: ROUTE_TOKENS.CLIENT_HOME, // 'inicio' -> /cliente/inicio
         loadComponent: () => import('@features/home/home.component'),
       },
+
+      // Nueva ruta específica para historial (cancelled)
+      {
+        // /cliente/depositos-a-plazo/cancelled
+        path: `${ROUTE_TOKENS.DAP}/cancelled`,
+        loadComponent: () =>
+          import('@features/dap/components/cancelled-daps/cancelled-daps.component')
+            .then((m) => m.CancelledDapsComponent),
+      },
+
       {
         path: ROUTE_TOKENS.DAP, // 'depositos-a-plazo' -> /cliente/depositos-a-plazo
         loadChildren: () => import('@features/dap/dap.routes'),
@@ -28,21 +38,9 @@ const homeRoutes: Routes = [
         path: ROUTE_TOKENS.PROFILE, // 'perfil' -> /cliente/perfil
         loadComponent: () => import('@features/profile/profile.component'),
       },
-      {
-        path: 'cuentas-de-ahorro',
-        loadComponent: () =>
-          import('@features/cuenta-ahorro/cuenta-ahorro.component'),
-      },
-      {
-        path: 'creditos-de-consumo',
-        loadComponent: () =>
-          import('@features/credito-consumo/credito-consumo.component'),
-      },
-      {
-        path: 'creditos-comerciales',
-        loadComponent: () =>
-          import('@features/credito-comercial/credito-comercial.component'),
-      },
+
+      // 'cuentas-de-ahorro' eliminado intencionalmente
+      // otras rutas globales que quieras dejar, por ahora no hay más
     ],
   },
 ];

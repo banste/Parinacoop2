@@ -61,13 +61,14 @@ export class PostgreSqlDapRepository implements DapRepository {
     return new Dap(newDap);
   }
 
-  // Obtener todos los DAP de un usuario
+  // Obtener todos los DAP de un usuario (EXCLUYENDO los ANNULLED)
   async getDapsByUserRun(run: number): Promise<Dap[]> {
     // Ahora hacemos LEFT JOIN con dap_internal_ids para traer internal_id si existe
     const result = await this.db
       .selectFrom('dap')
       .leftJoin('dap_internal_ids', 'dap_internal_ids.dap_id', 'dap.id')
       .where('user_run', '=', run)
+      .where('dap.status', '!=', DapStatus.ANNULLED) // EXCLUIR anuladas
       .select([
         'dap.id',
         'dap.user_run as userRun',
@@ -89,6 +90,34 @@ export class PostgreSqlDapRepository implements DapRepository {
 
     // Mapear cada fila a la entidad Dap — la propiedad internalId se pasa en el objeto row
     return result.map((row) => new Dap(row));
+  }
+
+  // Nuevo: obtener SOLO DAPs con status = CANCELLED para un usuario
+  async getCancelledDapsByUserRun(run: number): Promise<Dap[]> {
+    const rows = await this.db
+      .selectFrom('dap')
+      .leftJoin('dap_internal_ids', 'dap_internal_ids.dap_id', 'dap.id')
+      .where('user_run', '=', run)
+      .where('dap.status', '=', DapStatus.CANCELLED)
+      .select([
+        'dap.id',
+        'dap.user_run as userRun',
+        'dap.type',
+        'dap.currency_type as currencyType',
+        'dap.days',
+        'dap.status',
+        'dap.initial_date as initialDate',
+        'dap.initial_amount as initialAmount',
+        'dap.due_date as dueDate',
+        'dap.profit',
+        'dap.interest_rate_in_period as interestRateInPeriod',
+        'dap.interest_rate_in_month as interestRateInMonth',
+        'dap.final_amount as finalAmount',
+        'dap_internal_ids.internal_id as internalId',
+      ])
+      .execute();
+
+    return rows.map((row) => new Dap(row));
   }
 
   // Implementación añadida: buscar un DAP por id y run de usuario.

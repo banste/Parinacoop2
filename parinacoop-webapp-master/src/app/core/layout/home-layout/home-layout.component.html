@@ -85,6 +85,21 @@
 
   <!-- Navigation (mantengo el nav aquí; enlaces agrandados) -->
 
+  <nav class="pc-container nav-area">
+    <div #linkBackdrop class="nav-backdrop"></div>
+    <ul class="nav-list">
+      <li *ngFor="let item of navItems">
+        <a
+          [ngClass]="['nav-link', item.disabled ? 'disabled' : '']"
+          [routerLink]="item.disabled ? null : [item.link]"
+          routerLinkActive="active"
+          aria-current="page"
+        >
+          {{ item.label }}
+        </a>
+      </li>
+    </ul>
+  </nav>
 </header>
 
 <main class="overflow-y-auto" style="margin-top:14px;">

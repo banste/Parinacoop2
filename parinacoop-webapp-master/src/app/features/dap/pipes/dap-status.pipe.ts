@@ -16,6 +16,8 @@ export class DapStatusPipe implements PipeTransform {
     expired: 'Vencido',
     paid: 'Pagado',
     pending: 'Pendiente',
+    cancelled: 'Cancelado', // nuevo
+    annulled: 'Anulado',    // nuevo (no debería mostrarse en UI si lo excluimos en backend)
   };
 
   transform(value: DapStatus | string | null | undefined): string {

@@ -48,6 +48,9 @@ import { AdminDapAttachmentsController } from './http/admin-dap-attachments.cont
 import { AdminDapContractsController } from './http/admin-dap-contracts.controller';
 import { AdminActivateDapController } from './http/admin-activate-dap.controller';
 
+// NUEVO: use-case para DAPs cancelados
+import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelled-daps/get-cancelled-daps.use-case';
+
 @Module({
   controllers: [
     GetDapsController,
@@ -63,9 +66,13 @@ import { AdminActivateDapController } from './http/admin-activate-dap.controller
     AdminActivateDapController,
   ],
   providers: [
+    // use-cases
     GetDapsUseCase,
     CreateDapUseCase,
     SimulateDapUseCase,
+    GetCancelledDapsUseCase, // <-- nuevo use-case registrado
+
+    // repositorios y tokens
     {
       provide: DapRepository,
       useClass: PostgreSqlDapRepository,
