@@ -48,7 +48,7 @@ export class GetDapsController {
     return await this.getDapsUseCase.execute({ run });
   }
 
-  // NUEVO: Obtener DAPs CANCELLED para el cliente (pestaña "Cancelados")
+  // NUEVO: Obtener DAPs CANCELLED para el cliente (pestaña "Historial")
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Lista de los depósitos a plazo cancelados del cliente',

@@ -28,8 +28,9 @@ import { FooterComponent } from '../auth-layout/components/footer/footer.compone
 
 type NavItem = {
   label: string;
-  link: string;
+  link: string; // ejemplo: 'depositos-a-plazo' o 'depositos-a-plazo/cancelled'
   disabled?: boolean;
+  routeSegments?: any[]; // se completará en ngOnInit
 };
 
 @Component({
@@ -51,10 +52,9 @@ type NavItem = {
 export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   readonly ROUTE_TOKENS = ROUTE_TOKENS;
 
-  // <-- SOLO estas dos entradas. Mantengo la estructura NavItem para que locateLinkBackdrop siga funcionando.
+  // NAV: solo Depósitos a Plazo e Historial (historial = /cliente/depositos-a-plazo/cancelled)
   navItems: NavItem[] = [
     { label: 'Depósitos a Plazo', link: ROUTE_TOKENS.DAP },
-    // Historial apunta a /cliente/depositos-a-plazo/cancelled (ruta relativa a DAP)
     { label: 'Historial', link: `${ROUTE_TOKENS.DAP}/cancelled` },
   ];
 
@@ -74,7 +74,16 @@ export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDes
   }
 
   ngOnInit(): void {
-    // 1) Cuando tengamos un currentUser con run, pedimos el profile al backend.
+    // Construir routeSegments de forma segura para cada nav item
+    this.navItems = this.navItems.map((item) => {
+      // split por '/' para convertir 'dap/cancelled' -> ['dap', 'cancelled']
+      const parts = String(item.link ?? '').split('/').filter((p) => p.length > 0);
+      // array absoluto para routerLink: ['/', 'cliente', 'dap', 'cancelled']
+      const routeSegments = ['/', ROUTE_TOKENS.CLIENT_PATH, ...parts];
+      return { ...item, routeSegments };
+    });
+
+    // el resto de tu ngOnInit original (perfil, usuario...)
     this.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe((u) => {
@@ -83,25 +92,19 @@ export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDes
           return;
         }
 
-        // Si ya tenemos nombre en el user (AuthService lo mapeó), úsalo; si no, pedimos el profile.
         const maybeName = (u as any).name ?? (u as any).displayName;
         if (maybeName && String(maybeName).trim().length > 0) {
           this.userName = String(maybeName).trim();
-          // Aun así podemos intentar cargar profile para tener datos completos en cache (opcional)
-          // this.tryLoadProfileIfMissing(u);
           return;
         }
 
-        // try load profile using run
         this.tryLoadProfileIfMissing(u);
       });
 
-    // 2) Escuchamos userProfile$ para rellenar el nombre cuando el profile llegue.
     this.profileService.userProfile$
       .pipe(takeUntil(this.destroy$))
       .subscribe((profile) => {
         if (!profile) return;
-        // El backend devuelve profile.names y profile.firstLastName según tu log
         const name = this.extractNameFromProfile(profile);
         if (name) {
           this.userName = name;
@@ -114,10 +117,8 @@ export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDes
     if (!u) return;
     const runNumber = Number((u as any).run ?? 0);
     if (!Number.isNaN(runNumber) && runNumber > 0) {
-      // Llamada que actualiza profileService.userProfile$ internamente
       this.profileService.getCurrentProfile(runNumber).subscribe({
         next: (p) => {
-          // getCurrentProfile hace tap(...) que actualiza userProfile$, pero por si acaso procesamos el resultado
           const name = this.extractNameFromProfile(p);
           if (name) {
             this.userName = name;
@@ -125,19 +126,16 @@ export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDes
           }
         },
         error: (err) => {
-          // no crítico: dejamos userName como estaba (probablemente run)
           console.debug('Header: getCurrentProfile error', err);
         },
       });
     } else {
-      // Fallback: usar run si no hay profile
       this.userName = (u && (u as any).run) ? `N° ${(u as any).run}` : null;
     }
   }
 
   private extractNameFromProfile(profile: any): string | null {
     if (!profile) return null;
-    // Observé en tu log: profile.names = 'Cesar', profile.firstLastName = 'Monsalvez'
     const names = profile.names ?? profile.name ?? profile.nombres ?? profile.firstName ?? profile.given_name;
     const last = profile.firstLastName ?? profile.lastName ?? profile.last_name ?? profile.family_name ?? profile.apellido;
     if (names && last) return `${String(names).trim()}`;
@@ -155,12 +153,36 @@ export default class HomeLayoutComponent implements AfterViewInit, OnInit, OnDes
       .subscribe((event) => this.locateLinkBackdrop((event as NavigationStart).url));
   }
 
+  /**
+   * locateLinkBackdrop:
+   * - construye la ruta completa esperada por cada navItem (prefijo /cliente)
+   * - busca coincidencia exacta o la coincidencia más específica (link más largo)
+   */
   locateLinkBackdrop(path: string): void {
-    // El cálculo del índice sigue siendo por inclusión de la cadena `link`.
-    // Si la ruta actual contiene la cadena del navItem, se posiciona el linkBackdrop.
-    const index = this.navItems.findIndex((item) => path.includes(item.link));
+    if (!path) path = '/';
+    const cleanPath = path.split('?')[0].split('#')[0];
+
+    // prioridad: coincidencias más específicas primero (links más largos)
+    const entries = this.navItems
+      .map((item, idx) => ({ idx, link: item.link }))
+      .sort((a, b) => b.link.length - a.link.length);
+
+    let matchedIndex = -1;
+    for (const e of entries) {
+      const itemPath = `/${ROUTE_TOKENS.CLIENT_PATH}/${e.link}`; // e.link puede contener slashes
+      if (cleanPath === itemPath) {
+        matchedIndex = e.idx;
+        break;
+      }
+      if (cleanPath.endsWith(itemPath)) {
+        matchedIndex = e.idx;
+        break;
+      }
+    }
+
+    const safeIndex = Math.max(matchedIndex, 0);
     if (this.linkBackdrop) {
-      this.linkBackdrop.nativeElement.style.setProperty('--left', `${Math.max(index, 0) * 11}rem`);
+      this.linkBackdrop.nativeElement.style.setProperty('--left', `${safeIndex * 11}rem`);
     }
   }
 

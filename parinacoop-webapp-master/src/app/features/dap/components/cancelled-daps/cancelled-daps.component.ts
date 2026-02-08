@@ -1,49 +1,49 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges, SimpleChange } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { DapStatusPipe } from '../../pipes/dap-status.pipe';
+import { Component, Input, OnInit } from '@angular/core';
+import { CommonModule, AsyncPipe } from '@angular/common';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+
+import { DapService } from '../../dap.service';
+import { Dap } from '../../models/dap.model';
+import { DapDialogDetailsComponent } from '../dap-dialog-details/dap-dialog-details.component';
 
 @Component({
   selector: 'app-cancelled-daps',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, DapStatusPipe],
+  imports: [CommonModule, AsyncPipe, MatDialogModule, DapDialogDetailsComponent],
   templateUrl: './cancelled-daps.component.html',
   styleUrls: ['./cancelled-daps.component.scss'],
 })
-export class CancelledDapsComponent implements OnInit, OnChanges {
+export class CancelledDapsComponent implements OnInit {
   @Input() run?: number | null;
 
-  daps: any[] = [];
+  daps: Dap[] = [];
   loading = false;
   error: string | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(private dapService: DapService, private dialog: MatDialog) {}
 
-  // Se ejecuta cuando cambia cualquier @Input
-  ngOnChanges(changes: SimpleChanges): void {
-    // SimpleChanges usa firma de índice; hay que acceder con ['run']
-    const runChange: SimpleChange | undefined = changes['run'];
-    if (runChange && runChange.currentValue != null) {
-      this.loadCancelled(Number(runChange.currentValue));
-    }
-  }
-
-  // fallback: si no se pasa run por @Input, intenta obtenerlo de window (mantener compatibilidad)
   ngOnInit(): void {
-    if (this.run == null) {
-      const runFromWindow = (window as any).__CURRENT_USER_RUN__ ?? null;
-      if (runFromWindow) {
-        this.loadCancelled(Number(runFromWindow));
+    if (!this.run) {
+      // fallback: intenta obtener el run actualmente cargado en el servicio
+      const runFromService = this.dapService.getCurrentRun();
+      if (runFromService) {
+        this.run = runFromService;
       }
+    }
+
+    if (this.run) {
+      this.loadCancelled(Number(this.run));
+    } else {
+      this.error = 'No se encontró RUN de usuario para mostrar el historial';
     }
   }
 
   loadCancelled(run: number) {
     this.loading = true;
     this.error = null;
-    this.http.get<{ daps: any[] }>(`/clients/${run}/daps/cancelled`).subscribe({
-      next: (res) => {
-        this.daps = res.daps ?? [];
+    this.dapService.getCancelledList(run).subscribe({
+      next: (list) => {
+        this.daps = list ?? [];
         this.loading = false;
       },
       error: (err) => {
@@ -52,5 +52,19 @@ export class CancelledDapsComponent implements OnInit, OnChanges {
         this.loading = false;
       },
     });
+  }
+
+  // Abre el diálogo de detalles (mismo comportamiento que en la lista principal)
+  openDetail(dap: Dap): void {
+    try {
+      this.dialog.open(DapDialogDetailsComponent, {
+        width: '680px',
+        autoFocus: true,
+        restoreFocus: true,
+        data: dap,
+      });
+    } catch (err) {
+      console.error('openDetail dialog e            rror', err);
+    }
   }
 }

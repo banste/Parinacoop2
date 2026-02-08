@@ -68,7 +68,8 @@ export class PostgreSqlDapRepository implements DapRepository {
       .selectFrom('dap')
       .leftJoin('dap_internal_ids', 'dap_internal_ids.dap_id', 'dap.id')
       .where('user_run', '=', run)
-      .where('dap.status', '!=', DapStatus.ANNULLED) // EXCLUIR anuladas
+      // comparación case-insensitive para excluir anuladas (evita problemas por mayúsculas)
+      .where(sql`lower(dap.status)`, '!=', DapStatus.ANNULLED)
       .select([
         'dap.id',
         'dap.user_run as userRun',
@@ -92,13 +93,14 @@ export class PostgreSqlDapRepository implements DapRepository {
     return result.map((row) => new Dap(row));
   }
 
-  // Nuevo: obtener SOLO DAPs con status = CANCELLED para un usuario
+  // Nuevo: obtener SOLO DAPs con status = CANCELLED para un usuario (case-insensitive)
   async getCancelledDapsByUserRun(run: number): Promise<Dap[]> {
     const rows = await this.db
       .selectFrom('dap')
       .leftJoin('dap_internal_ids', 'dap_internal_ids.dap_id', 'dap.id')
       .where('user_run', '=', run)
-      .where('dap.status', '=', DapStatus.CANCELLED)
+      // comparacion case-insensitive: lower(dap.status) = 'cancelled'
+      .where(sql`lower(dap.status)`, '=', DapStatus.CANCELLED)
       .select([
         'dap.id',
         'dap.user_run as userRun',

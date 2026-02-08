@@ -7,6 +7,16 @@ export const dapRoutes: Routes = [
     loadComponent: () =>
       import('./dap.component').then((m: any) => m.DapComponent ?? m.default),
   },
+
+  // Página HISTORIAL: /cliente/depositos-a-plazo/cancelled
+  {
+    path: 'cancelled',
+    loadComponent: () =>
+      import('./components/cancelled-daps/cancelled-daps.component').then(
+        (m: any) => m.CancelledDapsComponent ?? m.default,
+      ),
+  },
+
   {
     path: ROUTE_TOKENS.NEW_DAP,
     loadComponent: () =>

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { map } from 'rxjs/operators';
 
 import { Dap } from './models/dap.model';
 import { DapStatus } from './models/dap-status.enum';
@@ -44,6 +45,13 @@ export class DapService {
     return this.currentRunSubject.value;
   }
 
+  /**
+   * getDapList:
+   * - obtiene la lista desde el backend
+   * - normaliza cada registro
+   * - EXCLUYE los DAPs cuyo status sea 'cancelled' (case-insensitive)
+   * - emite la lista visible y recalcula totales
+   */
   getDapList(run: number): void {
     this.currentRunSubject.next(run);
 
@@ -64,22 +72,44 @@ export class DapService {
           profit: Number(r.profit ?? r.ganancia ?? 0),
           interestRateInMonth: Number(r.interestRateInMonth ?? r.interest_rate_month ?? 0),
           interestRateInPeriod: Number(r.interestRateInPeriod ?? r.interest_rate_period ?? 0),
-          // Nuevo: leer internalId si el backend la devuelve con alguno de los aliases comunes
+          // Leer internalId si el backend la devuelve con alguno de los aliases comunes
           internalId: r.internalId ?? r.internal_id ?? r.dap_internal_id ?? r.internal_id_value ?? null,
         }));
 
-        this.dapsSubject.next(normalized.sort((a, b) => (b.id ?? 0) - (a.id ?? 0)));
-        this.getTotals(normalized);
+        // FILTRO: excluir DAPs con status 'cancelled' (case-insensitive)
+        const visible = normalized
+          .filter((d) => {
+            const s = (d.status ?? '').toString().toLowerCase().trim();
+            return s !== 'cancelled';
+          })
+          // ordenar descendente por id (igual que antes)
+          .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+
+        // Emitir la lista filtrada y recalcular totales sobre la lista visible
+        this.dapsSubject.next(visible);
+        this.getTotals(visible);
       },
-      error: (err) => console.error('getDapList error', err),
+      error: (err) => {
+        console.error('getDapList error', err);
+        // En caso de error emitimos lista vacía y totales iniciales para evitar estados inconsistentes
+        this.dapsSubject.next([]);
+        this.totalsSubject.next(this.initialTotals);
+      },
     });
   }
 
+  /**
+   * Calcula totales a partir de la lista entregada.
+   * Mantengo la lógica previa: sumamos profit y acumulamos initialAmount
+   * solo para DAPs cuyo estado sea ACTIVE.
+   */
   getTotals(dapList: Dap[]): void {
     const totals = dapList.reduce(
       (previous, current) => {
         const status = (current?.status ?? '').toString().toLowerCase();
-        if (status !== DapStatus.ACTIVE) return previous;
+
+        // considerar ACTIVE únicamente (comparamos con el enum DapStatus)
+        if (status !== String(DapStatus.ACTIVE).toLowerCase()) return previous;
 
         const profit = Number((current as any).profit ?? 0);
         const initial = Number((current as any).initialAmount ?? 0);
@@ -209,5 +239,34 @@ export class DapService {
 
   deleteContract(userRun: number, dapId: number, contractId: number) {
     return this.httpClient.delete<void>(`clients/${userRun}/daps/${dapId}/contracts/${contractId}`);
+  }
+
+  /**
+   * Devuelve los DAP cancelados para un run.
+   * Normaliza la respuesta igual que en getDapList.
+   */
+  getCancelledList(run: number): Observable<Dap[]> {
+    return this.httpClient.get<{ daps: any[] }>(`clients/${run}/daps/cancelled`).pipe(
+      map((response) => {
+        const raw = Array.isArray(response?.daps) ? response.daps : [];
+        const normalized: Dap[] = raw.map((r: any) => ({
+          id: Number(r.id ?? r.dap_id ?? 0),
+          userRun: Number(r.userRun ?? r.user_run ?? 0),
+          type: r.type ?? r.type_name ?? null,
+          currencyType: r.currencyType ?? r.currency_type ?? 'CLP',
+          status: (r.status ?? r.estado ?? '').toString(),
+          days: Number(r.days ?? r.period_days ?? 0),
+          initialDate: r.initialDate ? new Date(r.initialDate) : (r.initial_date ? new Date(r.initial_date) : null),
+          initialAmount: Number(r.initialAmount ?? r.initial_amount ?? 0),
+          finalAmount: Number(r.finalAmount ?? r.final_amount ?? 0),
+          dueDate: r.dueDate ? new Date(r.dueDate) : (r.due_date ? new Date(r.due_date) : null),
+          profit: Number(r.profit ?? r.ganancia ?? 0),
+          interestRateInMonth: Number(r.interestRateInMonth ?? r.interest_rate_month ?? 0),
+          interestRateInPeriod: Number(r.interestRateInPeriod ?? r.interest_rate_period ?? 0),
+          internalId: r.internalId ?? r.internal_id ?? r.dap_internal_id ?? r.internal_id_value ?? null,
+        }));
+        return normalized.sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+      }),
+    );
   }
 }

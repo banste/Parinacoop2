@@ -28,16 +28,15 @@ import { DapInstructionsStore } from './dap-instructions.store';
 import { ClientRepository } from '@/contexts/client-profile/domain/ports/client.repository';
 import { PostgreSqlClientRepository } from '@/contexts/client-profile/infrastructure/repositories/postgresql.client-repository';
 
-// Attachments: repository implementation (Postgres-backed)
+// Attachments
 import { DapAttachmentsRepository } from './repositories/dap-attachments.repository';
 import { DapAttachmentsService } from './dap-attachments.service';
 import { DapAttachmentsController } from './controller/dap-attachments.controller';
 
-// Admin user repo (registramos localmente para evitar importar AdminModule y circularidad)
+// Admin user repo registered locally to avoid importing AdminModule
 import { PostgreSqlUserRepository } from '@/contexts/admin/infrastructure/persistence/postgresql.user-repository';
-// nota: el token que usaremos para inyectar aquí es 'ADMIN_USER_REPOSITORY'
 
-/* Contracts */
+// Contracts
 import { DapContractsRepository } from './repositories/dap-contracts.repository';
 import { DapContractsService } from './dap-contracts.service';
 import { DapContractsController } from './controller/dap-contracts.controller';
@@ -48,7 +47,7 @@ import { AdminDapAttachmentsController } from './http/admin-dap-attachments.cont
 import { AdminDapContractsController } from './http/admin-dap-contracts.controller';
 import { AdminActivateDapController } from './http/admin-activate-dap.controller';
 
-// NUEVO: use-case para DAPs cancelados
+// Nuevo use-case para DAPs cancelados
 import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelled-daps/get-cancelled-daps.use-case';
 
 @Module({
@@ -59,7 +58,7 @@ import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelle
     GetDapPdfsController,
     DapAttachmentsController,
     DapContractsController,
-    // Registrar controladores admin
+    // admin controllers
     AdminGetDapsController,
     AdminDapAttachmentsController,
     AdminDapContractsController,
@@ -70,7 +69,7 @@ import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelle
     GetDapsUseCase,
     CreateDapUseCase,
     SimulateDapUseCase,
-    GetCancelledDapsUseCase, // <-- nuevo use-case registrado
+    GetCancelledDapsUseCase, // <-- registrado aquí
 
     // repositorios y tokens
     {
@@ -91,7 +90,7 @@ import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelle
       useClass: PostgreSqlClientRepository,
     },
 
-    // Attachments: Postgres-backed repository (persist to DB)
+    // Attachments
     DapAttachmentsRepository,
     {
       provide: 'ATTACHMENTS_REPOSITORY',
@@ -102,8 +101,9 @@ import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelle
     // contracts
     DapContractsRepository,
     DapContractsService,
+    DapContractsController,
 
-    // Registrar localmente el repo de usuarios admin y exponerlo con el token 'ADMIN_USER_REPOSITORY'
+    // Registrar localmente el repo admin y exponerlo con token 'ADMIN_USER_REPOSITORY'
     PostgreSqlUserRepository,
     {
       provide: 'ADMIN_USER_REPOSITORY',
