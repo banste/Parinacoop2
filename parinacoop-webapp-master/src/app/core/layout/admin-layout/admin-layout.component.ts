@@ -1,5 +1,12 @@
-import { NgClass } from '@angular/common';
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { CommonModule, NgClass, AsyncPipe } from '@angular/common';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  ViewChild,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import {
   Router,
   NavigationStart,
@@ -7,62 +14,168 @@ import {
   RouterLink,
   RouterLinkActive,
 } from '@angular/router';
+import { Subject, Subscription, Observable } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/operators';
+
 import { AuthService } from '@app/core/auth/services/auth.service';
-import { ROUTE_TOKENS } from '@app/route-tokens';
 import { SvgIconComponent } from '@app/shared/components';
-import { filter, Subscription } from 'rxjs';
+import { ROUTE_TOKENS } from '@app/route-tokens';
+import { ProfileService } from '@app/features/profile/services/profile.service';
+import { User } from '@app/shared/models/user.model';
+import { FooterComponent } from '../auth-layout/components/footer/footer.component';
 
 type NavItem = {
   label: string;
-  link: string;
+  link: string; // token or subpath, e.g. 'users' or 'dap-instructions'
   disabled?: boolean;
+  routeSegments?: any[]; // computed in ngOnInit
 };
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [SvgIconComponent, RouterOutlet, NgClass, RouterLink, RouterLinkActive],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    SvgIconComponent,
+    RouterLink,
+    RouterLinkActive,
+    NgClass,
+    AsyncPipe,
+    FooterComponent,
+  ],
   templateUrl: './admin-layout.component.html',
-  styleUrl: './admin-layout.component.scss',
+  styleUrls: ['./admin-layout.component.scss'],
 })
-export default class AdminLayoutComponent {
+export default class AdminLayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   readonly ROUTE_TOKENS = ROUTE_TOKENS;
 
+  // Nav items for admin. Adjust labels/tokens if your ROUTE_TOKENS use different names.
   navItems: NavItem[] = [
     { label: 'Inicio', link: ROUTE_TOKENS.ADMIN_HOME },
-    { label: 'Clientes', link: ROUTE_TOKENS.ADMIN_CLIENTS },
-    { label: 'Usuarios', link: ROUTE_TOKENS.ADMIN_USERS }, // <-- nuevo
-    { label: 'DAP - Instrucciones y cuenta', link: ROUTE_TOKENS.ADMIN_DAP_INSTRUCTIONS },
+    { label: 'Usuarios', link: ROUTE_TOKENS.ADMIN_USERS },
+    { label: 'DAP - Instrucciones', link: ROUTE_TOKENS.ADMIN_DAP_INSTRUCTIONS },
   ];
 
   @ViewChild('linkBackdrop') linkBackdrop?: ElementRef<HTMLDivElement>;
   private routerSubscription?: Subscription;
+  private destroy$ = new Subject<void>();
+
+  public currentUser$!: Observable<User | null>;
+  public userName: string | null = null;
 
   constructor(
     private readonly router: Router,
     private readonly authService: AuthService,
-  ) {}
+    private readonly profileService: ProfileService,
+  ) {
+    this.currentUser$ = this.authService.currentUser$;
+  }
+
+  ngOnInit(): void {
+    // build safe routeSegments arrays for routerLink (avoid passing strings with '/')
+    this.navItems = this.navItems.map((item) => {
+      const parts = String(item.link ?? '').split('/').filter((p) => p.length > 0);
+      const routeSegments = ['/', ROUTE_TOKENS.ADMIN_PATH, ...parts];
+      return { ...item, routeSegments };
+    });
+
+    // keep same profile loading logic as home-layout so header user shows correctly
+    this.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((u) => {
+        if (!u) {
+          this.userName = null;
+          return;
+        }
+
+        const maybeName = (u as any).name ?? (u as any).displayName;
+        if (maybeName && String(maybeName).trim().length > 0) {
+          this.userName = String(maybeName).trim();
+          return;
+        }
+
+        this.tryLoadProfileIfMissing(u);
+      });
+
+    this.profileService.userProfile$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((profile) => {
+        if (!profile) return;
+        const name = this.extractNameFromProfile(profile);
+        if (name) {
+          this.userName = name;
+        }
+      });
+  }
+
+  private tryLoadProfileIfMissing(u: User | null): void {
+    if (!u) return;
+    const runNumber = Number((u as any).run ?? 0);
+    if (!Number.isNaN(runNumber) && runNumber > 0) {
+      this.profileService.getCurrentProfile(runNumber).subscribe({
+        next: (p) => {
+          const name = this.extractNameFromProfile(p);
+          if (name) this.userName = name;
+        },
+        error: () => {
+          /* ignore */
+        },
+      });
+    } else {
+      this.userName = (u && (u as any).run) ? `N° ${(u as any).run}` : null;
+    }
+  }
+
+  private extractNameFromProfile(profile: any): string | null {
+    if (!profile) return null;
+    const names = profile.names ?? profile.name ?? profile.nombres ?? profile.firstName ?? profile.given_name;
+    if (names) return String(names).trim();
+    if (profile.fullName) return String(profile.fullName).trim();
+    if (profile.displayName) return String(profile.displayName).trim();
+    if (profile.run) return `N° ${profile.run}`;
+    return null;
+  }
 
   ngAfterViewInit(): void {
     this.locateLinkBackdrop(this.router.url);
-
     this.routerSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationStart))
       .subscribe((event) => this.locateLinkBackdrop((event as NavigationStart).url));
   }
 
+  /**
+   * Position backdrop using same logic as home layout:
+   * - look for most specific match (longer link first)
+   * - build absolute path with /admin prefix and match exactly or by suffix
+   */
   locateLinkBackdrop(path: string): void {
-    const index = this.navItems.findIndex((item) => path.includes(item.link));
+    if (!path) path = '/';
+    const cleanPath = path.split('?')[0].split('#')[0];
+
+    const entries = this.navItems
+      .map((item, idx) => ({ idx, link: item.link }))
+      .sort((a, b) => b.link.length - a.link.length);
+
+    let matchedIndex = -1;
+    for (const e of entries) {
+      const itemPath = `/${ROUTE_TOKENS.ADMIN_PATH}/${e.link}`;
+      if (cleanPath === itemPath || cleanPath.endsWith(itemPath)) {
+        matchedIndex = e.idx;
+        break;
+      }
+    }
+
+    const safeIndex = Math.max(matchedIndex, 0);
     if (this.linkBackdrop) {
-      this.linkBackdrop.nativeElement.style.setProperty(
-        '--left',
-        `${Math.max(index, 0) * 11}rem`,
-      );
+      this.linkBackdrop.nativeElement.style.setProperty('--left', `${safeIndex * 11}rem`);
     }
   }
 
   ngOnDestroy(): void {
     this.routerSubscription?.unsubscribe();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   logout(): void {
