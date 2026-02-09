@@ -11,7 +11,11 @@
   </div>
 
   <div *ngIf="loading" class="state">Cargando...</div>
+
   <div *ngIf="errorMsg" class="error">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="state" style="background:#e6f7ea;border:1px solid #d1f2d7;color:#065f46;padding:10px;border-radius:8px;margin-bottom:12px;">
+    {{ successMsg }}
+  </div>
 
   <form class="grid" [formGroup]="form" *ngIf="!loading">
     <div class="card">
@@ -19,18 +23,33 @@
 
       <label class="label">Banco</label>
       <input class="input" formControlName="bankName" placeholder="Ej: Banco Estado" />
+      <div *ngIf="form.controls['bankName'].touched && form.controls['bankName'].invalid" style="color:#b91c1c;font-size:13px;margin-top:6px;">
+        Banco es requerido.
+      </div>
 
       <label class="label">Tipo de cuenta</label>
       <input class="input" formControlName="accountType" placeholder="Ej: Cuenta Corriente" />
+      <div *ngIf="form.controls['accountType'].touched && form.controls['accountType'].invalid" style="color:#b91c1c;font-size:13px;margin-top:6px;">
+        Tipo de cuenta es requerido.
+      </div>
 
       <label class="label">N° de cuenta</label>
       <input class="input" formControlName="accountNumber" placeholder="Ej: 123456789" />
+      <div *ngIf="form.controls['accountNumber'].touched && form.controls['accountNumber'].invalid" style="color:#b91c1c;font-size:13px;margin-top:6px;">
+        N° de cuenta es requerido.
+      </div>
 
       <label class="label">Titular</label>
       <input class="input" formControlName="accountHolderName" placeholder="Ej: PARINACOOP" />
+      <div *ngIf="form.controls['accountHolderName'].touched && form.controls['accountHolderName'].invalid" style="color:#b91c1c;font-size:13px;margin-top:6px;">
+        Titular es requerido.
+      </div>
 
       <label class="label">RUT titular</label>
       <input class="input" formControlName="accountHolderRut" placeholder="Ej: 76.123.456-7" />
+      <div *ngIf="form.controls['accountHolderRut'].touched && form.controls['accountHolderRut'].invalid" style="color:#b91c1c;font-size:13px;margin-top:6px;">
+        RUT titular es requerido.
+      </div>
 
       <label class="label">Correo (opcional)</label>
       <input class="input" formControlName="email" placeholder="correo@dominio.cl" />
@@ -40,20 +59,25 @@
       <h2 class="card-title">Instructivo (texto editable)</h2>
 
       <label class="label">Descripción / Instrucciones</label>
+      <!-- Quité el placeholder largo para que no parezca contenido estático -->
       <textarea
         class="textarea"
         formControlName="description"
         rows="14"
-        placeholder="Ej:
-1) Descarga la solicitud.
-2) Firma la solicitud.
-3) Realiza transferencia a la cuenta destino...
-"
       ></textarea>
+      <div *ngIf="form.controls['description'].touched && form.controls['description'].invalid" style="color:#b91c1c;font-size:13px;margin-top:6px;">
+        Instrucciones requeridas (mínimo 3 caracteres).
+      </div>
 
       <small class="hint">
         Tip: aquí pon el paso a paso que quieres que luego aparezca en el PDF instructivo.
       </small>
     </div>
   </form>
+
+  <!-- DEBUG: muestra el valor del form (activar solo si necesitas depurar)
+  <pre style="background:#f7f7f7;padding:8px;border-radius:6px;margin-top:12px;">
+    {{ form.value | json }}
+  </pre>
+  -->
 </div>

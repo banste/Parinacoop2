@@ -1,69 +1,51 @@
 import { Injectable } from '@nestjs/common';
 import { Database } from '@/database/database';
 
-/**
- * Reader for the dap_instructions table.
- *
- * NOTE: this file uses a light 'any' cast when selecting the row to avoid
- * strict Kysely typing issues when the global Tables interface does not
- * declare 'dap_instructions'. This is an intentional minimal patch so that
- * the project compiles. For a robust solution you should add the
- * 'dap_instructions' table definition to your Kysely Tables typings.
- */
-
-export interface DapInstructionsRow {
-  id: number;
-  bank_name: string;
-  account_type: string;
-  account_number: string;
-  account_holder_name: string;
-  account_holder_rut: string;
-  email: string | null;
-  description: string | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
 @Injectable()
-export class PostgresDapInstructionsReader {
-  constructor(private db: Database) {}
+export class DapInstructionsRepository {
+  constructor(private readonly db: Database) {}
 
-  async getLatest(): Promise<DapInstructionsRow | undefined> {
-    // Cast db to any to bypass strict Kysely Table typings if needed.
-    // We select the expected columns and then map/return a typed object.
-    const row: any = await (this.db as any)
-      .selectFrom(('dap_instructions' as any))
-      .select([
-        'id',
-        'bank_name',
-        'account_type',
-        'account_number',
-        'account_holder_name',
-        'account_holder_rut',
-        'email',
-        'description',
-        'created_at',
-        'updated_at',
-      ] as any)
-      .orderBy('id', 'desc')
+  async getLatest() {
+    return this.db
+      // cast table name to any to satisfy Kysely's TableExpression typing
+      .selectFrom('dap_instructions' as any)
+      .selectAll()
+      .orderBy('updated_at', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+  }
+
+  /**
+   * Inserta una nueva fila con la configuración de DAP.
+   * Usamos insert en vez de update para mantener un historial y que getLatest siga funcionando.
+   */
+  async create(payload: {
+    bankName: string;
+    accountType: string;
+    accountNumber: string;
+    accountHolderName: string;
+    accountHolderRut: string;
+    email?: string | null;
+    description: string;
+  }) {
+    const now = new Date();
+    // Mapear a nombres de columna DB
+    const row = await this.db
+      .insertInto('dap_instructions' as any)
+      .values({
+        bank_name: payload.bankName,
+        account_type: payload.accountType,
+        account_number: payload.accountNumber,
+        account_holder_name: payload.accountHolderName,
+        account_holder_rut: payload.accountHolderRut,
+        email: payload.email ?? null,
+        description: payload.description,
+        updated_at: now,
+      })
+      // returningAll() funciona en Postgres (devuelve la fila insertada)
+      .returningAll()
       .executeTakeFirst();
 
-    if (!row) return undefined;
-
-    // Map DB row to the explicit interface (ensure required properties exist)
-    const mapped: DapInstructionsRow = {
-      id: Number(row.id),
-      bank_name: String(row.bank_name ?? ''),
-      account_type: String(row.account_type ?? ''),
-      account_number: String(row.account_number ?? ''),
-      account_holder_name: String(row.account_holder_name ?? ''),
-      account_holder_rut: String(row.account_holder_rut ?? ''),
-      email: row.email ?? null,
-      description: row.description ?? null,
-      created_at: row.created_at ? new Date(row.created_at) : new Date(),
-      updated_at: row.updated_at ? new Date(row.updated_at) : new Date(),
-    };
-
-    return mapped;
+    return row;
   }
 }

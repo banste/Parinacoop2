@@ -269,4 +269,17 @@ export class DapService {
       }),
     );
   }
+  // Añade este método al final del servicio (o en la sección de helpers junto con downloadInstructivoPdf)
+getInstructions() {
+  return this.httpClient.get<{
+    bankName: string;
+    accountType: string;
+    accountNumber: string;
+    accountHolderName: string;
+    accountHolderRut: string;
+    email?: string | null;
+    description: string;
+    updatedAt?: string;
+  }>(`dap-instructions`);
+}
 }

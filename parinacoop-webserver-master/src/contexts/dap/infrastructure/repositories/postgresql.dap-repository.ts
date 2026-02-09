@@ -127,22 +127,25 @@ export class PostgreSqlDapRepository implements DapRepository {
   async findByIdAndUserRun(id: number, run: number): Promise<Dap | null> {
     const row = await this.db
       .selectFrom('dap')
-      .where('id', '=', id)
-      .where('user_run', '=', run)
+      .leftJoin('dap_internal_ids', 'dap_internal_ids.dap_id', 'dap.id')
+      .where('dap.id', '=', id)
+      .where('dap.user_run', '=', run)
       .select([
-        'id',
-        'user_run as userRun',
-        'type',
-        'currency_type as currencyType',
-        'days',
-        'status',
-        'initial_date as initialDate',
-        'initial_amount as initialAmount',
-        'due_date as dueDate',
-        'profit',
-        'interest_rate_in_period as interestRateInPeriod',
+        'dap.id',
+        'dap.user_run as userRun',
+        'dap.type',
+        'dap.currency_type as currencyType',
+        'dap.days',
+        'dap.status',
+        'dap.initial_date as initialDate',
+        'dap.initial_amount as initialAmount',
+        'dap.due_date as dueDate',
+        'dap.profit',
+        'dap.interest_rate_in_period as interestRateInPeriod',
         'dap.interest_rate_in_month as interestRateInMonth',
-        'final_amount as finalAmount',
+        'dap.final_amount as finalAmount',
+        // traer internal_id si existe
+        'dap_internal_ids.internal_id as internalId',
       ])
       .executeTakeFirst();
 
@@ -223,6 +226,33 @@ export class PostgreSqlDapRepository implements DapRepository {
     };
 
     return new Dap(row);
+  }
+
+  /**
+   * Actualiza el estado (status) de un dap por id.
+   * status: string (ej: 'PENDING','ACTIVE','CANCELLED','ANNULLED')
+   */
+  async updateStatus(dapId: number, status: string, updatedBy?: number): Promise<void> {
+    const sRaw = String(status ?? '').trim();
+    const s = sRaw.toUpperCase();
+
+    // Validar status básico
+    const allowed = ['PENDING', 'ACTIVE', 'CANCELLED', 'ANNULLED'];
+    if (!allowed.includes(s)) {
+      throw new Error(`Invalid status ${s}`);
+    }
+
+    // Casting para satisfacer al typing de Kysely (evita el error TS)
+    // Aquí usamos `as unknown as any` para forzar el tipo aceptado por .set()
+    await this.db
+      .updateTable('dap')
+      .set(({
+        status: s,
+        updated_at: new Date(),
+        // updated_by: updatedBy ?? null, // descomenta si tienes esa columna y el tipo encaja
+      } as unknown) as any)
+      .where('id', '=', Number(dapId))
+      .execute();
   }
 
   // Inserta o actualiza un registro en dap_internal_ids para auditar la asignación

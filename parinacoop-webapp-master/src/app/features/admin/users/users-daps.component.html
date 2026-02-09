@@ -11,33 +11,49 @@
         <ng-container *ngFor="let dap of daps; trackBy: trackById">
           <article class="dap-card">
             <div class="dap-main">
+              <!-- Header: izquierda = título/id, derecha = badge + enlaces -->
               <header class="dap-header">
-                <div class="dap-title">
-                  <div class="muted small">Depósito a Plazo</div>
+                <div class="dap-header-left">
+                  <div class="dap-title">
+                    <div class="muted small">Depósito a Plazo</div>
 
-                  <!-- row with ID and operation (internalId) -->
-                  <div class="id-row">
-                    <div class="id">Nº {{ dap.id }}</div>
-
-                    <!-- Número de operación: muestra internalId al lado derecho del número -->
-                    <div class="operation">
-                      <div class="op-label muted small">Número de operación</div>
-                      <div class="op-value">{{ dap.internalId ?? '-' }}</div>
+                    <div class="id-row">
+                      <div class="id">Nº {{ dap.id }}</div>
                     </div>
                   </div>
                 </div>
 
-                <nav class="dap-links">
-                  <a class="link" (click)="openDetail(dap)">Ver detalle</a>
-                  <span class="dot">•</span>
-                  <a class="link" (click)="openAttachments(dap)">Adjuntos</a>
-                </nav>
+                <div class="dap-header-right">
+                  <div class="status-wrap">
+                    <div class="value status-badge"
+                         [ngClass]="{
+                           'status-active': (dap.status ?? '').toString().toUpperCase() === 'ACTIVE',
+                           'status-pending': (dap.status ?? '').toString().toUpperCase() === 'PENDING',
+                           'status-cancelled': (dap.status ?? '').toString().toUpperCase() === 'CANCELLED' || (dap.status ?? '').toString().toUpperCase() === 'ANNULLED'
+                         }"
+                    >
+                      {{ statusLabel(dap.status) }}
+                    </div>
+                  </div>
+
+                  <nav class="dap-links">
+                    <a class="link" (click)="openDetail(dap)">Ver detalle</a>
+                    <span class="dot">•</span>
+                    <a class="link" (click)="openAttachments(dap)">Adjuntos</a>
+                  </nav>
+                </div>
               </header>
 
+              <!-- Info grid -->
               <div class="dap-info">
                 <div class="info-cell">
                   <div class="muted small">Tipo</div>
                   <div class="value">{{ dap.type ?? '-' }}</div>
+                </div>
+
+                <div class="info-cell">
+                  <div class="muted small">Fecha de ingreso</div>
+                  <div class="value">{{ dap.initialDate ? (dap.initialDate | date:'dd-MM-yyyy') : '-' }}</div>
                 </div>
 
                 <div class="info-cell">
@@ -46,22 +62,13 @@
                 </div>
 
                 <div class="info-cell">
-                  <div class="muted small">Monto a recibir</div>
-                  <div class="value">${{ dap.finalAmount | number:'1.0-0' }}</div>
+                  <div class="muted small">Monto a capital</div>
+                  <div class="value">${{ dap.initialAmount | number:'1.0-0' }}</div>
                 </div>
 
                 <div class="info-cell">
-                  <div class="muted small">Estado</div>
-                  <div
-                    class="value status-badge"
-                    [ngClass]="{
-                      'status-active': (dap.status?.toString()?.toLowerCase() === 'active') || (dap.status?.toString()?.toLowerCase() === 'paid'),
-                      'status-pending': dap.status?.toString()?.toLowerCase() === 'pending' || dap.status?.toString()?.toLowerCase() === 'expired-pending',
-                      'status-expired': dap.status?.toString()?.toLowerCase() === 'expired'
-                    }"
-                  >
-                    {{ dap.status }}
-                  </div>
+                  <div class="muted small">Monto a recibir</div>
+                  <div class="value">${{ dap.finalAmount | number:'1.0-0' }}</div>
                 </div>
 
                 <div class="info-cell">
@@ -71,26 +78,55 @@
               </div>
             </div>
 
+            <!-- Aside controls -->
             <aside class="dap-controls">
+              <!-- bind current internalId and disable input if already associated -->
               <input
                 #internalInput
                 type="text"
                 class="dap-input"
                 placeholder="ID interna del DAP"
                 aria-label="ID interna del DAP"
+                [value]="dap.internalId ?? ''"
+                [disabled]="!!dap.internalId"
               />
 
               <button
+                type="button"
                 class="dap-activate-btn"
                 (click)="activateByInternalId(dap, internalInput.value)"
-                [disabled]="isActivatingMap[dap.id]"
+                [disabled]="isActivatingMap[getDapId(dap)] || !!dap.internalId"
+                [attr.aria-disabled]="isActivatingMap[getDapId(dap)] || !!dap.internalId"
               >
                 <span class="material-icons icon-bolt" aria-hidden="true">bolt</span>
-                <span>{{ isActivatingMap[dap.id] ? 'Activando...' : 'Activar' }}</span>
+                <span>
+                  {{ isActivatingMap[getDapId(dap)] ? 'Activando...' : (dap.internalId ? 'ID asociada' : 'Activar') }}
+                </span>
               </button>
 
-              <div *ngIf="activationMsgMap[dap.id]" class="msg ok">{{ activationMsgMap[dap.id] }}</div>
-              <div *ngIf="activationErrMap[dap.id]" class="msg err">{{ activationErrMap[dap.id] }}</div>
+              <!-- If DAP already has internalId, show explicit message -->
+              <div *ngIf="dap.internalId && !activationMsgMap[getDapId(dap)]" class="msg ok">
+                Este depósito ya tiene una ID asociada: <strong>{{ dap.internalId }}</strong>
+              </div>
+
+              <div *ngIf="activationMsgMap[getDapId(dap)]" class="msg ok">{{ activationMsgMap[getDapId(dap)] }}</div>
+              <div *ngIf="activationErrMap[getDapId(dap)]" class="msg err">{{ activationErrMap[getDapId(dap)] }}</div>
+
+              <!-- Status editor -->
+              <div class="status-edit-block" style="margin-top:10px;">
+                <label for="status-{{dap.id}}" class="muted small">Estado (admin)</label>
+
+                <select id="status-{{dap.id}}"
+                        [(ngModel)]="selectedStatus[getDapId(dap)]"
+                        class="dap-select"
+                        style="display:block; width:100%; margin:6px 0;">
+                  <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+                </select>
+
+                <button type="button" class="dap-save-status-btn" (click)="saveStatus(dap)" [disabled]="savingStatus[getDapId(dap)]">
+                  {{ savingStatus[getDapId(dap)] ? 'Guardando…' : 'Guardar estado' }}
+                </button>
+              </div>
             </aside>
           </article>
         </ng-container>

@@ -4,6 +4,7 @@ import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
+  MatDialog,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { finalize } from 'rxjs/operators';
@@ -20,6 +21,9 @@ import { DetailComponent } from '../detail.component';
 
 // Auth
 import { AuthService } from '@app/core/auth/services/auth.service';
+
+// Preview dialog (nuevo componente que creamos)
+import { DapInstructivoPreviewComponent } from '../dap-instructivo-preview/dap-instructivo-preview.component';
 
 @Component({
   selector: 'app-dap-dialog-details',
@@ -56,6 +60,7 @@ export class DapDialogDetailsComponent implements OnInit {
     private dialogRef: MatDialogRef<DapDialogDetailsComponent>,
     private dapService: DapService,
     private authService: AuthService,
+    private dialog: MatDialog, // added for preview dialog
   ) {
     // determinar rol admin
     this.authService.currentUser$.pipe(take(1)).subscribe((u: any) => {
@@ -111,11 +116,18 @@ export class DapDialogDetailsComponent implements OnInit {
           if (internal) {
             (this.currentDap as any).internalId = internal;
           } else {
-            // Si el backend devuelve la relación en otra ruta (ej. internal ids), puedes adaptarlo aquí.
             (this.currentDap as any).internalId = (this.currentDap as any).internalId ?? null;
           }
         },
         error: (err: any) => {
+          // Tratamiento más suave: si el recurso no existe (404) no lo mostramos al usuario
+          // (no está implementado el endpoint GET single DAP en algunos backends).
+          if (err instanceof HttpErrorResponse && err.status === 404) {
+            console.debug('getDap returned 404 for details - skipping', { runFromDap, dapId, err });
+            // no setear detailsError para evitar mostrar mensaje en UI
+            return;
+          }
+
           console.warn('getDap failed for details', err);
           this.detailsError = err?.message ?? 'Error al cargar detalles del DAP';
         },
@@ -147,6 +159,9 @@ export class DapDialogDetailsComponent implements OnInit {
       });
   }
 
+  /**
+   * Abrir vista previa (en vez de descargar directamente).
+   */
   descargarInstructivoPdf(): void {
     const run = this.dapService.getCurrentRun?.() ?? (this.currentDap as any).userRun;
     const dapId = this.currentDap.id;
@@ -156,16 +171,10 @@ export class DapDialogDetailsComponent implements OnInit {
       return;
     }
 
-    if (this.isDownloadingInstructivo) return;
-    this.isDownloadingInstructivo = true;
-
-    this.dapService
-      .downloadInstructivoPdf(Number(run), Number(dapId))
-      .pipe(finalize(() => (this.isDownloadingInstructivo = false)))
-      .subscribe({
-        next: (blob: Blob) => this.saveBlob(blob, `Instructivo_DAP_${dapId}.pdf`),
-        error: (err: unknown) => this.showHttpError('Instructivo', err),
-      });
+    this.dialog.open(DapInstructivoPreviewComponent, {
+      width: '900px',
+      data: { userRun: Number(run), dapId: Number(dapId) },
+    });
   }
 
   // helpers

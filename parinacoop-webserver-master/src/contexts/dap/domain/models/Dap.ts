@@ -15,6 +15,8 @@ export interface PrimitiveDap {
   profit: number;
   interestRateInMonth: number;
   interestRateInPeriod: number;
+  // NEW: internal id opcional (puede venir de dap_internal_ids)
+  internalId?: string | null;
 }
 
 export class Dap {

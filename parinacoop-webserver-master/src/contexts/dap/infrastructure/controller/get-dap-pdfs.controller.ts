@@ -139,22 +139,31 @@ export class GetDapPdfsController {
     const dap: any =
       typeof (dapEntity as any)?.toValue === 'function' ? (dapEntity as any).toValue() : dapEntity;
 
-    const instr = await this.dapInstructionsRepository.getLatest();
+    // Leer la última configuración desde la BD (sin fallback a store)
+    const instrRow = await this.dapInstructionsRepository.getLatest();
 
-    const i: any = instr as any;
+    // Log crudo del row devuelto por repo (útil para comparar con GET /dap-instructions)
+    // eslint-disable-next-line no-console
+    console.debug('[instructivoPdf] instrRow (raw DB row) =', instrRow);
 
-    const instructions =
-      i
-        ? {
-            bankName: i.bank_name ?? i.bankName,
-            accountType: i.account_type ?? i.accountType,
-            accountNumber: i.account_number ?? i.accountNumber,
-            accountHolderName: i.account_holder_name ?? i.accountHolderName,
-            accountHolderRut: i.account_holder_rut ?? i.accountHolderRut,
-            email: i.email,
-            description: i.description,
-          }
-        : await this.dapInstructionsStore.get();
+    if (!instrRow) {
+      // Evitar usar store con datos posiblemente obsoletos: requerimos configuración en DB
+      throw new NotFoundException('No hay configuración de DAP para generar instructivo');
+    }
+
+    const instructions = {
+      bankName: instrRow.bank_name ?? instrRow.bankName,
+      accountType: instrRow.account_type ?? instrRow.accountType,
+      accountNumber: instrRow.account_number ?? instrRow.accountNumber,
+      accountHolderName: instrRow.account_holder_name ?? instrRow.accountHolderName,
+      accountHolderRut: instrRow.account_holder_rut ?? instrRow.accountHolderRut,
+      email: instrRow.email,
+      description: instrRow.description,
+    };
+
+    // Log final que pasamos al generador de PDF
+    // eslint-disable-next-line no-console
+    console.debug('[instructivoPdf] instructions passed to DapPdfService =', instructions);
 
     const buffer = await this.dapPdfService.instructivo({ dap, instructions });
 

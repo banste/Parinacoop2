@@ -6,4 +6,5 @@ export abstract class DapRepository {
 
   // ✅ NUEVO: para PDF
   abstract findByIdAndUserRun(id: number, run: number): Promise<Dap | null>;
+  abstract updateStatus(dapId: number, status: string, updatedBy?: number): Promise<void>;
 }

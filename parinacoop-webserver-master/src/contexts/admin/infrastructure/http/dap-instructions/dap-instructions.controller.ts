@@ -3,7 +3,7 @@ import { GetDapInstructionsUseCase } from 'src/contexts/admin/application/get-da
 import { UpdateDapInstructionsUseCase } from 'src/contexts/admin/application/update-dap-instructions-use-case/update-dap-instructions.use-case';
 import { UpdateDapInstructionsHttpDto } from './dap-instructions.http-dto';
 
-@Controller('admin/dap-instructions') // ✅ ahora calza con el frontend
+@Controller('admin/dap-instructions')
 export class DapInstructionsAdminController {
   constructor(
     private readonly getUC: GetDapInstructionsUseCase,
@@ -17,8 +17,8 @@ export class DapInstructionsAdminController {
 
   @Put()
   async update(@Body() dto: UpdateDapInstructionsHttpDto) {
-    await this.updateUC.execute(dto);
-    // ✅ devolvemos lo guardado (frontend hace patchValue con esto)
+    console.debug('PUT /admin/dap-instructions body=', dto); // <-- LOG para depuración
+    await this.updateUC.execute(dto as any);
     return this.getUC.execute();
   }
 }

@@ -1,0 +1,112 @@
+.preview-dialog {
+  padding: 16px;
+  max-width: 900px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.title {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.error {
+  color: #b91c1c;
+  background: rgba(249, 215, 218, 0.85);
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+/* Card with neat rows */
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.card-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(0,0,0,0.03);
+}
+
+.card-row:last-of-type {
+  border-bottom: none;
+}
+
+.label {
+  width: 140px;
+  font-weight: 700;
+  color: #222;
+}
+
+.value {
+  flex: 1;
+  color: #111;
+  word-break: break-word;
+}
+
+/* Visual separator */
+.separator {
+  height: 12px;
+}
+
+/* instructivo box */
+.instructions-box {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 6px;
+  border: 1px solid rgba(0,0,0,.04);
+  min-height: 120px;
+}
+
+.desc {
+  white-space: pre-wrap;
+  margin: 0;
+  color: #222;
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+/* Actions */
+.actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn.download {
+  background: #0b74de;
+  color: #fff;
+}
+
+.btn.close {
+  background: #e5e7eb;
+  color: #111;
+}
+
+/* responsive */
+@media (max-width: 600px) {
+  .label {
+    width: 110px;
+    font-size: 13px;
+  }
+  .desc {
+    font-size: 13px;
+  }
+}

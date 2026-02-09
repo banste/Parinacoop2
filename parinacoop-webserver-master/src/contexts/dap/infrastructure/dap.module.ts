@@ -19,6 +19,7 @@ import { PostgreSqlDapRepository } from './repositories/postgresql.dap-repositor
 import { MySqlParameterRepository } from './repositories/mysql.parameter-repository';
 
 import { GetDapPdfsController } from './controller/get-dap-pdfs.controller';
+import { GetDapInstructionsController } from './controller/get-dap-instructions.controller'; // <-- agregado
 
 import { DapInstructionsRepository } from '@/database/repositories/dap-instructions.repository';
 import { DapPdfService } from '@/archives/pdf/dap-pdf.service';
@@ -49,6 +50,7 @@ import { AdminActivateDapController } from './http/admin-activate-dap.controller
 
 // Nuevo use-case para DAPs cancelados
 import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelled-daps/get-cancelled-daps.use-case';
+import { AdminUpdateDapStatusController } from './http/admin-update-dap-status.controller';
 
 @Module({
   controllers: [
@@ -56,6 +58,7 @@ import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelle
     CreateDapController,
     SimulateDapController,
     GetDapPdfsController,
+    GetDapInstructionsController, // <-- registrar controlador público para /dap-instructions
     DapAttachmentsController,
     DapContractsController,
     // admin controllers
@@ -63,6 +66,7 @@ import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelle
     AdminDapAttachmentsController,
     AdminDapContractsController,
     AdminActivateDapController,
+    AdminUpdateDapStatusController,
   ],
   providers: [
     // use-cases

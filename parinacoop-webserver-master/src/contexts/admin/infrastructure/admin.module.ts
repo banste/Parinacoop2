@@ -16,13 +16,10 @@ import {
 
 import { PostgreSqlUserRepository } from './persistence/postgresql.user-repository';
 
-// ✅ IMPORTA el store desde donde lo creaste.
-// Si lo creaste en contexts/dap, pon la ruta exacta.
-// EJEMPLO:
-// import { DapInstructionsStore } from '../../dap/infrastructure/dap-instructions.store';
-
-// ⚠️ Si aún NO tienes store, abajo te doy un “store mínimo” para que compile y luego lo conectas a parámetros.
+// Opciones seguras: registramos tanto el store en memoria (existente)
+// como el repositorio DB para que puedas migrar gradualmente.
 import { DapInstructionsStore } from '../../dap/infrastructure/dap-instructions.store';
+import { DapInstructionsRepository } from '@/database/repositories/dap-instructions.repository';
 
 @Module({
   controllers: [
@@ -35,12 +32,16 @@ import { DapInstructionsStore } from '../../dap/infrastructure/dap-instructions.
     CreateClientUseCase,
     CreateFirstAdminUseCase,
 
-    // ✅ use cases nuevos para instructivo DAP
+    // use cases para instructivo DAP
     GetDapInstructionsUseCase,
     UpdateDapInstructionsUseCase,
 
-    // ✅ store para guardar/leer config
+    // Mantener la store en memoria para compatibilidad inmediata
     DapInstructionsStore,
+
+    // Registrar además el repositorio que accede a la tabla dap_instructions (DB)
+    // (esto permite inyectarlo en los use-cases y migrar a DB)
+    DapInstructionsRepository,
 
     // repositorio usuario (existente)
     {

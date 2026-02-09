@@ -1,0 +1,53 @@
+<div class="preview-dialog">
+  <h2 class="title">Vista previa - Instructivo DAP</h2>
+
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div *ngIf="loadingInstructions" class="state">Cargando datos...</div>
+
+  <div *ngIf="instructions" class="card">
+    <div class="card-row">
+      <div class="label">Banco</div>
+      <div class="value">{{ instructions.bankName }}</div>
+    </div>
+
+    <div class="card-row">
+      <div class="label">Tipo</div>
+      <div class="value">{{ instructions.accountType }}</div>
+    </div>
+
+    <div class="card-row">
+      <div class="label">N° de cuenta</div>
+      <div class="value">{{ instructions.accountNumber }}</div>
+    </div>
+
+    <div class="card-row">
+      <div class="label">Titular</div>
+      <div class="value">{{ instructions.accountHolderName }}</div>
+    </div>
+
+    <div class="card-row">
+      <div class="label">RUT</div>
+      <div class="value">{{ instructions.accountHolderRut }}</div>
+    </div>
+
+    <div class="card-row" *ngIf="instructions.email">
+      <div class="label">Email</div>
+      <div class="value">{{ instructions.email }}</div>
+    </div>
+
+    <div class="separator"></div>
+
+    <h4>Instructivo</h4>
+    <div class="instructions-box">
+      <pre class="desc">{{ instructions.description }}</pre>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn download" type="button" (click)="downloadPdf()" [disabled]="downloading">
+      {{ downloading ? 'Descargando...' : 'Descargar PDF' }}
+    </button>
+    <button class="btn close" type="button" (click)="close()">Cerrar</button>
+  </div>
+</div>

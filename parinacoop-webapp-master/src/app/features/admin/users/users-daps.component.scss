@@ -1,214 +1,227 @@
-.users-daps-container {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  color: #111827;
+/* Archivo completo de estilos para UsersDapsComponent
+   Guardar en: src/app/features/admin/users/users-daps.component.scss
+   Paleta: #f49404, #f5f6f8, estados: #d8fda7, #f9c981, #bffdff
+*/
+
+/* Paleta */
+$accent: #f49404;
+$bg: #f5f6f8;
+$card: #ffffff;
+$text: #0f172a;
+$muted: #6b7280;
+
+$state-active: #d8fda7;
+$state-pending: #f9c981;
+$state-cancelled: #bffdff;
+
+:host {
+  display:block;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color: $text;
+  box-sizing: border-box;
 }
 
-/* Card */
+/* Contenedor principal */
+.users-daps-container {
+  max-width: 1100px;
+  margin: 18px auto;
+  padding: 20px;
+  background: $bg;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+  box-sizing: border-box;
+}
+
+/* Encabezado general */
+.users-daps-container a[routerLink] {
+  color: $accent;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+.users-daps-container h1 {
+  margin: 6px 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+}
+.users-daps-container .text-sm.text-gray-600 {
+  color: $muted;
+  font-size: 13px;
+}
+
+/* Lista de tarjetas */
+.space-y-4 {
+  display: grid;
+  gap: 14px;
+}
+
+/* Tarjeta DAP */
 .dap-card {
   display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  background: #fff;
-  border: 1px solid #eef2f6;
+  gap: 16px;
+  padding: 14px;
+  background: $card;
   border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 6px 18px rgba(13, 18, 25, 0.04);
+  border: 1px solid rgba(15,23,42,0.04);
+  box-shadow: 0 4px 10px rgba(16,24,40,0.03);
+  align-items: flex-start;
+  box-sizing: border-box;
 }
 
-/* Main content (left) */
-.dap-main {
-  flex: 1 1 auto;
-  min-width: 0; /* important to allow shrinking inside flex */
-}
-
-/* Header row: title + links */
+/* Header de la tarjeta (izq / derecha) */
 .dap-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-  flex-wrap: nowrap; /* avoid wrapping on larger screens */
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+.dap-header-left { flex: 1 1 auto; min-width: 0; }
+.dap-header-right {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  min-width: 220px;
 }
 
-.dap-title .muted.small {
-  font-size: 12px;
-  color: #6b7280;
-}
+/* Título e identificadores */
+.dap-title .muted.small { color: $muted; font-size: 12px; }
 
-/* Inline ID + operation row */
+/* --- Ajustes solicitados: separación, mismo tono negro y tamaño --- */
+$black-tone: #0f172a; /* mismo negro */
+$id-font-size: 17px;
+$internal-font-size: 15px;
+$id-gap: 18px;
+
 .id-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: nowrap;
-}
-
-/* number styling */
-.id {
-  font-weight: 700;
-  margin-top: 4px;
-  font-size: 16px;
-  color: #111827;
-}
-
-/* operation (internal id) */
-.operation {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.op-label.muted.small {
-  font-size: 12px;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.op-value {
-  font-size: 13px;
-  font-weight: 600;
-  color: #064e3b;
-  background: #f6fdf8;
-  border: 1px solid #e6f7ec;
-  padding: 4px 8px;
-  border-radius: 6px;
-  box-sizing: border-box;
-}
-
-/* Links */
-.dap-links .link {
-  color: #d97706;
-  font-size: 14px;
-  text-decoration: none;
-  cursor: pointer;
-}
-.dap-links .link:hover {
-  text-decoration: underline;
-}
-.dap-links .dot {
-  margin: 0 6px;
-  color: #d97706;
-}
-
-/* Info grid: forzar 5 columnas en escritorio */
-.dap-info {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px 24px;
-  align-items: start;
-}
-
-/* Info cell */
-.info-cell .muted.small {
-  font-size: 12px;
-  color: #6b7280;
-}
-.info-cell .value {
+  gap: $id-gap;
+  align-items: baseline;
   margin-top: 6px;
-  font-size: 14px;
-  color: #111827;
+  flex-wrap: wrap;
 }
-
-/* Status badges (más contrastantes) */
-.status-badge {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  box-sizing: border-box;
-  color: #fff; /* default to white text for strong badges */
-  border: none;
-}
-
-/* ACTIVE: verde fuerte (fondo sólido, texto blanco) */
-.status-active {
-  background: #059669; /* green-600 */
-  box-shadow: 0 2px 6px rgba(5,150,105,0.12);
-}
-
-/* PENDING: amarillo/ámbar fuerte (fondo sólido, texto blanco) */
-.status-pending {
-  background: #f59e0b; /* amber-500 */
-  box-shadow: 0 2px 6px rgba(245,158,11,0.12);
-}
-
-/* EXPIRED: rojo suave (puede mantenerse más discreto) */
-.status-expired {
-  color: #7f1d1d;
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.04);
-}
-
-/* Controls (right column) */
-.dap-controls {
-  width: 240px;
-  flex: 0 0 240px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: stretch;
-  box-sizing: border-box;
-}
-
-.dap-input {
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  font-size: 14px;
-}
-
-.dap-activate-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: #059669;
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.dap-activate-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.icon-bolt {
-  font-size: 16px;
+.id {
+  font-weight: 800;
+  font-size: $id-font-size;
+  color: $black-tone;
   line-height: 1;
 }
-
-/* messages */
-.msg {
+.operation {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.op-label {
+  color: $muted;
   font-size: 12px;
-  margin-top: 6px;
 }
-.msg.ok { color: #065f46; }
-.msg.err { color: #991b1b; }
+.op-value {
+  font-weight: 700;
+  font-size: $internal-font-size;
+  color: $black-tone;
+  line-height: 1;
+  word-break: break-word;
+}
+/* --- fin ajustes ID --- */
 
-/* Responsive: only stack when REALLY narrow (mobile phones) */
-@media (max-width: 520px) {
-  .dap-card {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .dap-controls {
-    width: 100%;
-    flex: 1 1 auto;
-  }
-  .dap-info {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .dap-header {
-    flex-wrap: wrap; /* allow header to wrap on mobile */
-  }
-  .id-row {
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+/* Enlaces (ver/adjuntos) */
+.dap-links {
+  display:flex;
+  gap:8px;
+  align-items:center;
 }
+.dap-links .link {
+  color: $accent;
+  font-weight:600;
+  font-size:13px;
+  cursor:pointer;
+  text-decoration:none;
+}
+.dap-links .dot { color: rgba(15,23,42,0.16); }
+
+/* Wrapper principal de contenidos */
+.dap-main { flex: 1 1 auto; min-width: 0; }
+
+/* Grid de información */
+.dap-info {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.info-cell { display:flex; flex-direction:column; gap:6px; }
+.info-cell .muted.small { color: $muted; font-size:12px; }
+.info-cell .value { font-weight:700; color: $text; font-size:14px; }
+
+/* Badge de estado */
+.status-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight:700;
+  font-size:13px;
+  color: $text;
+  border: 1px solid rgba(15,23,42,0.04);
+  display:inline-block;
+  min-width: 84px;
+  text-align:center;
+}
+.status-active { background: $state-active; }
+.status-pending { background: $state-pending; }
+.status-cancelled { background: $state-cancelled; }
+
+/* Controles al costado */
+.dap-controls {
+  width: 260px;
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  align-items:stretch;
+}
+
+/* Inputs y selects */
+.dap-input, .dap-select {
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid rgba(15,23,42,0.06);
+  background:#fff;
+  font-size:13px;
+  width:100%;
+  box-sizing:border-box;
+}
+
+/* Botones */
+.dap-activate-btn, .dap-save-status-btn {
+  padding:8px 10px;
+  border-radius:8px;
+  background:$accent;
+  color:#fff;
+  border:none;
+  font-weight:700;
+  cursor:pointer;
+}
+.dap-activate-btn[disabled], .dap-save-status-btn[disabled] { opacity:0.6; cursor:not-allowed; }
+
+/* Mensajes */
+.msg { padding:8px; border-radius:8px; font-size:13px; }
+.msg.ok { background: rgba(20,83,45,0.06); color:#065f46; }
+.msg.err { background: rgba(127,29,29,0.06); color:#7f1d1d; }
+
+/* Ajustes para montos más legibles en mobile */
+@media (max-width: 920px) {
+  .dap-card { flex-direction: column; }
+  .dap-header-right { align-items:flex-start; min-width: 0; }
+  .dap-info { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+  .dap-controls { width: 100%; }
+}
+@media (max-width: 560px) {
+  .dap-info { grid-template-columns: 1fr; }
+  .id { font-size: 16px; }
+  .op-value { font-size: 14px; }
+  .id-row { gap: 12px; }
+}
+
+/* seguridad: box-sizing global dentro de la tarjeta */
+.dap-card * { box-sizing: border-box; }
