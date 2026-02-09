@@ -10,10 +10,11 @@ const homeRoutes: Routes = [
     path: '',
     loadComponent: () => import('@layout/home-layout/home-layout.component'),
     children: [
-      // Si el usuario entra en /cliente → redirigir a /cliente/inicio
+      // Cambié la redirección por defecto para que vaya a "depositos-a-plazo"
+      // en lugar de a la página de inicio.
       {
         path: '',
-        redirectTo: ROUTE_TOKENS.CLIENT_HOME,
+        redirectTo: ROUTE_TOKENS.DAP,
         pathMatch: 'full',
       },
       {
