@@ -42,6 +42,7 @@ import { DapInstructivoPreviewComponent } from '../dap-instructivo-preview/dap-i
     DetailComponent,
   ],
   templateUrl: './dap-dialog-details.component.html',
+  styleUrls: ['./dap-dialog-details.component.scss'],
 })
 export class DapDialogDetailsComponent implements OnInit {
   readonly DapStatus = DapStatus;
@@ -139,6 +140,13 @@ export class DapDialogDetailsComponent implements OnInit {
   }
 
   descargarSolicitudPdf(): void {
+    // Protección: sólo ejecutar si puede descargar
+    if (!this.canDownloadSolicitud) {
+      // opcional: mostrar mensaje al usuario
+      alert('La solicitud sólo puede descargarse cuando el DAP está en estado ACTIVO.');
+      return;
+    }
+
     const run = this.dapService.getCurrentRun?.() ?? (this.currentDap as any).userRun;
     const dapId = this.currentDap.id;
 
@@ -197,6 +205,17 @@ export class DapDialogDetailsComponent implements OnInit {
       console.error(`${label} download unknown error`, err);
       alert(`${label} - Error desconocido`);
     }
+  }
+
+  // Normaliza el estado del DAP a una clave en minúsculas (ej: 'active', 'pending', 'expired')
+  get statusKey(): string {
+    const raw = (this.currentDap as any)?.status ?? (this.currentDap as any)?.estado ?? '';
+    return String(raw).toLowerCase();
+  }
+
+  // Getter: true solo si DAP está en estado ACTIVE (case-insensitive)
+  get canDownloadSolicitud(): boolean {
+    return this.statusKey === 'active';
   }
 
   // getter usado en plantilla (ya existía en tu componente anterior)

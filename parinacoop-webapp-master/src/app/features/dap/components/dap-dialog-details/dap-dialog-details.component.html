@@ -1,84 +1,82 @@
-<section style="box-sizing:border-box; max-width:640px; width:100%; margin:0 auto; padding:1.25rem;">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-xl font-semibold text-primary-950">
-      Detalle del Depósito a Plazo
-    </h2>
-
-    <button type="button" mat-button (click)="close()">Cerrar</button>
+<section class="dap-dialog-root" style="box-sizing:border-box; max-width:640px; width:100%; margin:0 auto; padding:1.25rem;">
+  <div class="header flex items-center justify-between mb-4">
+    <h2 class="title text-xl font-semibold">Detalle del Depósito a Plazo</h2>
+    <button type="button" mat-button (click)="close()" class="close-btn">Cerrar</button>
   </div>
 
   <!-- Resumen / Estado -->
-  <div class="rounded-xl border border-[#dcdcdc] bg-nav-color p-4 mb-5">
-    <div class="flex items-center justify-between">
+  <div class="summary rounded-xl p-4 mb-5">
+    <div class="summary-top flex items-center justify-between">
       <div>
-        <div class="text-sm text-primary-700">Depósito a Plazo</div>
-        <div class="text-lg font-semibold text-primary-950">
-          {{ currentDap ? (currentDap.id | idPad) : '-' }}
-        </div>
+        <div class="muted">Depósito a Plazo</div>
+        <div class="dap-id">{{ currentDap ? (currentDap.id | idPad) : '-' }}</div>
       </div>
 
       <div class="text-right">
-        <div class="text-sm text-primary-700">Estado</div>
+        <div class="muted">Estado</div>
         <div
-          class="text-sm font-semibold"
+          class="status text-sm font-semibold"
           [ngClass]="{
-            'text-green-700': currentDap.status === DapStatus.ACTIVE || currentDap.status === DapStatus.PAID,
-            'text-orange-700': currentDap.status === DapStatus.PENDING || currentDap.status === DapStatus.EXPIRED_PENDING,
-            'text-red-700': currentDap.status === DapStatus.EXPIRED
+            'status-active': statusKey === 'active' || statusKey === 'paid',
+            'status-pending': statusKey === 'pending' || statusKey === 'expired-pending',
+            'status-expired': statusKey === 'expired',
+            'status-cancelled': statusKey === 'cancelled'
           }"
         >
-          {{ currentDap.status | dapStatus }}
+          {{ statusKey | dapStatus }}
         </div>
       </div>
     </div>
   </div>
 
   <!-- Datos principales -->
-  <div class="rounded-lg border p-4 bg-white mb-4">
+  <div class="card rounded-lg p-4 bg-white mb-4">
     <div class="mb-3 text-sm font-medium">Datos del depósito</div>
     <div class="grid grid-cols-2 gap-x-6 gap-y-2 items-start">
-      <div class="text-sm text-primary-700">Tipo</div>
-      <div class="text-sm text-primary-900">{{ currentDap.type | dapType }}</div>
+      <div class="muted">Tipo</div>
+      <div class="value">{{ currentDap.type | dapType }}</div>
 
-      <div class="text-sm text-primary-700">Moneda</div>
-      <div class="text-sm text-primary-900">{{ currentDap.currencyType ?? '-' }}</div>
+      <div class="muted">Moneda</div>
+      <div class="value">{{ currentDap.currencyType ?? '-' }}</div>
 
-      <div class="text-sm text-primary-700">Plazo (días)</div>
-      <div class="text-sm text-primary-900">{{ currentDap && currentDap.days != null ? currentDap.days.toString() : '-' }}</div>
+      <div class="muted">Plazo (días)</div>
+      <div class="value">{{ currentDap && currentDap.days != null ? currentDap.days.toString() : '-' }}</div>
 
-      <div class="text-sm text-primary-700">Fecha ingreso</div>
-      <div class="text-sm text-primary-900">{{ currentDap && currentDap.initialDate ? (currentDap.initialDate | date:'dd-MM-yyyy') : '-' }}</div>
+      <div class="muted">Fecha ingreso</div>
+      <div class="value">{{ currentDap && currentDap.initialDate ? (currentDap.initialDate | date:'dd-MM-yyyy') : '-' }}</div>
 
-      <div class="text-sm text-primary-700">Vencimiento</div>
-      <div class="text-sm text-primary-900">{{ currentDap && currentDap.dueDate ? (currentDap.dueDate | date:'dd-MM-yyyy') : '-' }}</div>
+      <div class="muted">Vencimiento</div>
+      <div class="value">{{ currentDap && currentDap.dueDate ? (currentDap.dueDate | date:'dd-MM-yyyy') : '-' }}</div>
 
-      <div class="text-sm text-primary-700">Monto capital</div>
-      <div class="text-sm text-primary-900">{{ currentDap && currentDap.initialAmount != null ? (currentDap.initialAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</div>
+      <div class="muted">Monto capital</div>
+      <div class="value">{{ currentDap && currentDap.initialAmount != null ? (currentDap.initialAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</div>
 
-      <div class="text-sm text-primary-700">Monto a recibir</div>
-      <div class="text-sm text-primary-900">{{ currentDap && currentDap.finalAmount != null ? (currentDap.finalAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</div>
+      <div class="muted">Monto a recibir</div>
+      <div class="value">{{ currentDap && currentDap.finalAmount != null ? (currentDap.finalAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</div>
 
-      <div class="text-sm text-primary-700">Intereses</div>
-      <div class="text-sm text-primary-900">
+      <div class="muted">Intereses</div>
+      <div class="value">
         {{ displayInterest != null ? (displayInterest | percent:'1.2-2') : '-' }}
       </div>
 
       <!-- Nueva fila: ID interna (solo si existe) -->
-      <div class="text-sm text-primary-700">ID interna</div>
-      <div class="text-sm text-primary-900">{{ currentDap.internalId ?? '-' }}</div>
+      <div class="muted">ID interna</div>
+      <div class="value">{{ currentDap.internalId ?? '-' }}</div>
     </div>
   </div>
 
   <!-- Acciones: descargar solicitud / instructivo (ocultas a admin) -->
-  <div class="flex gap-2 justify-end">
+  <div class="actions flex gap-2 justify-end">
     <button
       *ngIf="!isAdmin"
       mat-stroked-button
       color="primary"
       (click)="descargarSolicitudPdf()"
-      [disabled]="isDownloadingSolicitud"
+      [disabled]="isDownloadingSolicitud || !canDownloadSolicitud"
+      class="btn btn-primary"
+      [attr.title]="canDownloadSolicitud ? 'Descargar solicitud' : 'Disponible solo para DAPs en estado ACTIVO'"
     >
-      Descargar solicitud
+      {{ isDownloadingSolicitud ? 'Descargando...' : 'Descargar solicitud' }}
     </button>
 
     <button
@@ -87,8 +85,10 @@
       color="primary"
       (click)="descargarInstructivoPdf()"
       [disabled]="isDownloadingInstructivo"
+      class="btn btn-secondary"
+      title="Ver / descargar instructivo"
     >
-      Instructivo
+      {{ isDownloadingInstructivo ? 'Abriendo...' : 'Instructivo' }}
     </button>
   </div>
 </section>

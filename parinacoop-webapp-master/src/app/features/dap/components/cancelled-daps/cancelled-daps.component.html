@@ -15,32 +15,45 @@
     </div>
 
     <ul *ngIf="!loading && daps && daps.length > 0" class="dap-list">
-      <li *ngFor="let d of daps" class="dap-item">
-        <div class="dap-left">
-          <div class="folio">N° {{ d.id | number:'3.0-0' }}</div>
-          <div class="internal" *ngIf="d.internalId">{{ d.internalId }}</div>
-        </div>
-
-        <div class="dap-center">
-          <div class="amount">{{ d.finalAmount | number:'1.0-0' }} <span class="currency">{{ d.currencyType ?? 'CLP' }}</span></div>
-          <div class="type">{{ d.type ?? '-' }}</div>
-        </div>
-
-        <div class="dap-right">
-          <div class="status-badge">
-            <span class="dot cancelled-dot"></span>
-            <span class="label">Cancelado</span>
+      <li *ngFor="let d of daps" class="dap-item" role="listitem">
+        <div class="item-grid">
+          <!-- Left: folio + internal id -->
+          <div class="left">
+            <div class="folio">N° {{ d.id | number:'3.0-0' }}</div>
+            <div class="internal" *ngIf="d.internalId">{{ d.internalId }}</div>
           </div>
 
-          <div class="dates">
-            <div class="small">Creado: <strong>{{ d.initialDate | date:'dd-MM-yy, HH:mm' }}</strong></div>
-            <div class="small">Vence: <strong>{{ d.dueDate | date:'dd-MM-yy, HH:mm' }}</strong></div>
+          <!-- Center: amount + type -->
+          <div class="center">
+            <div class="amount-wrap">
+              <div class="amount">{{ d.finalAmount | number:'1.0-0' }}</div>
+              <div class="currency">{{ d.currencyType ?? 'CLP' }}</div>
+            </div>
+            <div class="type">{{ d.type ?? '-' }}</div>
           </div>
 
-          <div class="actions">
-            <button class="btn-icon" title="Ver detalle" (click)="openDetail(d)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5C7 5 2.73 8.11 1 12C2.73 15.89 7 19 12 19C17 19 21.27 15.89 23 12C21.27 8.11 17 5 12 5Z" stroke="#3B3B3B" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="#3B3B3B" stroke-width="1.2"/></svg>
-            </button>
+          <!-- Right: status, dates, actions -->
+          <div class="right">
+            <div class="top-row">
+              <div class="status-badge" aria-hidden="true">
+                <span class="dot cancelled-dot" aria-hidden="true"></span>
+                <span class="label">Cancelado</span>
+              </div>
+
+              <div class="actions">
+                <button class="btn-icon" title="Ver detalle" (click)="openDetail(d)" aria-label="Ver detalle">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5C7 5 2.73 8.11 1 12C2.73 15.89 7 19 12 19C17 19 21.27 15.89 23 12C21.27 8.11 17 5 12 5Z" stroke="#3B3B3B" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="#3B3B3B" stroke-width="1.2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="dates">
+              <div class="small">Creado: <strong>{{ d.initialDate | date:'dd-MM-yy, HH:mm' }}</strong></div>
+              <div class="small">Vence: <strong>{{ d.dueDate | date:'dd-MM-yy, HH:mm' }}</strong></div>
+            </div>
           </div>
         </div>
       </li>
