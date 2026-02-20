@@ -276,7 +276,7 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
     .addColumn('minimum_days', 'integer', (col) => col.notNull())
     .addColumn('maximum_days', 'integer', (col) => col.notNull())
-    .addColumn('interest_rate_base', 'numeric', (col) => col.notNull())
+    .addColumn('interest_rate_base', sql`decimal(10,2)`, (col) => col.notNull())
     .execute();
 
   // Seed parameter

@@ -16,8 +16,7 @@ export class DapInstructionsRepository {
 
   /**
    * Inserta una nueva fila con la configuración de DAP.
-   * - Normaliza/valida los campos requeridos antes de insertar.
-   * - Devuelve la fila insertada (Postgres: returningAll()).
+   * Compatible MySQL/Postgres: no usa returning().
    */
   async create(payload: {
     bankName: string;
@@ -28,7 +27,6 @@ export class DapInstructionsRepository {
     email?: string | null;
     description: string;
   }) {
-    // Normalizar y defensiva: convertir a strings, trim y convertir empty -> null cuando corresponda
     const bank_name = (payload?.bankName ?? '').toString().trim();
     const account_type = (payload?.accountType ?? '').toString().trim();
     const account_number = (payload?.accountNumber ?? '').toString().trim();
@@ -37,7 +35,6 @@ export class DapInstructionsRepository {
     const description = (payload?.description ?? '').toString().trim();
     const email = payload?.email ? payload.email.toString().trim() : null;
 
-    // Validación básica: campos obligatorios
     if (
       !bank_name ||
       !account_type ||
@@ -52,8 +49,7 @@ export class DapInstructionsRepository {
     const now = new Date();
 
     try {
-      // Insertamos la fila; returningAll() funciona en Postgres
-      const row = await this.db
+      const insertRes = await this.db
         .insertInto('dap_instructions' as any)
         .values({
           bank_name,
@@ -65,12 +61,24 @@ export class DapInstructionsRepository {
           description,
           updated_at: now,
         })
-        .returningAll()
         .executeTakeFirst();
 
-      return row;
+      // MySQL: insertId; Postgres: no insertId (normalmente)
+      const insertId = Number((insertRes as any)?.insertId);
+
+      // Si tenemos id (MySQL), devolvemos la fila insertada.
+      if (insertId) {
+        return this.db
+          .selectFrom('dap_instructions' as any)
+          .selectAll()
+          .where('id_dap_instructions', '=', insertId as any)
+          .executeTakeFirst();
+      }
+
+      // Fallback portable: devolver la última (por updated_at desc)
+      // (Si hay concurrencia extrema, podría no ser 100% exacto, pero para settings sirve)
+      return this.getLatest();
     } catch (err) {
-      // Añadir contexto al error para facilitar debugging en logs
       console.error('DapInstructionsRepository.create error inserting row:', {
         bank_name,
         account_type,

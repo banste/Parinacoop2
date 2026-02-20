@@ -21,6 +21,6 @@ export const parameters: {
   {
     minimum_days: 365,
     maximum_days: 9999,
-    interest_rate_base: 5,
+    interest_rate_base: 0.5,
   },
 ];

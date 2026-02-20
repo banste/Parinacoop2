@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import {
   CreateDapUseCase,
@@ -16,10 +17,11 @@ import {
 } from './http';
 
 import { PostgreSqlDapRepository } from './repositories/postgresql.dap-repository';
+import { MySqlDapRepository } from './repositories/mysql.dap-repository';
 import { MySqlParameterRepository } from './repositories/mysql.parameter-repository';
 
 import { GetDapPdfsController } from './controller/get-dap-pdfs.controller';
-import { GetDapInstructionsController } from './controller/get-dap-instructions.controller'; // <-- agregado
+import { GetDapInstructionsController } from './controller/get-dap-instructions.controller';
 
 import { DapInstructionsRepository } from '@/database/repositories/dap-instructions.repository';
 import { DapPdfService } from '@/archives/pdf/dap-pdf.service';
@@ -48,9 +50,11 @@ import { AdminDapAttachmentsController } from './http/admin-dap-attachments.cont
 import { AdminDapContractsController } from './http/admin-dap-contracts.controller';
 import { AdminActivateDapController } from './http/admin-activate-dap.controller';
 
-// Nuevo use-case para DAPs cancelados
+// Cancelled DAPs
 import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelled-daps/get-cancelled-daps.use-case';
 import { AdminUpdateDapStatusController } from './http/admin-update-dap-status.controller';
+
+type DbProvider = 'mysql' | 'postgres';
 
 @Module({
   controllers: [
@@ -58,9 +62,10 @@ import { AdminUpdateDapStatusController } from './http/admin-update-dap-status.c
     CreateDapController,
     SimulateDapController,
     GetDapPdfsController,
-    GetDapInstructionsController, // <-- registrar controlador público para /dap-instructions
+    GetDapInstructionsController,
     DapAttachmentsController,
     DapContractsController,
+
     // admin controllers
     AdminGetDapsController,
     AdminDapAttachmentsController,
@@ -73,13 +78,27 @@ import { AdminUpdateDapStatusController } from './http/admin-update-dap-status.c
     GetDapsUseCase,
     CreateDapUseCase,
     SimulateDapUseCase,
-    GetCancelledDapsUseCase, // <-- registrado aquí
+    GetCancelledDapsUseCase,
 
-    // repositorios y tokens
+    // register concrete implementations so Nest can inject them in factories
+    PostgreSqlDapRepository,
+    MySqlDapRepository,
+
+    // DapRepository: select by env
     {
       provide: DapRepository,
-      useClass: PostgreSqlDapRepository,
+      inject: [ConfigService, PostgreSqlDapRepository, MySqlDapRepository],
+      useFactory: (
+        config: ConfigService,
+        pgRepo: PostgreSqlDapRepository,
+        myRepo: MySqlDapRepository,
+      ) => {
+        const provider = (config.get<string>('DB_PROVIDER') as DbProvider) ?? 'postgres';
+        return provider === 'mysql' ? myRepo : pgRepo;
+      },
     },
+
+    // ParameterRepository (solo MySQL por ahora; si luego quieres Postgres, se agrega selector igual)
     {
       provide: ParameterRepository,
       useClass: MySqlParameterRepository,
@@ -89,12 +108,13 @@ import { AdminUpdateDapStatusController } from './http/admin-update-dap-status.c
     DapInstructionsStore,
     DapPdfService,
 
+    // ClientRepository (por ahora Postgres; si lo quieres MySQL, hay que implementar MySqlClientRepository y selector)
     {
       provide: ClientRepository,
       useClass: PostgreSqlClientRepository,
     },
 
-    // Attachments
+    // Attachments (ojo: este repo usa returningAll(); en MySQL te fallará hasta que lo adaptemos)
     DapAttachmentsRepository,
     {
       provide: 'ATTACHMENTS_REPOSITORY',
@@ -102,12 +122,11 @@ import { AdminUpdateDapStatusController } from './http/admin-update-dap-status.c
     },
     DapAttachmentsService,
 
-    // contracts
+    // contracts (ojo: este repo usa returningAll(); en MySQL te fallará hasta que lo adaptemos)
     DapContractsRepository,
     DapContractsService,
-    DapContractsController,
 
-    // Registrar localmente el repo admin y exponerlo con token 'ADMIN_USER_REPOSITORY'
+    // Registrar localmente el repo admin (por ahora Postgres)
     PostgreSqlUserRepository,
     {
       provide: 'ADMIN_USER_REPOSITORY',
