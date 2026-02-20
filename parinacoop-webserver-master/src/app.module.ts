@@ -10,7 +10,10 @@ import { ClientProfileModule } from './contexts/client-profile/infrastructure/cl
 import { DapModule } from './contexts/dap/infrastructure/dap.module';
 import { ConfigModule } from './config/config.module';
 import { AdminModule } from './contexts/admin/infrastructure/admin.module';
-import { UsersModule } from './contexts/users/infrastructure/users.module'; // <= añadido
+import { UsersModule } from './contexts/users/infrastructure/users.module';
+
+// NEW
+import { BankAccountModule } from './contexts/bank-account/bank-account.module';
 
 @Module({
   imports: [
@@ -31,8 +34,13 @@ import { UsersModule } from './contexts/users/infrastructure/users.module'; // <
     AdminModule,
     UsersModule,
     AuthModule,
+
     ClientProfileModule,
     DapModule,
+
+    // NEW: bank account endpoints under /clients/:run/bank-account
+    BankAccountModule,
+
     LocationModule,
   ],
 })

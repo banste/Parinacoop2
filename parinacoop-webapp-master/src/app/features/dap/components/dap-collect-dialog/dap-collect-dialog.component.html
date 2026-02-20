@@ -1,0 +1,53 @@
+<h2 class="title">Por cobrar</h2>
+
+<div class="sub" *ngIf="clientName">
+  Cliente: <b>{{ clientName }}</b> (RUN {{ run }})
+</div>
+
+<div class="state" *ngIf="loading">Cargando cuenta bancaria...</div>
+<div class="error" *ngIf="error">{{ error }}</div>
+
+<div *ngIf="!loading">
+  <div class="info" *ngIf="hasAccount">
+    Ya tienes una cuenta bancaria registrada.
+  </div>
+
+  <div class="form">
+    <label>
+      RUT titular (con DV)
+      <input [(ngModel)]="form.rutOwner" placeholder="12.345.678-9" />
+    </label>
+
+    <label>
+      Banco (código)
+      <input [(ngModel)]="form.bankCode" placeholder="bci / santander / etc." />
+    </label>
+
+    <label>
+      Banco (nombre)
+      <input [(ngModel)]="form.bankName" placeholder="Banco de Chile" />
+    </label>
+
+    <label>
+      Tipo de cuenta
+      <input [(ngModel)]="form.accountType" placeholder="cuenta_corriente / vista / ahorro" />
+    </label>
+
+    <label>
+      Número de cuenta
+      <input [(ngModel)]="form.accountNumber" placeholder="12345678" />
+    </label>
+
+    <label>
+      Email (opcional)
+      <input [(ngModel)]="form.email" placeholder="correo@dominio.cl" />
+    </label>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn secondary" (click)="close()">Cerrar</button>
+    <button type="button" class="btn primary" [disabled]="saving" (click)="save()">
+      {{ saving ? 'Guardando...' : 'Guardar' }}
+    </button>
+  </div>
+</div>

@@ -64,13 +64,23 @@ export class ClientBankAccountController {
       throw new UnauthorizedException('No está autorizado a modificar esta información');
     }
 
-    // Validación: rutOwner debe corresponder al run del cliente
     const ownerRun = extractRunFromRut(dto.rutOwner);
+
+    // DEBUG (temporal)
+    console.log('[bank-account] upsert', {
+      urlRun: run,
+      rutOwner: dto.rutOwner,
+      ownerRun,
+      authRun: (user as any).run,
+    });
+
     if (!ownerRun) {
-      throw new BadRequestException('RUT del titular inválido');
+      throw new BadRequestException(`RUT/RUN del titular inválido: "${dto.rutOwner}"`);
     }
     if (ownerRun !== run) {
-      throw new BadRequestException('El RUT no corresponde al dueño de la cuenta');
+      throw new BadRequestException(
+        `El RUT no corresponde al dueño de la cuenta (ownerRun=${ownerRun}, run=${run})`,
+      );
     }
 
     await this.repo.upsert(run, {

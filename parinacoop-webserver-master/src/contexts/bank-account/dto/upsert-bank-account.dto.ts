@@ -1,9 +1,7 @@
 import { IsOptional, IsString, MaxLength } from 'class-validator';
-import { IsValidRun } from '@/utils/validators/rut.validator';
 
 export class UpsertBankAccountDto {
   @IsString()
-  @IsValidRun()
   @MaxLength(20)
   rutOwner!: string;
 

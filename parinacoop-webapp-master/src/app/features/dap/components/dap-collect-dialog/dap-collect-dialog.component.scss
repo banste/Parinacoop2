@@ -1,0 +1,117 @@
+/* Modal más grande y con mejor spacing (solo afecta este dialog) */
+
+:host {
+  display: block;
+  padding: 22px 24px; /* más aire dentro del modal */
+  box-sizing: border-box;
+}
+
+.title {
+  margin: 0 0 10px 0;
+  font-size: 26px;   /* antes 20 */
+  font-weight: 900;
+}
+
+.sub {
+  margin-bottom: 14px;
+  color: #374151;
+  font-size: 16px;   /* antes 14 */
+}
+
+.state {
+  padding: 12px 0;
+  color: #374151;
+  font-size: 16px;
+}
+
+.error {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #991b1b;
+  font-size: 15px;
+}
+
+.info {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  font-size: 15px;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;         /* más separación */
+  margin-top: 14px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  font-size: 15px;   /* antes 13 */
+  font-weight: 700;
+  color: #111827;
+}
+
+input {
+  height: 46px;      /* antes 38 */
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  font-size: 16px;   /* más legible */
+  box-sizing: border-box;
+}
+
+input:focus {
+  border-color: #f49404;
+  box-shadow: 0 0 0 4px rgba(244, 148, 4, 0.22);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.btn {
+  height: 46px;      /* antes 40 */
+  border-radius: 12px;
+  padding: 0 18px;
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.btn.primary {
+  background: #f49404;
+  color: #fff;
+}
+
+.btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn.secondary {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+@media (max-width: 900px) {
+  :host {
+    padding: 18px 16px;
+  }
+
+  .form {
+    grid-template-columns: 1fr; /* una columna en pantallas chicas */
+  }
+}

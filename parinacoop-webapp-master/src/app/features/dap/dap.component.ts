@@ -14,6 +14,9 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DapDialogDetailsComponent } from './components/dap-dialog-details/dap-dialog-details.component';
 import { DapAttachmentsComponent } from './components/dap-attachments/dap-attachments.component';
 
+// NEW
+import { DapCollectDialogComponent } from './components/dap-collect-dialog/dap-collect-dialog.component';
+
 @Component({
   selector: 'app-dap',
   standalone: true,
@@ -28,16 +31,14 @@ import { DapAttachmentsComponent } from './components/dap-attachments/dap-attach
     MatDialogModule,
     DapDialogDetailsComponent,
     DapAttachmentsComponent,
+    DapCollectDialogComponent,
   ],
   templateUrl: './dap.component.html',
-  styleUrls: ['./dap.component.scss'], // <- aseguramos que el SCSS se cargue
+  styleUrls: ['./dap.component.scss'],
 })
 export class DapComponent implements OnInit, OnDestroy {
   userDaps$?: Observable<Dap[] | null>;
-
-  // Totals derivados directamente desde daps$
   totals$!: Observable<{ totalInvested: number; activeCount: number }>;
-
   private onDestroy$ = new Subject<void>();
 
   constructor(
@@ -49,26 +50,22 @@ export class DapComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.userDaps$ = this.dapService.daps$;
 
-    // Derivar los totales desde la lista de daps recibida.
     this.totals$ = (this.userDaps$ ?? this.dapService.daps$).pipe(
       map((daps) => {
         const list = daps ?? [];
         const totals = list.reduce(
           (prev, curr) => {
             const initial = Number(curr?.initialAmount ?? 0);
-
             prev.totalInvested += isNaN(initial) ? 0 : initial;
 
             const status = String(curr?.status ?? '').toLowerCase();
             if (status === String(DapStatus.ACTIVE).toLowerCase()) {
               prev.activeCount += 1;
             }
-
             return prev;
           },
           { totalInvested: 0, activeCount: 0 },
         );
-        console.debug('DAP totals (derived):', totals);
         return totals;
       }),
     );
@@ -78,57 +75,51 @@ export class DapComponent implements OnInit, OnDestroy {
         takeUntil(this.onDestroy$),
         filter((user) => user !== null),
       )
-      .subscribe((user) => {
-        this.dapService.getDapList((user as any).run);
-      });
+      .subscribe((user) => this.dapService.getDapList((user as any).run));
   }
 
   trackById(_: number, item: Dap): number | null {
     return item?.id ?? null;
   }
 
-  // Handler llamado desde la plantilla: abre el diálogo de detalle
   openDialog(dap: Dap): void {
-    try {
-      this.dialog.open(DapDialogDetailsComponent, {
-        width: '680px',
-        autoFocus: true,
-        restoreFocus: true,
-        data: dap,
-      });
-    } catch (err) {
-      console.error('openDialog error', err);
-    }
+    this.dialog.open(DapDialogDetailsComponent, {
+      width: '680px',
+      autoFocus: true,
+      restoreFocus: true,
+      data: dap,
+    });
   }
 
-  // NUEVO: Handler para flujo "Por cobrar"
-  openCollectDialog(dap: Dap): void {
-    // Aquí luego abrimos el modal/formulario de cuenta bancaria + cobrar/salir
-    console.log('[DAP] Por cobrar clicked:', dap);
-
-    // Placeholder: por ahora abrimos el detalle (si quieres) o mostramos alert.
-    // Puedes reemplazarlo por tu dialog real.
-    // this.openDialog(dap);
-    alert('Por cobrar: aquí se abrirá el formulario de cobro.');
-  }
-
-  // Handler llamado desde la plantilla: abre el diálogo de adjuntos
   openAttachments(dap: Dap): void {
-    // necesitamos el run del usuario; lo obtenemos una sola vez
     this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
-      try {
-        this.dialog.open(DapAttachmentsComponent, {
-          width: '720px',
-          maxHeight: '80vh',
-          panelClass: 'dap-dialog',
-          data: {
-            dapId: dap.id,
-            userRun: (user as any)?.run ?? null,
-          },
-        });
-      } catch (err) {
-        console.error('openAttachments error', err);
+      this.dialog.open(DapAttachmentsComponent, {
+        width: '720px',
+        maxHeight: '80vh',
+        panelClass: 'dap-dialog',
+        data: { dapId: dap.id, userRun: (user as any)?.run ?? null },
+      });
+    });
+  }
+
+  // NEW: abre diálogo Por cobrar (AGRANDADO)
+  openCollectDialog(dap: Dap): void {
+    this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
+      const run = Number((user as any)?.run ?? 0);
+      const dapId = Number((dap as any)?.id ?? 0);
+
+      if (!run || isNaN(run)) {
+        alert('No se pudo obtener RUN del usuario.');
+        return;
       }
+
+      this.dialog.open(DapCollectDialogComponent, {
+        width: '920px',      // antes 720px
+        maxWidth: '95vw',    // para pantallas chicas
+        maxHeight: '85vh',
+        panelClass: 'dap-dialog',
+        data: { run, dapId },
+      });
     });
   }
 
