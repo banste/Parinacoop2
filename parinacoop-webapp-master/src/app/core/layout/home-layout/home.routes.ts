@@ -17,10 +17,6 @@ const homeRoutes: Routes = [
         redirectTo: ROUTE_TOKENS.DAP,
         pathMatch: 'full',
       },
-      {
-        path: ROUTE_TOKENS.CLIENT_HOME, // 'inicio' -> /cliente/inicio
-        loadComponent: () => import('@features/home/home.component'),
-      },
 
       // Nueva ruta específica para historial (cancelled)
       {

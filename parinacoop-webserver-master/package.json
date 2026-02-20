@@ -21,6 +21,7 @@
     "commitlint": "commitlint --edit",
     "kysely": "kysely",
     "migrations": "cross-env NODE_ENV=development ts-node ./src/database/runMigrations.ts",
+    "migrations:mysql": "cross-env NODE_ENV=development ts-node ./src/database/runMigrations.mysql.ts",
     "mkm": "ts-node ./src/database/migrator.ts"
   },
   "dependencies": {
