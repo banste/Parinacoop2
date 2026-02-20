@@ -6,9 +6,9 @@ import { CommuneRepository } from '../../domain/ports/commune.repository';
 
 type CommuneRow = {
   id: number;
-  nombre: string;
-  codigo_postal: string | number | null;
-  region_id: number | null;
+  name: string;
+  postal_code: string;
+  region_id: number;
 };
 
 @Injectable()
@@ -18,21 +18,18 @@ export class MySqlCommuneRepository implements CommuneRepository {
   async getByRegionId(regionId: number): Promise<Commune[]> {
     const rows = (await this.db
       .selectFrom('commune')
-      .selectAll()
+      .select(['id', 'name', 'postal_code', 'region_id'])
       .where('region_id', '=', Number(regionId))
       .orderBy('id', 'asc')
       .execute()) as unknown as CommuneRow[];
 
     return rows.map(
-      (row) =>
+      (r) =>
         new Commune({
-          id: Number(row.id),
-          name: row.nombre,
-          postalCode:
-            typeof row.codigo_postal === 'string'
-              ? Number(row.codigo_postal)
-              : row.codigo_postal ?? 0,
-          regionId: row.region_id ?? Number(regionId),
+          id: Number(r.id),
+          name: r.name,
+          postalCode: Number(r.postal_code ?? 0),
+          regionId: Number(r.region_id),
         }),
     );
   }

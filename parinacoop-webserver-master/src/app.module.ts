@@ -25,14 +25,11 @@ import { UsersModule } from './contexts/users/infrastructure/users.module'; // <
         password: configService.get('DB_PASSWORD'),
       }),
     }),
-
-    // SharedModule must be imported before modules that consume its providers
-    // (AuthModule depends on MailService exported by SharedModule)
     SharedModule,
 
     HealthModule,
     AdminModule,
-    UsersModule, // <= añadido aquí
+    UsersModule,
     AuthModule,
     ClientProfileModule,
     DapModule,

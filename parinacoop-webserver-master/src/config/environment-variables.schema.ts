@@ -6,11 +6,15 @@ export enum Environment {
   Test = 'test',
 }
 
+export enum DbProvider {
+  mysql = 'mysql',
+  postgres = 'postgres',
+}
+
 export class EnvironmentVariables {
   @IsEnum(Environment)
   NODE_ENV!: Environment;
 
-  // 👇 CAMBIO AQUÍ: antes era @IsUrl()
   @IsString()
   DB_HOST!: string;
 
@@ -27,6 +31,9 @@ export class EnvironmentVariables {
 
   @IsString()
   DB_PASSWORD!: string;
+
+  @IsEnum(DbProvider)
+  DB_PROVIDER!: DbProvider;
 
   @IsNumber()
   @Min(0)
