@@ -15,6 +15,9 @@ export class DapItemComponent {
   @Output() viewDetail = new EventEmitter<Dap>();
   @Output() viewAttachments = new EventEmitter<Dap>();
 
+  // NUEVO: evento para iniciar flujo "Por cobrar"
+  @Output() collect = new EventEmitter<Dap>();
+
   formatId(id: any): string {
     if (id == null || id === '') return '-';
     const s = String(id);
@@ -98,11 +101,11 @@ export class DapItemComponent {
     if (termDays == null) {
       const start = this._parseDate(
         dap?.initial_date ??
-        dap?.initialDate ??
-        dap?.investmentDate ??
-        dap?.startDate ??
-        dap?.createdAt ??
-        dap?.date,
+          dap?.initialDate ??
+          dap?.investmentDate ??
+          dap?.startDate ??
+          dap?.createdAt ??
+          dap?.date,
       );
       const due = this._parseDate(dap?.dueDate ?? dap?.vencimiento ?? dap?.maturityDate);
       if (start && due) {
@@ -121,20 +124,44 @@ export class DapItemComponent {
     return null;
   }
 
-  // Nuevos helpers para mostrar estado legible y clase de color
+  // --- NUEVO: habilitar botón "Por cobrar" ---
+  canCollect(dap: any): boolean {
+    const s = String(dap?.status ?? '').toLowerCase().trim();
+    return s === 'expired' || s === 'due-soon';
+  }
+
+  onCollectClick(): void {
+    this.collect.emit(this.dap);
+  }
+
+  // Helpers para mostrar estado legible y clase de color
   statusLabel(status: any): string {
     if (!status && status !== 0) return '-';
     const s = String(status).toLowerCase();
+
     if (s === 'active' || s === 'activo') return 'Activo';
     if (s === 'pending' || s === 'pendiente') return 'Pendiente';
+
+    // NUEVOS labels
+    if (s === 'due-soon') return 'Por vencer';
+    if (s === 'expired') return 'Vencido';
+    if (s === 'expired-pending') return 'Cobro pendiente';
+
     // fallback: capitalizar primera letra
     return String(status).charAt(0).toUpperCase() + String(status).slice(1);
   }
 
   statusDotClass(status: any): string {
     const s = String(status ?? '').toLowerCase();
+
     if (s === 'active' || s === 'activo') return 'status-green';
     if (s === 'pending' || s === 'pendiente') return 'status-yellow';
+
+    // NUEVOS colores (definiremos clases en SCSS abajo)
+    if (s === 'due-soon') return 'status-blue';
+    if (s === 'expired') return 'status-red';
+    if (s === 'expired-pending') return 'status-purple';
+
     return 'status-default';
   }
 

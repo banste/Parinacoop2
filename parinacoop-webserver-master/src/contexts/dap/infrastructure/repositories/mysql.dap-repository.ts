@@ -66,12 +66,58 @@ export class MySqlDapRepository implements DapRepository {
     return new Dap(newDap);
   }
 
+  // --------- Helpers: auto status por fecha (sin frontend) ---------
+
+  private startOfDay(d: Date): Date {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  private addDays(d: Date, days: number): Date {
+    const x = new Date(d);
+    x.setDate(x.getDate() + days);
+    return x;
+  }
+
+  /**
+   * Regla:
+   * - due_date == mañana => 'due-soon'
+   * - due_date <= hoy => 'expired'
+   *
+   * No pisa estados:
+   * - 'expired-pending', 'paid', 'cancelled', 'annulled', 'pending'
+   *
+   * Retorna null si NO hay cambio.
+   */
+  private computeAutoStatus(currentStatus: any, dueDate: any): string | null {
+    const s = String(currentStatus ?? '').toLowerCase().trim();
+
+    const locked = new Set(['expired-pending', 'paid', 'cancelled', 'annulled', 'pending']);
+    if (locked.has(s)) return null;
+
+    if (!dueDate) return null;
+    const due = new Date(dueDate);
+    if (isNaN(due.getTime())) return null;
+
+    const today0 = this.startOfDay(new Date());
+    const tomorrow0 = this.addDays(today0, 1);
+    const due0 = this.startOfDay(due);
+
+    // vence mañana => due-soon
+    if (due0.getTime() === tomorrow0.getTime()) return 'due-soon';
+
+    // vence hoy o ya venció => expired
+    if (due0.getTime() <= today0.getTime()) return 'expired';
+
+    return null;
+  }
+
   // Obtener todos los DAP de un usuario (EXCLUYENDO los ANNULLED)
   async getDapsByUserRun(run: number): Promise<Dap[]> {
     const result = await this.db
       .selectFrom('dap')
       .leftJoin('dap_internal_ids', 'dap_internal_ids.dap_id', 'dap.id')
       .where('user_run', '=', run)
+      // case-insensitive: excluimos anulados aunque estén en mayúsculas en BD
       .where(sql`lower(dap.status)`, '!=', DapStatus.ANNULLED)
       .select([
         'dap.id',
@@ -91,7 +137,36 @@ export class MySqlDapRepository implements DapRepository {
       ])
       .execute();
 
-    return result.map((row) => new Dap(row));
+    // 1) calcular qué DAPs requieren cambio de status
+    const updates: Array<{ id: number; status: string }> = [];
+    for (const row of result as any[]) {
+      const next = this.computeAutoStatus(row?.status, row?.dueDate);
+      if (!next) continue;
+
+      const current = String(row?.status ?? '').toLowerCase().trim();
+      if (current !== next) {
+        updates.push({ id: Number(row.id), status: next });
+      }
+    }
+
+    // 2) persistir cambios en DB (sin updated_at, porque la columna no existe)
+    for (const u of updates) {
+      await this.db
+        .updateTable('dap')
+        .set({
+          status: u.status as any, // guardamos en minúsculas
+        } as any)
+        .where('id', '=', u.id)
+        .execute();
+    }
+
+    // 3) devolver la lista con status corregido en memoria
+    const updatedMap = new Map<number, string>(updates.map((u) => [u.id, u.status]));
+    return (result as any[]).map((row) => {
+      const s = updatedMap.get(Number(row.id));
+      if (s) row.status = s;
+      return new Dap(row);
+    });
   }
 
   // Nuevo: obtener SOLO DAPs con status = CANCELLED para un usuario (case-insensitive)
@@ -191,11 +266,15 @@ export class MySqlDapRepository implements DapRepository {
   /**
    * Actualiza el estado (status) por id y devuelve la entidad actualizada.
    * MySQL: no `returningAll()`, hacemos UPDATE y luego SELECT.
+   *
+   * Estandarización: guardamos SIEMPRE status en minúsculas.
    */
   async updateStatusById(id: number, status: DapStatus | string): Promise<Dap | null> {
+    const normalized = String(status ?? '').trim().toLowerCase();
+
     await this.db
       .updateTable('dap')
-      .set({ status: status as any })
+      .set({ status: normalized as any })
       .where('id', '=', id)
       .execute();
 
@@ -228,23 +307,41 @@ export class MySqlDapRepository implements DapRepository {
 
   /**
    * Actualiza el estado (status) de un dap por id.
+   *
+   * Allowed acordado (en MAYÚSCULAS), pero persistimos en minúsculas:
+   * - validamos en mayúsculas
+   * - guardamos en minúsculas
    */
   async updateStatus(dapId: number, status: string, updatedBy?: number): Promise<void> {
     const sRaw = String(status ?? '').trim();
-    const s = sRaw.toUpperCase();
+    const sUpper = sRaw.toUpperCase();
 
-    const allowed = ['PENDING', 'ACTIVE', 'CANCELLED', 'ANNULLED'];
-    if (!allowed.includes(s)) {
-      throw new Error(`Invalid status ${s}`);
+    const allowed = [
+      'PENDING',
+      'ACTIVE',
+      'CANCELLED',
+      'ANNULLED',
+      'PAID',
+      'EXPIRED',
+      'EXPIRED-PENDING',
+      'DUE-SOON',
+    ];
+
+    if (!allowed.includes(sUpper)) {
+      throw new Error(`Invalid status ${sRaw}`);
     }
+
+    const normalized = sUpper.toLowerCase();
 
     await this.db
       .updateTable('dap')
-      .set(({
-        status: s,
-        updated_at: new Date(),
-        // updated_by: updatedBy ?? null, // descomenta si tienes esa columna
-      } as unknown) as any)
+      .set(
+        ({
+          status: normalized,
+          // updated_at: new Date(), // NO existe columna en tu MySQL actual
+          // updated_by: updatedBy ?? null, // descomenta si tienes esa columna
+        } as unknown) as any,
+      )
       .where('id', '=', Number(dapId))
       .execute();
   }

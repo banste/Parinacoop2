@@ -15,6 +15,7 @@ export class DapStatusPipe implements PipeTransform {
     active: 'Activo',
     'expired-pending': 'Vencido (transferencia pendiente)',
     expired: 'Vencido',
+    'due-soon': 'Por vencer', // <-- ÚNICO CAMBIO (no afecta a los demás)
     paid: 'Pagado',
     pending: 'Pendiente',
     cancelled: 'Cancelado',

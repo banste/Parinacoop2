@@ -11,6 +11,7 @@ import { ParameterTable } from './tables/parameterTable';
 import { DapContractsTable } from './tables/dapcontractsTable';
 import { DapAttachmentsTable } from './tables/dapattachmentsTable';
 import { DapInternalIdsTable } from './tables/dapinternalidsTable';
+import { ClientBankAccountTable } from './tables/clientbankaccountTable';
 
 export interface Tables {
   user: UserTable;
@@ -25,6 +26,7 @@ export interface Tables {
   dap_contracts: DapContractsTable;
   dap_attachments: DapAttachmentsTable;
   dap_internal_ids: DapInternalIdsTable;
+  client_bank_account: ClientBankAccountTable;
 }
 
 export class Database extends Kysely<Tables> {}

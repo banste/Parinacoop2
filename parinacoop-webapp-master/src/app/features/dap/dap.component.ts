@@ -101,6 +101,17 @@ export class DapComponent implements OnInit, OnDestroy {
     }
   }
 
+  // NUEVO: Handler para flujo "Por cobrar"
+  openCollectDialog(dap: Dap): void {
+    // Aquí luego abrimos el modal/formulario de cuenta bancaria + cobrar/salir
+    console.log('[DAP] Por cobrar clicked:', dap);
+
+    // Placeholder: por ahora abrimos el detalle (si quieres) o mostramos alert.
+    // Puedes reemplazarlo por tu dialog real.
+    // this.openDialog(dap);
+    alert('Por cobrar: aquí se abrirá el formulario de cobro.');
+  }
+
   // Handler llamado desde la plantilla: abre el diálogo de adjuntos
   openAttachments(dap: Dap): void {
     // necesitamos el run del usuario; lo obtenemos una sola vez

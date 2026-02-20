@@ -138,6 +138,23 @@
   shape-rendering: geometricPrecision; /* mejora el render */
 }
 
+/* NUEVO: Botón "Por cobrar" (no circular) */
+.collect-btn {
+  width: auto !important;
+  height: auto !important;
+  padding: 10px 14px;
+  border-radius: 999px !important;
+  background: #f49404;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  border: none;
+}
+.collect-btn:hover {
+  background: #e07f03;
+}
+
 /* ---------------------------
    Estado: punto de color + label
    --------------------------- */
@@ -159,6 +176,9 @@
 /* Colores para los estados */
 .status-green { background: #10b981; }  /* verde */
 .status-yellow { background: #f59e0b; } /* amarillo/ámbar */
+.status-blue { background: #3b82f6; }   /* NUEVO: por vencer */
+.status-red { background: #ef4444; }    /* NUEVO: vencido */
+.status-purple { background: #8b5cf6; } /* NUEVO: cobro pendiente */
 .status-default { background: #9ca3af; } /* gris si otro estado */
 
 /* Texto del label */
@@ -206,4 +226,25 @@
   color: #111827;
   font-size: 14px;
   text-align: left;
+}
+
+/* ===== SOLO botón "Por cobrar": mismo círculo, $ centrado ===== */
+.action-btn.collect-btn .collect-dollar {
+  display: inline-block;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  color: #f49404; /* paleta actual (mismo que iconos) */
+  transform: translateY(-1px); /* ajuste fino para centrar visualmente */
+  user-select: none;
+}
+
+.action-btn.collect-btn {
+  background: #f49404;
+}
+.action-btn.collect-btn:hover {
+  background: #e07f03;
+}
+.action-btn.collect-btn .collect-dollar {
+  color: #ffffff;
 }

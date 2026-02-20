@@ -3,8 +3,8 @@
 */
 
 .dap-section {
-  /* columnas escaladas 1.2x (suma = 1584px) */
-  --dap-cols: 202px 230px 216px 187px 259px 173px 202px 115px;
+  /* columnas escaladas (ajuste: más espacio en "Acciones") */
+  --dap-cols: 202px 230px 216px 187px 259px 173px 202px 160px;
   --pc-yellow: #f49404;
   --cell-h-pad: 15px; /* padding horizontal por celda */
 }
@@ -21,67 +21,64 @@
   border-radius: 14px;
 }
 
-/* Contenedor de la tabla: ancho fijo escalado 20% (1584px) y centrado */
+/* Contenedor de la tabla: centrado */
 .dap-table-wrapper {
   display: flex;
   justify-content: center;
 }
 .dap-table {
-  width: 1600px;
+  width: 1680px; /* antes 1600px */
   margin: 0 auto;
   box-sizing: border-box;
   padding: 0; /* no padding que afecte la anchura interna */
 }
 
-/* CABECERA: grid con columnas fijas (sin column-gap para evitar overflow) */
-/* Aumentado en altura: padding, min-height, font-size, y centrado vertical de contenido */
+/* CABECERA: grid con columnas fijas */
 .dap-header {
   display: grid;
   grid-template-columns: var(--dap-cols);
   column-gap: 0;
   align-items: center;
-  padding: 28px 0;          /* mayor padding vertical para aumentar la altura */
-  min-height: 120px;        /* garantiza altura mínima del header */
+  padding: 28px 0;
+  min-height: 120px;
   border-radius: 10px;
   background: var(--pc-yellow);
   color: #1f2937;
   font-weight: 700;
-  font-size: 20px;          /* fuente del header aumentada */
+  font-size: 20px;
   line-height: 1.2;
   box-shadow: 0 1px 0 rgba(0,0,0,0.03) inset;
   margin-bottom: 12px;
   box-sizing: border-box;
 }
 
-/* Títulos centrados y con padding horizontal consistente.
-   Importante: cada celda de la cabecera se comporta como un flex container
-   para centrar verticalmente el texto en el header alto. */
+/* Celdas del header centradas */
 .dap-header > * {
   padding: 0 var(--cell-h-pad);
   min-width: 0;
   text-align: center;
   box-sizing: border-box;
   display: flex;
-  align-items: center;    /* centra verticalmente el texto en cada celda */
-  justify-content: center;/* centra horizontalmente el texto en cada celda */
+  align-items: center;
+  justify-content: center;
   vertical-align: middle;
 }
 
-/* Separación vertical entre filas (cuando se usa .space-y-3) */
+/* Separación vertical entre filas */
 .dap-table .space-y-3 { gap: 14px; }
 
-/* Ajustes visuales adicionales (respetar alineación con filas) */
+/* Ajustes visuales adicionales */
 .dap-table .dap-header,
 .dap-table .dap-item-article { box-sizing: border-box; }
 
-/* Responsive: en pantallas más pequeñas la tabla fluye y el header reduce su altura */
+/* Responsive */
 @media (max-width: 1100px) {
   .dap-table { width: 100%; padding: 0 12px; }
   .dap-header { font-size: 18px; padding: 18px 0; min-height: auto; }
   .dap-header > * { padding: 0 10px; }
 }
 
-/* Mobile: mantener legibilidad y reducir icono/header */
+/* Mobile */
 @media (max-width: 680px) {
   .dap-header-wrap .dap-icon { width: 56px; height: 56px; border-radius: 8px; }
   .dap-header { font-size: 14px; padding: 12px 0; }

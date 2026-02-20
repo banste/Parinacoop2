@@ -5,5 +5,6 @@ export enum DapStatus {
   EXPIRED_PENDING = 'expired-pending',
   PENDING = 'pending',
   CANCELLED = 'cancelled',
-  ANNULLED = 'annulled',  
+  ANNULLED = 'annulled',
+  DUE_SOON = 'due-soon',
 }
