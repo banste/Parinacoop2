@@ -1,11 +1,10 @@
 import { Global, Module } from '@nestjs/common';
-import {
-  ConfigurableDatabaseModule,
-  DATABASE_OPTIONS,
-} from './database.module-definition';
+import { ConfigurableDatabaseModule, DATABASE_OPTIONS } from './database.module-definition';
 import { Database } from './database';
 import { DatabaseOptions } from './databaseOptions';
 import { dialectGenerator } from './dialect-generator';
+
+type DatabaseProvider = 'mysql' | 'postgres';
 
 @Global()
 @Module({
@@ -15,7 +14,9 @@ import { dialectGenerator } from './dialect-generator';
       provide: Database,
       inject: [DATABASE_OPTIONS],
       useFactory: (databaseOptions: DatabaseOptions) => {
-        const dialect = dialectGenerator('postgres', {
+        const provider = (process.env.DB_PROVIDER as DatabaseProvider) ?? 'postgres';
+
+        const dialect = dialectGenerator(provider, {
           host: databaseOptions.host,
           database: databaseOptions.database,
           port: databaseOptions.port,
@@ -23,9 +24,7 @@ import { dialectGenerator } from './dialect-generator';
           password: databaseOptions.password,
         });
 
-        return new Database({
-          dialect,
-        });
+        return new Database({ dialect });
       },
     },
   ],

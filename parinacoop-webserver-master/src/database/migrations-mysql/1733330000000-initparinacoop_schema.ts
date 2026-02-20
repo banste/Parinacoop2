@@ -3,75 +3,73 @@ import { parameters } from '../seed/parameters';
 import { regions_communes } from '../seed/regions';
 
 /**
- * Migración MySQL:
- * - Evita `serial` (en MySQL puede mapear a BIGINT UNSIGNED y romper FKs con INTEGER).
- * - Usa `integer + autoIncrement()` en todas las PK autoincrementales.
+ * Migración MySQL (nombres en inglés):
+ * - Usa `integer + autoIncrement()` en PK autoincrementales.
+ * - Region/Commune en inglés para consistencia con Kysely types.
+ * - Elimina la tabla legacy `direccion` (no se crea).
+ *
+ * Nota: esta migración asume una BD vacía o que puedes resetear.
+ * Si ya tienes tablas en español, hay que crear una migración de ALTER TABLE/RENAME.
  */
-
 export const up: Migration['up'] = async (db) => {
   // REGION
   await db.schema
     .createTable('region')
     .ifNotExists()
-    .addColumn('id_region', 'integer', (col) => col.primaryKey().autoIncrement())
-    .addColumn('nombre', 'varchar(100)', (col) => col.notNull())
-    .addColumn('numero_romano', 'varchar(10)', (col) => col.notNull())
-    .addColumn('numero', 'integer', (col) => col.notNull())
-    .addColumn('abreviacion', 'varchar(10)', (col) => col.notNull())
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('name', 'varchar(100)', (col) => col.notNull())
+    .addColumn('roman_number', 'varchar(10)', (col) => col.notNull())
+    .addColumn('number', 'integer', (col) => col.notNull())
+    .addColumn('abbreviation', 'varchar(10)', (col) => col.notNull())
     .execute();
 
-  // COMMUNE — usa region_id (lo espera la app)
+  // COMMUNE — uses region_id (the app expects region_id)
   await db.schema
     .createTable('commune')
     .ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-    .addColumn('nombre', 'varchar(100)', (col) => col.notNull())
-    .addColumn('codigo_postal', 'varchar(20)', (col) => col.notNull())
+    .addColumn('name', 'varchar(100)', (col) => col.notNull())
+    .addColumn('postal_code', 'varchar(20)', (col) => col.notNull())
     .addColumn('region_id', 'integer', (col) => col.notNull())
-    .addForeignKeyConstraint(
-      'fk_commune_region',
-      ['region_id'],
-      'region',
-      ['id_region'],
-      (cb) => cb.onDelete('cascade'),
+    .addForeignKeyConstraint('fk_commune_region', ['region_id'], 'region', ['id'], (cb) =>
+      cb.onDelete('cascade'),
     )
     .execute();
 
-  // SEED REGIONS + COMMUNES (desde src/database/seed/regions.ts)
-  // Nota: como no usamos `returning` (Postgres-only), recuperamos el id_region por nombre.
+  // SEED REGIONS + COMMUNES (src/database/seed/regions.ts)
+  // No usamos returning (Postgres-only), por eso recuperamos el id por name.
   for (const r of regions_communes) {
     const existingRegion = await db
       .selectFrom('region')
-      .select(['id_region'])
-      .where('nombre', '=', r.name)
+      .select(['id'])
+      .where('name', '=', r.name)
       .executeTakeFirst();
 
     if (!existingRegion) {
       await db
         .insertInto('region')
         .values({
-          nombre: r.name,
-          numero_romano: r.roman_number,
-          numero: r.number,
-          abreviacion: r.abbreviation,
+          name: r.name,
+          roman_number: r.roman_number,
+          number: r.number,
+          abbreviation: r.abbreviation,
         })
         .execute();
     }
 
     const regionRow = await db
       .selectFrom('region')
-      .select(['id_region'])
-      .where('nombre', '=', r.name)
+      .select(['id'])
+      .where('name', '=', r.name)
       .executeTakeFirstOrThrow();
 
-    const regionId = Number((regionRow as any).id_region);
+    const regionId = Number((regionRow as any).id);
 
-    // Insertar comunas asociadas
     for (const c of r.communes) {
       const existingCommune = await db
         .selectFrom('commune')
         .select(['id'])
-        .where('nombre', '=', c.name)
+        .where('name', '=', c.name)
         .where('region_id', '=', regionId)
         .executeTakeFirst();
 
@@ -79,9 +77,9 @@ export const up: Migration['up'] = async (db) => {
         await db
           .insertInto('commune')
           .values({
-            nombre: c.name,
-            // en seed es number; en DB es varchar(20) (igual que tu migración original)
-            codigo_postal: String(c.postal_code),
+            name: c.name,
+            // seed trae number; en DB es varchar(20)
+            postal_code: String(c.postal_code),
             region_id: regionId,
           })
           .execute();
@@ -89,26 +87,7 @@ export const up: Migration['up'] = async (db) => {
     }
   }
 
-  // DIRECCION - referencia commune.id
-  await db.schema
-    .createTable('direccion')
-    .ifNotExists()
-    .addColumn('id_direccion', 'integer', (col) => col.primaryKey().autoIncrement())
-    .addColumn('tipo_direccion', 'varchar(50)', (col) => col.notNull())
-    .addColumn('numero', 'varchar(20)', (col) => col.notNull())
-    .addColumn('calle', 'varchar(150)', (col) => col.notNull())
-    .addColumn('detalle', 'varchar(255)', (col) => col.notNull())
-    .addColumn('id_commune', 'integer', (col) => col.notNull())
-    .addForeignKeyConstraint(
-      'fk_direccion_commune',
-      ['id_commune'],
-      'commune',
-      ['id'],
-      (cb) => cb.onDelete('cascade'),
-    )
-    .execute();
-
-  // USER (autenticación) -- run como INTEGER
+  // USER (authentication) -- run as INTEGER
   await db.schema
     .createTable('user')
     .ifNotExists()
@@ -121,7 +100,7 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('updated_at', 'timestamp', (col) => col.defaultTo(sql`now()`).notNull())
     .execute();
 
-  // CLIENT_PROFILE (separada) -- FK a user.run
+  // CLIENT_PROFILE (separate) -- FK to user.run
   await db.schema
     .createTable('client_profile')
     .ifNotExists()
@@ -217,19 +196,11 @@ export const up: Migration['up'] = async (db) => {
     )
     .execute();
 
-  await db.schema
-    .createIndex('idx_passwordreset_token_hash')
-    .on('passwordreset')
-    .columns(['token_hash'])
-    .execute();
+  await db.schema.createIndex('idx_passwordreset_token_hash').on('passwordreset').columns(['token_hash']).execute();
   await db.schema.createIndex('idx_passwordreset_run').on('passwordreset').columns(['run']).execute();
-  await db.schema
-    .createIndex('idx_passwordreset_expiration')
-    .on('passwordreset')
-    .columns(['expiration'])
-    .execute();
+  await db.schema.createIndex('idx_passwordreset_expiration').on('passwordreset').columns(['expiration']).execute();
 
-  // cuenta_ahorro
+  // cuenta_ahorro (mantengo el nombre de tabla/columnas tal como lo tienes hoy; si quieres, lo traducimos después)
   await db.schema
     .createTable('cuenta_ahorro')
     .ifNotExists()
@@ -257,12 +228,8 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('monto', 'numeric', (col) => col.notNull())
     .addColumn('fecha', 'date', (col) => col.notNull())
     .addColumn('id_cuentaahorro', 'integer', (col) => col.notNull())
-    .addForeignKeyConstraint(
-      'fk_retiro_cahorro',
-      ['id_cuentaahorro'],
-      'cuenta_ahorro',
-      ['id_cuentaahorro'],
-      (cb) => cb.onDelete('cascade'),
+    .addForeignKeyConstraint('fk_retiro_cahorro', ['id_cuentaahorro'], 'cuenta_ahorro', ['id_cuentaahorro'], (cb) =>
+      cb.onDelete('cascade'),
     )
     .execute();
 
@@ -312,10 +279,10 @@ export const up: Migration['up'] = async (db) => {
     .addColumn('interest_rate_base', 'numeric', (col) => col.notNull())
     .execute();
 
-  // Insertar seeds en parameter si existen
+  // Seed parameter
   try {
     if (Array.isArray(parameters) && parameters.length > 0) {
-      await db.insertInto('parameter').values(parameters).execute();
+      await db.insertInto('parameter').values(parameters as any).execute();
     }
   } catch (err) {
     console.warn('[migration] parameter seed insertion failed:', err);
@@ -323,6 +290,7 @@ export const up: Migration['up'] = async (db) => {
 };
 
 export const down: Migration['down'] = async (db) => {
+  // reverse order
   await db.schema.dropTable('parameter').ifExists().execute();
   await db.schema.dropTable('user_session').ifExists().execute();
   await db.schema.dropTable('address').ifExists().execute();
@@ -341,7 +309,9 @@ export const down: Migration['down'] = async (db) => {
   await db.schema.dropTable('dap').ifExists().execute();
   await db.schema.dropTable('client_profile').ifExists().execute();
   await db.schema.dropTable('user').ifExists().execute();
-  await db.schema.dropTable('direccion').ifExists().execute();
+
+  // direccion eliminado: no hay nada que borrar aquí
+
   await db.schema.dropTable('commune').ifExists().execute();
   await db.schema.dropTable('region').ifExists().execute();
 };
