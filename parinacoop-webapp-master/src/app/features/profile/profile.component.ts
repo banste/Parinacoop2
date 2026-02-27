@@ -27,6 +27,9 @@ import { Region } from './models/Region';
 
 import { ProfileBankAccountService, UpsertBankAccountPayload } from './services/bank-account.service';
 
+// util RUT
+import { formatRut } from './utils/rut';
+
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -43,10 +46,9 @@ import { ProfileBankAccountService, UpsertBankAccountPayload } from './services/
     SpinnerComponent,
   ],
   templateUrl: './profile.component.html',
-  styleUrls: ['./profile.component.scss'], // ✅ NEW
+  styleUrls: ['./profile.component.scss'],
 })
 export default class ProfileComponent implements OnInit, OnDestroy {
-  // (el resto de tu archivo TS queda igual al que ya tienes con bankForm)
   profileForm = new FormGroup({
     run: new FormControl<string>('', [Validators.required]),
     names: new FormControl<string>('', Validators.required),
@@ -96,6 +98,9 @@ export default class ProfileComponent implements OnInit, OnDestroy {
 
   private currentRun = 0;
 
+  // Guardamos el valor "raw" del run (numérico) para no perderlo al mostrar la versión formateada
+  private rawRunValue: string = '';
+
   constructor(
     private authService: AuthService,
     private profileService: ProfileService,
@@ -141,7 +146,7 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     return this.bankForm.get(name) as FormControl;
   }
 
-  // ===== PERFIL (igual que antes) =====
+  // ===== PERFIL =====
   private loadProfile(run: number) {
     if (!run) {
       this.loading = false;
@@ -153,8 +158,13 @@ export default class ProfileComponent implements OnInit, OnDestroy {
 
     this.profileService.getCurrentProfile(run).subscribe({
       next: (profile) => {
+        // Guardamos el valor raw (numérico/string sin formato)
+        this.rawRunValue = String(profile.run ?? run);
+
+        // PatchForm: ponemos el RUN formateado para mostrar en modo lectura.
+        // El resto de campos con sus valores reales.
         this.profileForm.patchValue({
-          run: String(profile.run ?? run),
+          run: formatRut(this.rawRunValue),
           names: profile.names ?? '',
           firstLastName: profile.firstLastName ?? '',
           secondLastName: profile.secondLastName ?? '',
@@ -188,6 +198,9 @@ export default class ProfileComponent implements OnInit, OnDestroy {
 
         if (err?.status === 404) {
           this.profileMissing = true;
+          // Si no hay perfil, pre-fill run raw pero mostrar form disabled
+          this.rawRunValue = String(run);
+          this.profileForm.patchValue({ run: formatRut(this.rawRunValue) });
           this.profileForm.disable();
           this.isEditing = false;
           return;
@@ -200,13 +213,26 @@ export default class ProfileComponent implements OnInit, OnDestroy {
 
   toggleEdit(): void {
     if (this.isEditing) {
-      if (this.lastProfileSnapshot) this.profileForm.reset(this.lastProfileSnapshot);
+      // Cancelar edición: restaurar snapshot (si existe) y mostrar run formateado
+      if (this.lastProfileSnapshot) {
+        this.profileForm.reset(this.lastProfileSnapshot);
+      }
+      // Asegurar que run muestre la versión formateada al salir de edición
+      if (this.rawRunValue) {
+        this.fc('run').setValue(formatRut(this.rawRunValue));
+      }
       this.profileForm.disable();
       this.isEditing = false;
       return;
     }
 
+    // Entrar a editar: poner valor raw en el control 'run' (para que quede correcto si el usuario necesita verlo)
+    if (this.rawRunValue) {
+      this.fc('run').setValue(this.rawRunValue);
+    }
     this.isEditing = true;
+
+    // Habilitar formulario y dejar run deshabilitado (si quieres que no se edite)
     this.profileForm.enable();
     this.fc('run').disable();
   }
@@ -216,7 +242,8 @@ export default class ProfileComponent implements OnInit, OnDestroy {
 
     const raw = this.profileForm.getRawValue();
     const dto: UpdateProfileDto = {
-      run: Number(raw.run ?? this.currentRun),
+      // Aseguramos que el run enviado sea el raw (numérico), tomamos this.rawRunValue como fallback
+      run: Number(raw.run ?? this.rawRunValue ?? this.currentRun),
       documentNumber: String(raw.documentNumber ?? ''),
       names: String(raw.names ?? ''),
       firstLastName: String(raw.firstLastName ?? ''),
@@ -235,6 +262,9 @@ export default class ProfileComponent implements OnInit, OnDestroy {
       next: () => {
         this.isSubmitting = false;
         this.isEditing = false;
+        // Después de guardar, mantener rawRunValue y mostrar run formateado
+        this.rawRunValue = String(dto.run ?? this.rawRunValue ?? this.currentRun);
+        this.fc('run').setValue(formatRut(this.rawRunValue));
         this.profileForm.disable();
         this.lastProfileSnapshot = this.profileForm.getRawValue();
         alert('Perfil actualizado');
@@ -245,6 +275,14 @@ export default class ProfileComponent implements OnInit, OnDestroy {
         alert(err?.error?.message ?? err?.message ?? 'Error actualizando perfil');
       },
     });
+  }
+
+  // ----------------------------
+  // MÉTODO NUEVO: RUN formateado (ya no es estrictamente necesario para plantilla,
+  // pero lo dejamos por compatibilidad si lo usas en otros lugares)
+  // ----------------------------
+  formattedRun(): string {
+    return formatRut(this.rawRunValue ?? this.profileForm.get('run')?.value ?? '');
   }
 
   // ===== CUENTA BANCARIA =====

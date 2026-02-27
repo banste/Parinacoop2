@@ -34,12 +34,20 @@
             <td>{{ fullName(d) }}</td>
             <td>{{ d.user?.email || '-' }}</td>
             <td>#{{ d.id }}</td>
-            <td>{{ (d.status || '-') }}</td>
+
+            <!-- Usar dapStatus pipe para mostrar etiqueta legible -->
+            <td>{{ d.status | dapStatus }}</td>
+
             <td>{{ d.initialDate ? (d.initialDate | date:'dd-MM-yyyy') : '-' }}</td>
             <td>{{ d.dueDate ? (d.dueDate | date:'dd-MM-yyyy') : '-' }}</td>
             <td>{{ d.finalAmount != null ? (d.finalAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</td>
+
             <td class="actions">
-              <button class="btn" type="button" (click)="openBankAccount(d.userRun)">Cuenta banco</button>
+              <!-- Nuevo botón: muestra adjunto y texto claro -->
+              <button class="btn" type="button" (click)="openAttachments(d.userRun, d.id)">
+                <!-- Opcional: icono (usa el que tu proyecto tenga), aquí texto claro -->
+                Ver comprobante de pago
+              </button>
             </td>
           </tr>
         </tbody>
@@ -51,7 +59,7 @@
     </ng-template>
   </section>
 
-  <!-- EXPIRED-PENDING -->
+  <!-- EXPIRED-PENDING (sin cambios en acciones) -->
   <section class="panel" *ngIf="!loading">
     <header class="panel-head">
       <h2>Por cobrar (cobro pendiente)</h2>
@@ -80,7 +88,10 @@
             <td>{{ fullName(d) }}</td>
             <td>{{ d.user?.email || '-' }}</td>
             <td>#{{ d.id }}</td>
-            <td>{{ (d.status || '-') }}</td>
+
+            <!-- pipe aquí también -->
+            <td>{{ d.status | dapStatus }}</td>
+
             <td>{{ d.initialDate ? (d.initialDate | date:'dd-MM-yyyy') : '-' }}</td>
             <td>{{ d.dueDate ? (d.dueDate | date:'dd-MM-yyyy') : '-' }}</td>
             <td>{{ d.finalAmount != null ? (d.finalAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</td>
@@ -93,7 +104,7 @@
     </div>
 
     <ng-template #emptyExpiredPending>
-      <div class="empty">No hay depósitos en estado “por cobrar”.</div>
+      <div class="empty">No hay depósitos por cobrar.</div>
     </ng-template>
   </section>
 </div>

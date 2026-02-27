@@ -37,7 +37,10 @@
         <fieldset class="fieldset">
           <legend>Datos personales</legend>
           <div class="grid-2">
+            <!-- Usamos siempre par-form-field para RUN; el componente TS pone el valor
+                 formateado cuando el form está en modo lectura y raw cuando se entra a editar -->
             <par-form-field [formCtrl]="fc('run')" format="run" label="RUN" />
+
             <par-form-field
               [formCtrl]="fc('documentNumber')"
               label="Número de documento"

@@ -6,10 +6,26 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AdminHomeDapService, AdminHomeDapRow } from './admin-home-dap.service';
 import { AdminBankAccountDialogComponent } from './admin-bank-account-dialog.component';
 
+// importe el pipe standalone para usarlo en la plantilla
+import { DapStatusPipe } from '../../dap/pipes/dap-status.pipe';
+
+// componente de adjuntos (standalone)
+import { AdminDapAttachmentsComponent } from '../dap/admin-dap-attachments.component';
+
 @Component({
   selector: 'app-admin-home',
   standalone: true,
-  imports: [CommonModule, RouterModule, CurrencyPipe, DatePipe, MatDialogModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    CurrencyPipe,
+    DatePipe,
+    MatDialogModule,
+    DapStatusPipe,
+    // Nota: no es estrictamente necesario importar el componente de diálogo aquí para abrirlo,
+    // pero incluirlo en imports evita problemas si el bundler/ivy lo requiere.
+    AdminDapAttachmentsComponent,
+  ],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
 })
@@ -63,6 +79,19 @@ export class HomeComponent implements OnInit {
       maxWidth: '95vw',
       panelClass: 'dap-dialog',
       data: { run: r },
+    });
+  }
+
+  // NUEVO: abrir dialog de adjuntos para un DAP específico
+  openAttachments(run: number, dapId: number) {
+    const r = Number(run ?? 0);
+    const id = Number(dapId ?? 0);
+    if (!r || !id) return;
+    this.dialog.open(AdminDapAttachmentsComponent, {
+      width: '920px',
+      maxWidth: '95vw',
+      panelClass: 'dap-dialog',
+      data: { run: r, dapId: id },
     });
   }
 
