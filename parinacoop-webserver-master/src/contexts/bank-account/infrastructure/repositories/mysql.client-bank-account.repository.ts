@@ -34,25 +34,9 @@ export class MySqlClientBankAccountRepository {
   }
 
   async upsert(userRun: number, data: Omit<BankAccountRow, 'userRun'>): Promise<void> {
-    const updateRes = await this.db
-      .updateTable('client_bank_account')
-      .set({
-        rut_owner: data.rutOwner,
-        bank_code: data.bankCode,
-        bank_name: data.bankName,
-        account_type: data.accountType,
-        account_number: data.accountNumber,
-        email: data.email,
-        updated_at: new Date(),
-      } as any)
-      .where('user_run', '=', userRun)
-      .execute();
+    const now = new Date();
 
-    const updatedRows =
-      (updateRes as any)?.numUpdatedRows ?? (updateRes as any)?.rowCount ?? 0;
-
-    if (Number(updatedRows) > 0) return;
-
+    // UPSERT real MySQL: INSERT ... ON DUPLICATE KEY UPDATE ...
     await this.db
       .insertInto('client_bank_account')
       .values({
@@ -63,8 +47,17 @@ export class MySqlClientBankAccountRepository {
         account_type: data.accountType,
         account_number: data.accountNumber,
         email: data.email,
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: now,
+        updated_at: now,
+      } as any)
+      .onDuplicateKeyUpdate({
+        rut_owner: data.rutOwner,
+        bank_code: data.bankCode,
+        bank_name: data.bankName,
+        account_type: data.accountType,
+        account_number: data.accountNumber,
+        email: data.email,
+        updated_at: now,
       } as any)
       .execute();
   }

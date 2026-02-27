@@ -201,6 +201,7 @@ export class DapService {
   deleteAttachment(userRun: number, dapId: number, attachmentId: number) {
     return this.httpClient.delete<void>(`clients/${userRun}/daps/${dapId}/attachments/${attachmentId}`);
   }
+  
 
   uploadContract(userRun: number, dapId: number, file: File): Observable<DapContract> {
     return new Observable<DapContract>((observer) => {
@@ -282,4 +283,8 @@ getInstructions() {
     updatedAt?: string;
   }>(`dap-instructions`);
 }
+  // NEW: solicitar cobro (cambia status a expired-pending)
+    collectDap(run: number, dapId: number) {
+      return this.httpClient.post<{ ok: true }>(`clients/${run}/daps/${dapId}/collect`, {});
+    }
 }

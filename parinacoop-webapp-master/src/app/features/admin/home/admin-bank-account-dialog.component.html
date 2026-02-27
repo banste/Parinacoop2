@@ -1,0 +1,26 @@
+<h2 style="margin:0 0 12px 0; font-size:22px; font-weight:900;">Cuenta bancaria</h2>
+
+<div *ngIf="loading">Cargando...</div>
+<div *ngIf="error" style="color:#991b1b; font-weight:800; margin:10px 0;">{{ error }}</div>
+
+<div *ngIf="!loading && res">
+  <div style="margin-bottom:10px; color:#374151;">
+    Cliente: <b>{{ res.clientName || '-' }}</b> (RUN {{ res.run }})
+  </div>
+
+  <div *ngIf="!res.bankAccount" style="padding:10px; background:#f3f4f6; border-radius:10px;">
+    No hay cuenta bancaria registrada.
+  </div>
+
+  <div *ngIf="res.bankAccount" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+    <div><b>RUT</b><div>{{ res.bankAccount.rutOwner }}</div></div>
+    <div><b>Banco</b><div>{{ res.bankAccount.bankName }} ({{ res.bankAccount.bankCode }})</div></div>
+    <div><b>Tipo</b><div>{{ res.bankAccount.accountType }}</div></div>
+    <div><b>N° cuenta</b><div>{{ res.bankAccount.accountNumber }}</div></div>
+    <div style="grid-column: 1 / -1;"><b>Email</b><div>{{ res.bankAccount.email || '-' }}</div></div>
+  </div>
+
+  <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+    <button mat-button type="button" (click)="close()">Cerrar</button>
+  </div>
+</div>

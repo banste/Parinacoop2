@@ -1,21 +1,19 @@
-/* Modal más grande y con mejor spacing (solo afecta este dialog) */
-
 :host {
   display: block;
-  padding: 22px 24px; /* más aire dentro del modal */
+  padding: 22px 24px;
   box-sizing: border-box;
 }
 
 .title {
   margin: 0 0 10px 0;
-  font-size: 26px;   /* antes 20 */
+  font-size: 26px;
   font-weight: 900;
 }
 
 .sub {
   margin-bottom: 14px;
   color: #374151;
-  font-size: 16px;   /* antes 14 */
+  font-size: 16px;
 }
 
 .state {
@@ -34,6 +32,17 @@
   font-size: 15px;
 }
 
+.success {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .info {
   margin: 12px 0;
   padding: 12px;
@@ -47,26 +56,28 @@
 .form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;         /* más separación */
+  gap: 16px;
   margin-top: 14px;
 }
 
 label {
   display: grid;
   gap: 8px;
-  font-size: 15px;   /* antes 13 */
+  font-size: 15px;
   font-weight: 700;
   color: #111827;
 }
 
 input {
-  height: 46px;      /* antes 38 */
+  height: 46px;
   padding: 0 12px;
   border-radius: 10px;
   border: 1px solid #d1d5db;
   outline: none;
-  font-size: 16px;   /* más legible */
+  font-size: 16px;
   box-sizing: border-box;
+  background: #ffffff;
+  color: #111827;
 }
 
 input:focus {
@@ -74,15 +85,25 @@ input:focus {
   box-shadow: 0 0 0 4px rgba(244, 148, 4, 0.22);
 }
 
+/* NO EDITAR: gris medio, legible */
+input:disabled {
+  background: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #111827;
+  opacity: 1;
+  cursor: default;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   margin-top: 20px;
+  flex-wrap: wrap;
 }
 
 .btn {
-  height: 46px;      /* antes 40 */
+  height: 46px;
   border-radius: 12px;
   padding: 0 18px;
   border: none;
@@ -106,12 +127,24 @@ input:focus {
   color: #111827;
 }
 
+.btn.charge {
+  background: #16a34a;
+  color: #fff;
+}
+.btn.charge:hover {
+  background: #15803d;
+}
+.btn.charge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 900px) {
   :host {
     padding: 18px 16px;
   }
 
   .form {
-    grid-template-columns: 1fr; /* una columna en pantallas chicas */
+    grid-template-columns: 1fr;
   }
 }

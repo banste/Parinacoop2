@@ -14,8 +14,10 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DapDialogDetailsComponent } from './components/dap-dialog-details/dap-dialog-details.component';
 import { DapAttachmentsComponent } from './components/dap-attachments/dap-attachments.component';
 
-// NEW
-import { DapCollectDialogComponent } from './components/dap-collect-dialog/dap-collect-dialog.component';
+import {
+  DapCollectDialogComponent,
+  DapCollectDialogResult,
+} from './components/dap-collect-dialog/dap-collect-dialog.component';
 
 @Component({
   selector: 'app-dap',
@@ -75,7 +77,9 @@ export class DapComponent implements OnInit, OnDestroy {
         takeUntil(this.onDestroy$),
         filter((user) => user !== null),
       )
-      .subscribe((user) => this.dapService.getDapList((user as any).run));
+      .subscribe((user) => {
+        this.dapService.getDapList((user as any).run);
+      });
   }
 
   trackById(_: number, item: Dap): number | null {
@@ -97,12 +101,14 @@ export class DapComponent implements OnInit, OnDestroy {
         width: '720px',
         maxHeight: '80vh',
         panelClass: 'dap-dialog',
-        data: { dapId: dap.id, userRun: (user as any)?.run ?? null },
+        data: {
+          dapId: dap.id,
+          userRun: (user as any)?.run ?? null,
+        },
       });
     });
   }
 
-  // NEW: abre diálogo Por cobrar (AGRANDADO)
   openCollectDialog(dap: Dap): void {
     this.authService.currentUser$.pipe(take(1)).subscribe((user) => {
       const run = Number((user as any)?.run ?? 0);
@@ -113,12 +119,30 @@ export class DapComponent implements OnInit, OnDestroy {
         return;
       }
 
-      this.dialog.open(DapCollectDialogComponent, {
-        width: '920px',      // antes 720px
-        maxWidth: '95vw',    // para pantallas chicas
+      const ref = this.dialog.open(DapCollectDialogComponent, {
+        width: '920px',
+        maxWidth: '95vw',
         maxHeight: '85vh',
         panelClass: 'dap-dialog',
+        autoFocus: true,
+        restoreFocus: true,
         data: { run, dapId },
+      });
+
+      ref.afterClosed().subscribe((result: DapCollectDialogResult | undefined) => {
+        if (!result) return;
+        if (result.action !== 'charge') return;
+
+        this.dapService.collectDap(run, dapId).subscribe({
+          next: () => {
+            alert('Cobro solicitado. Tu depósito quedó en estado: Cobro pendiente.');
+            this.dapService.getDapList(run);
+          },
+          error: (err: any) => {
+            console.error('collectDap error', err);
+            alert(err?.error?.message ?? err?.message ?? 'No se pudo solicitar el cobro.');
+          },
+        });
       });
     });
   }

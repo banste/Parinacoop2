@@ -54,10 +54,17 @@ import { AdminActivateDapController } from './http/admin-activate-dap.controller
 import { GetCancelledDapsUseCase } from '@/contexts/dap/application/get-cancelled-daps/get-cancelled-daps.use-case';
 import { AdminUpdateDapStatusController } from './http/admin-update-dap-status.controller';
 
+// Collect (cliente)
+import { CollectDapController } from './http/collect-dap/collect-dap.controller';
+
+// NEW: Home admin (2 grillas)
+import { AdminDapHomeController } from './http/admin-dap-home.controller';
+
 type DbProvider = 'mysql' | 'postgres';
 
 @Module({
   controllers: [
+    // cliente
     GetDapsController,
     CreateDapController,
     SimulateDapController,
@@ -65,13 +72,17 @@ type DbProvider = 'mysql' | 'postgres';
     GetDapInstructionsController,
     DapAttachmentsController,
     DapContractsController,
+    CollectDapController,
 
-    // admin controllers
+    // admin
     AdminGetDapsController,
     AdminDapAttachmentsController,
     AdminDapContractsController,
     AdminActivateDapController,
     AdminUpdateDapStatusController,
+
+    // NEW: home admin (pendientes con adjunto / por cobrar)
+    AdminDapHomeController,
   ],
   providers: [
     // use-cases
@@ -80,7 +91,7 @@ type DbProvider = 'mysql' | 'postgres';
     SimulateDapUseCase,
     GetCancelledDapsUseCase,
 
-    // register concrete implementations so Nest can inject them in factories
+    // repos concretos (para factories)
     PostgreSqlDapRepository,
     MySqlDapRepository,
 
@@ -98,7 +109,7 @@ type DbProvider = 'mysql' | 'postgres';
       },
     },
 
-    // ParameterRepository (solo MySQL por ahora; si luego quieres Postgres, se agrega selector igual)
+    // ParameterRepository (solo MySQL por ahora)
     {
       provide: ParameterRepository,
       useClass: MySqlParameterRepository,
@@ -108,13 +119,13 @@ type DbProvider = 'mysql' | 'postgres';
     DapInstructionsStore,
     DapPdfService,
 
-    // ClientRepository (por ahora Postgres; si lo quieres MySQL, hay que implementar MySqlClientRepository y selector)
+    // ClientRepository (por ahora Postgres)
     {
       provide: ClientRepository,
       useClass: PostgreSqlClientRepository,
     },
 
-    // Attachments (ojo: este repo usa returningAll(); en MySQL te fallará hasta que lo adaptemos)
+    // Attachments
     DapAttachmentsRepository,
     {
       provide: 'ATTACHMENTS_REPOSITORY',
@@ -122,11 +133,11 @@ type DbProvider = 'mysql' | 'postgres';
     },
     DapAttachmentsService,
 
-    // contracts (ojo: este repo usa returningAll(); en MySQL te fallará hasta que lo adaptemos)
+    // contracts
     DapContractsRepository,
     DapContractsService,
 
-    // Registrar localmente el repo admin (por ahora Postgres)
+    // Admin user repo local (por ahora Postgres)
     PostgreSqlUserRepository,
     {
       provide: 'ADMIN_USER_REPOSITORY',

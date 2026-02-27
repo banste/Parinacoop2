@@ -1,16 +1,99 @@
 <div class="page">
   <h1 class="title">Panel de Administración</h1>
-  <p class="subtitle">Gestiona clientes y parámetros del sistema.</p>
+  <p class="subtitle">Monitoreo rápido de depósitos a plazo.</p>
 
-  <div class="grid">
-    <a class="card" routerLink="/admin/usuarios">
-      <div class="card-title">Clientes</div>
-      <div class="card-desc">Ver y gestionar clientes.</div>
-    </a>
+  <div class="error" *ngIf="error">{{ error }}</div>
+  <div class="loading" *ngIf="loading">Cargando...</div>
 
-    <a class="card" routerLink="/admin/dap-instructions">
-      <div class="card-title">DAP - Instrucciones y cuenta</div>
-      <div class="card-desc">Editar cuenta destino e instructivo del depósito.</div>
-    </a>
-  </div>
+  <!-- PENDING con adjunto -->
+  <section class="panel" *ngIf="!loading">
+    <header class="panel-head">
+      <h2>Pendientes (con adjunto)</h2>
+      <div class="count">{{ pendingWithAttachments.length }}</div>
+    </header>
+
+    <div class="table-wrap" *ngIf="pendingWithAttachments.length; else emptyPending">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>RUN</th>
+            <th>Cliente</th>
+            <th>Email</th>
+            <th>Folio</th>
+            <th>Estado</th>
+            <th>Ingreso</th>
+            <th>Vencimiento</th>
+            <th>Monto a recibir</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let d of pendingWithAttachments; trackBy: trackById">
+            <td>{{ d.userRun }}</td>
+            <td>{{ fullName(d) }}</td>
+            <td>{{ d.user?.email || '-' }}</td>
+            <td>#{{ d.id }}</td>
+            <td>{{ (d.status || '-') }}</td>
+            <td>{{ d.initialDate ? (d.initialDate | date:'dd-MM-yyyy') : '-' }}</td>
+            <td>{{ d.dueDate ? (d.dueDate | date:'dd-MM-yyyy') : '-' }}</td>
+            <td>{{ d.finalAmount != null ? (d.finalAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</td>
+            <td class="actions">
+              <button class="btn" type="button" (click)="openBankAccount(d.userRun)">Cuenta banco</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyPending>
+      <div class="empty">No hay depósitos pendientes con adjuntos.</div>
+    </ng-template>
+  </section>
+
+  <!-- EXPIRED-PENDING -->
+  <section class="panel" *ngIf="!loading">
+    <header class="panel-head">
+      <h2>Por cobrar (cobro pendiente)</h2>
+      <div class="count">{{ expiredPending.length }}</div>
+    </header>
+
+    <div class="table-wrap" *ngIf="expiredPending.length; else emptyExpiredPending">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>RUN</th>
+            <th>Cliente</th>
+            <th>Email</th>
+            <th>Folio</th>
+            <th>Estado</th>
+            <th>Ingreso</th>
+            <th>Vencimiento</th>
+            <th>Monto a recibir</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let d of expiredPending; trackBy: trackById">
+            <td>{{ d.userRun }}</td>
+            <td>{{ fullName(d) }}</td>
+            <td>{{ d.user?.email || '-' }}</td>
+            <td>#{{ d.id }}</td>
+            <td>{{ (d.status || '-') }}</td>
+            <td>{{ d.initialDate ? (d.initialDate | date:'dd-MM-yyyy') : '-' }}</td>
+            <td>{{ d.dueDate ? (d.dueDate | date:'dd-MM-yyyy') : '-' }}</td>
+            <td>{{ d.finalAmount != null ? (d.finalAmount | currency:'CLP':'symbol':'1.0-0') : '-' }}</td>
+            <td class="actions">
+              <button class="btn" type="button" (click)="openBankAccount(d.userRun)">Cuenta banco</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyExpiredPending>
+      <div class="empty">No hay depósitos en estado “por cobrar”.</div>
+    </ng-template>
+  </section>
 </div>

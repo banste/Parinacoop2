@@ -1,46 +1,115 @@
 .page {
-  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 16px 40px 16px;
 }
 
 .title {
-  margin: 0 0 6px 0;
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 900;
+  margin: 0;
 }
 
 .subtitle {
-  margin: 0 0 18px 0;
-  opacity: 0.8;
+  margin: 6px 0 18px 0;
+  color: #6b7280;
+  font-weight: 600;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-  margin-top: 12px;
-}
-
-.card {
-  display: block;
-  padding: 16px;
-  border: 1px solid rgba(0,0,0,.12);
-  border-radius: 12px;
-  text-decoration: none;
-  color: inherit;
-  background: #fff;
-  transition: transform .12s ease, box-shadow .12s ease;
-}
-
-.card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0,0,0,.08);
-}
-
-.card-title {
+.loading {
+  padding: 10px 0;
+  color: #374151;
   font-weight: 700;
-  margin-bottom: 6px;
 }
 
-.card-desc {
-  opacity: 0.8;
+.error {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.count {
+  min-width: 34px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #111827;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-wrap {
+  overflow: auto;
+}
+
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+table.grid th,
+table.grid td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 10px;
+  text-align: left;
+  font-size: 14px;
+}
+
+table.grid th {
+  color: #374151;
+  font-weight: 900;
+  background: #f9fafb;
+}
+
+.actions {
+  white-space: nowrap;
+}
+
+.btn {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #111827;
+  text-decoration: none;
+  font-weight: 800;
+}
+.btn:hover {
+  background: #e5e7eb;
+}
+
+.empty {
+  padding: 12px;
+  color: #6b7280;
+  font-weight: 700;
 }

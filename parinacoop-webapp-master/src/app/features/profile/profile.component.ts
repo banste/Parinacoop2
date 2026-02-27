@@ -1,8 +1,4 @@
-import {
-  Component,
-  OnDestroy,
-  OnInit,
-} from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -10,7 +6,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { AsyncPipe, NgClass } from '@angular/common';
-import { Subject, Observable, takeUntil, filter, first } from 'rxjs';
+import { Subject, Observable, takeUntil, filter } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -29,6 +25,8 @@ import { UpdateProfileDto } from './interfaces/update-profile.dto';
 import { Commune } from './models/Commune';
 import { Region } from './models/Region';
 
+import { ProfileBankAccountService, UpsertBankAccountPayload } from './services/bank-account.service';
+
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -45,15 +43,16 @@ import { Region } from './models/Region';
     SpinnerComponent,
   ],
   templateUrl: './profile.component.html',
+  styleUrls: ['./profile.component.scss'], // ✅ NEW
 })
 export default class ProfileComponent implements OnInit, OnDestroy {
+  // (el resto de tu archivo TS queda igual al que ya tienes con bankForm)
   profileForm = new FormGroup({
-    run: new FormControl<string>('', [Validators.required /*, runValidator si lo usas */]),
+    run: new FormControl<string>('', [Validators.required]),
     names: new FormControl<string>('', Validators.required),
     firstLastName: new FormControl<string>('', Validators.required),
     secondLastName: new FormControl<string>('', Validators.required),
     email: new FormControl<string>('', [Validators.required, Validators.email]),
-    // documentNumber como string: acepta letras, números, puntos y guiones
     documentNumber: new FormControl<string>('', [
       Validators.required,
       Validators.minLength(3),
@@ -67,6 +66,15 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     communeId: new FormControl<number>(0, [Validators.min(1)]),
   });
 
+  bankForm = new FormGroup({
+    rutOwner: new FormControl<string>('', [Validators.required, Validators.maxLength(20)]),
+    bankCode: new FormControl<string>('', [Validators.required, Validators.maxLength(20)]),
+    bankName: new FormControl<string>('', [Validators.required, Validators.maxLength(100)]),
+    accountType: new FormControl<string>('', [Validators.required, Validators.maxLength(30)]),
+    accountNumber: new FormControl<string>('', [Validators.required, Validators.maxLength(30)]),
+    email: new FormControl<string>('', [Validators.maxLength(150)]),
+  });
+
   regions$?: Observable<Region[]>;
   communes$?: Observable<Commune[]>;
   private onDestroy$ = new Subject<void>();
@@ -75,78 +83,49 @@ export default class ProfileComponent implements OnInit, OnDestroy {
   isEditing = false;
   isSubmitting = false;
 
-  // Indica que el perfil no existe en backend (404). Usamos esto para no activar edición automática.
   profileMissing = false;
+  private lastProfileSnapshot: any = null;
 
-  private lastProfileSnapshot: any = null; // para restaurar al cancelar edición
+  bankLoading = false;
+  bankSaving = false;
+  bankEditing = false;
+  bankHasAccount = false;
+  bankError = '';
+  bankSuccess = '';
+  private lastBankSnapshot: any = null;
+
+  private currentRun = 0;
 
   constructor(
     private authService: AuthService,
     private profileService: ProfileService,
     private locationService: LocationService,
+    private bankSvc: ProfileBankAccountService,
   ) {}
 
   ngOnInit(): void {
     this.profileForm.disable();
-    this.loading = true;
+    this.bankForm.disable();
 
+    this.loading = true;
     this.regions$ = this.locationService.regions$;
     this.communes$ = this.locationService.communes$;
 
-    // cargar regiones al inicio (LocationService se encarga de cachear)
     try {
       (this.locationService as any).getRegions?.();
-    } catch {
-      // noop
-    }
+    } catch {}
 
-    // 1) Pedir perfil con el run del usuario logueado
     this.authService.currentUser$
-      .pipe(takeUntil(this.onDestroy$), filter((user) => !!user))
-      .subscribe((user) => {
-        const runNumber = Number((user as any).run);
-        if (!runNumber || isNaN(runNumber)) {
-          this.loading = false;
-          alert('RUN inválido en sesión');
-          return;
-        }
+      .pipe(
+        takeUntil(this.onDestroy$),
+        filter((u) => !!u),
+      )
+      .subscribe((u: any) => {
+        const run = Number(u?.run ?? 0);
+        this.currentRun = run;
 
-        // Subscribe local para rellenar formulario cuando ProfileService actualice userProfile$
-        this.profileService.userProfile$
-          .pipe(takeUntil(this.onDestroy$))
-          .subscribe((profile) => {
-            if (!profile) return;
-            // guardamos snapshot para restaurar si el usuario cancela la edición
-            this.lastProfileSnapshot = profile;
-            this.patchForm(profile);
-            // siempre mostrar en modo lectura por defecto
-            this.disableAllControls();
-            this.loading = false;
-            this.isEditing = false;
-            this.profileMissing = false;
-          });
-
-        // Intentar cargar desde backend
-        this.profileService.getCurrentProfile(runNumber).subscribe({
-          next: () => {
-            // getCurrentProfile actualizará userProfile$ y el subscriber lo rellenará
-            this.loading = false;
-          },
-          error: (err) => {
-            this.loading = false;
-            if (err?.status === 404) {
-              // Perfil no existe -> marcar profileMissing pero NO entrar en edición automáticamente.
-              // El usuario podrá entrar a editar (crear) con el botón "Modificar perfil".
-              this.profileMissing = true;
-              // Pre-fill the run so user doesn't have to type it when creating profile
-              this.profileForm.get('run')?.setValue(String(runNumber));
-              // Keep the form disabled (view mode). Do NOT enable fields automatically.
-              return;
-            }
-            alert('No se pudo cargar el perfil (revisa Network/Console).');
-            console.error(err);
-          },
-        });
+        this.loadProfile(run);
+        this.loadBankAccount(run);
       });
   }
 
@@ -155,207 +134,222 @@ export default class ProfileComponent implements OnInit, OnDestroy {
     this.onDestroy$.complete();
   }
 
-  // Helper para obtener FormControl en plantilla
-  fc(name: string): FormControl {
+  fc(name: string) {
     return this.profileForm.get(name) as FormControl;
   }
+  bankFc(name: string) {
+    return this.bankForm.get(name) as FormControl;
+  }
 
-  // Habilita TODOS los campos para edición excepto 'run'
-  private enableEditableFields(): void {
-    Object.keys(this.profileForm.controls).forEach((key) => {
-      if (key === 'run') return; // run no es editable
-      const ctrl = this.profileForm.get(key);
-      ctrl?.enable();
-      // actualizar validación al habilitar
-      ctrl?.updateValueAndValidity({ onlySelf: true });
+  // ===== PERFIL (igual que antes) =====
+  private loadProfile(run: number) {
+    if (!run) {
+      this.loading = false;
+      return;
+    }
+
+    this.loading = true;
+    this.profileMissing = false;
+
+    this.profileService.getCurrentProfile(run).subscribe({
+      next: (profile) => {
+        this.profileForm.patchValue({
+          run: String(profile.run ?? run),
+          names: profile.names ?? '',
+          firstLastName: profile.firstLastName ?? '',
+          secondLastName: profile.secondLastName ?? '',
+          email: profile.email ?? '',
+          documentNumber: profile.documentNumber ?? '',
+          cellphone: profile.cellphone ?? '',
+          street: profile.street ?? '',
+          number: profile.number ?? null,
+          detail: profile.detail ?? '',
+          regionId: profile.regionId ?? 0,
+          communeId: profile.communeId ?? 0,
+        });
+
+        this.lastProfileSnapshot = this.profileForm.getRawValue();
+
+        this.profileForm.disable();
+        this.isEditing = false;
+        this.isSubmitting = false;
+        this.loading = false;
+
+        const regionId = Number(profile.regionId ?? 0);
+        if (regionId) {
+          try {
+            (this.locationService as any).getCommunesByRegionId?.(regionId);
+          } catch {}
+        }
+      },
+      error: (err: any) => {
+        console.error('get profile error', err);
+        this.loading = false;
+
+        if (err?.status === 404) {
+          this.profileMissing = true;
+          this.profileForm.disable();
+          this.isEditing = false;
+          return;
+        }
+
+        alert(err?.error?.message ?? err?.message ?? 'Error cargando perfil');
+      },
     });
   }
 
-  // Deshabilita todos los controles (modo lectura total)
-  private disableAllControls(): void {
-    Object.keys(this.profileForm.controls).forEach((key) => {
-      const c = this.profileForm.get(key);
-      c?.disable();
-    });
-  }
-
-  // Toggle edit mode: habilitar todos los campos salvo 'run'
   toggleEdit(): void {
-    if (!this.isEditing) {
-      // Si el perfil estaba faltando (creación), permitimos editar documentNumber también
-      this.enableEditableFields();
-      if (this.profileMissing) {
-        this.profileForm.get('documentNumber')?.enable();
-      }
-      this.isEditing = true;
+    if (this.isEditing) {
+      if (this.lastProfileSnapshot) this.profileForm.reset(this.lastProfileSnapshot);
+      this.profileForm.disable();
+      this.isEditing = false;
       return;
     }
 
-    // cancelar edición -> restaurar snapshot y deshabilitar todo
-    this.isEditing = false;
-    if (this.lastProfileSnapshot) {
-      this.patchForm(this.lastProfileSnapshot);
-    } else if (this.profileMissing) {
-      // limpiar si estábamos creando y no había snapshot
-      this.profileForm.patchValue({
-        documentNumber: '',
-        names: '',
-        firstLastName: '',
-        secondLastName: '',
-        email: '',
-        cellphone: '',
-        street: '',
-        number: null,
-        detail: '',
-        regionId: 0,
-        communeId: 0,
-      });
-    }
-    this.disableAllControls();
+    this.isEditing = true;
+    this.profileForm.enable();
+    this.fc('run').disable();
   }
 
-  // Rellena el formulario a partir del profile object devuelto desde el backend
-  private patchForm(profile: any): void {
-    // Mapear valores reales (no escribir "Vacio" en los controles)
-    this.profileForm.patchValue({
-      run: String(profile.run ?? ''),
-      documentNumber: String(profile.documentNumber ?? ''),
-      names: profile.names ?? '',
-      firstLastName: profile.firstLastName ?? '',
-      secondLastName: profile.secondLastName ?? '',
-      email: profile.email ?? '',
-      cellphone: profile.cellphone ?? '',
-      // dirección: dejar en blanco si no existe; template mostrará placeholder "Vacio"
-      street: profile.street ?? '',
-      number: profile.number ?? null,
-      detail: profile.detail ?? '',
-      regionId: Number(profile.regionId ?? 0),
-      communeId: Number(profile.communeId ?? 0),
-    });
-
-    // Si viene regionId > 0, cargar comunas y setear communeId cuando las comunas lleguen
-    const regionId = Number(profile.regionId ?? 0);
-    const communeId = Number(profile.communeId ?? 0);
-    if (regionId && regionId > 0) {
-      this.loadCommunesAndSet(regionId, communeId);
-    } else {
-      // limpiar comunas si no hay region
-      try {
-        (this.locationService as any).communesSubject?.next([]);
-      } catch {
-        // noop
-      }
-    }
-  }
-
-  // Carga comunas para una región y asigna communeId cuando la lista ya está cargada
-  private loadCommunesAndSet(regionId: number, communeId: number): void {
-    // Pedir comunas al backend
-    this.locationService.getCommunesByRegionId(regionId);
-
-    // Suscribirse una sola vez al stream de communes$ y setear communeId cuando haya datos
-    this.communes$?.pipe(first()).subscribe((list) => {
-      if (!list || list.length === 0) {
-        // nada que asignar
-        return;
-      }
-      // si communeId válido y está en la lista, setearlo; si no, dejar 0
-      const exists = list.some((c) => Number(c.id) === Number(communeId));
-      if (exists) {
-        this.profileForm.get('communeId')?.setValue(Number(communeId));
-      } else {
-        // dejar 0 para que aparezca "Seleccione una comuna"
-        this.profileForm.get('communeId')?.setValue(0);
-      }
-    });
-  }
-
-  // Helper para mostrar placeholder o valor para elementos de solo lectura.
-  // Si control vacío y no estamos en edición devuelve 'Vacio', si está en edición devuelve '' (no placeholder).
-  getPlaceholder(ctrlName: string, defaultText = 'Vacio'): string {
-    const ctrl = this.profileForm.get(ctrlName);
-    const val = ctrl?.value;
-    if (!this.isEditing && (val === null || val === undefined || val === '')) return defaultText;
-    return '';
-  }
-
-  // Devuelve una cadena para mostrar en spans de solo lectura (útil si usas <span>{{ getDisplayValue('street') }}</span>)
-  getDisplayValue(ctrlName: string, defaultText = 'Vacio'): string {
-    const ctrl = this.profileForm.get(ctrlName);
-    const val = ctrl?.value;
-    if (val === null || val === undefined || val === '') return defaultText;
-    return String(val);
-  }
-
-  // -----------------------------
-  // MÉTODOS DE ENVÍO Y UTILIDAD
-  // -----------------------------
-
-  // Método invocado por (submit)="onSubmit()" en la plantilla
   onSubmit(): void {
-    // Al enviar validamos todo el formulario (excepto run que está deshabilitado)
-    if (this.profileForm.invalid) {
-      alert('Formulario inválido. Revisa los campos requeridos.');
-      return;
-    }
+    if (this.profileForm.invalid) return;
 
-    // Construir DTO para el backend
+    const raw = this.profileForm.getRawValue();
     const dto: UpdateProfileDto = {
-      run: Number(this.profileForm.get('run')?.value),
-      documentNumber: String(this.profileForm.get('documentNumber')?.value ?? ''),
-      names: String(this.profileForm.get('names')?.value ?? ''),
-      firstLastName: String(this.profileForm.get('firstLastName')?.value ?? ''),
-      secondLastName: String(this.profileForm.get('secondLastName')?.value ?? ''),
-      email: String(this.profileForm.get('email')?.value ?? ''),
-      cellphone: String(this.profileForm.get('cellphone')?.value ?? ''),
-      street: String(this.profileForm.get('street')?.value ?? ''),
-      number: Number(this.profileForm.get('number')?.value ?? 0),
-      detail: String(this.profileForm.get('detail')?.value ?? ''),
-      regionId: Number(this.profileForm.get('regionId')?.value ?? 0),
-      communeId: Number(this.profileForm.get('communeId')?.value ?? 0),
+      run: Number(raw.run ?? this.currentRun),
+      documentNumber: String(raw.documentNumber ?? ''),
+      names: String(raw.names ?? ''),
+      firstLastName: String(raw.firstLastName ?? ''),
+      secondLastName: String(raw.secondLastName ?? ''),
+      email: String(raw.email ?? ''),
+      cellphone: String(raw.cellphone ?? ''),
+      street: String(raw.street ?? ''),
+      number: Number(raw.number ?? 0),
+      detail: String(raw.detail ?? ''),
+      regionId: Number(raw.regionId ?? 0),
+      communeId: Number(raw.communeId ?? 0),
     };
 
     this.isSubmitting = true;
     this.profileService.updateProfile(dto).subscribe({
-      next: (res) => {
-        // actualizamos snapshot y deshabilitamos edición
-        this.lastProfileSnapshot = {
-          ...dto,
-        };
-        this.disableAllControls();
+      next: () => {
+        this.isSubmitting = false;
         this.isEditing = false;
-        this.isSubmitting = false;
-        this.profileMissing = false;
-        // recargar perfil desde el servicio para notificar otros subscriptores
-        this.profileService.getCurrentProfile(dto.run).subscribe({
-          next: () => {
-            // opcional: mostrar mensaje
-          },
-          error: () => {
-            // noop
-          },
-        });
+        this.profileForm.disable();
+        this.lastProfileSnapshot = this.profileForm.getRawValue();
+        alert('Perfil actualizado');
       },
-      error: (err) => {
-        console.error('updateProfile error', err);
+      error: (err: any) => {
+        console.error('update profile error', err);
         this.isSubmitting = false;
-        alert('No se pudo actualizar el perfil. Revisa la consola y la red.');
+        alert(err?.error?.message ?? err?.message ?? 'Error actualizando perfil');
       },
     });
   }
 
-  // Método invocado por (selectionChange)="getCommunes($event.value)" — carga comunas para la región seleccionada
-  getCommunes(regionId: number): void {
-    if (!regionId || regionId <= 0) {
-      // limpiar comunas si region inválida
-      try {
-        (this.locationService as any).communesSubject?.next([]);
-      } catch {
-        // noop si no existe internamente
-      }
+  // ===== CUENTA BANCARIA =====
+  private showBankSuccess(msg: string) {
+    this.bankSuccess = msg;
+    setTimeout(() => {
+      if (this.bankSuccess === msg) this.bankSuccess = '';
+    }, 2500);
+  }
+
+  loadBankAccount(run: number) {
+    if (!run) return;
+
+    this.bankLoading = true;
+    this.bankError = '';
+    this.bankSuccess = '';
+
+    this.bankSvc.get(run).subscribe({
+      next: (res) => {
+        const acc = res?.bankAccount ?? null;
+
+        if (acc) {
+          this.bankHasAccount = true;
+          this.bankEditing = false;
+
+          this.bankForm.patchValue({
+            rutOwner: acc.rutOwner ?? '',
+            bankCode: acc.bankCode ?? '',
+            bankName: acc.bankName ?? '',
+            accountType: acc.accountType ?? '',
+            accountNumber: acc.accountNumber ?? '',
+            email: acc.email ?? '',
+          });
+
+          this.lastBankSnapshot = this.bankForm.getRawValue();
+          this.bankForm.disable();
+        } else {
+          this.bankHasAccount = false;
+          this.bankEditing = true;
+          this.bankForm.reset({
+            rutOwner: '',
+            bankCode: '',
+            bankName: '',
+            accountType: '',
+            accountNumber: '',
+            email: '',
+          });
+          this.lastBankSnapshot = this.bankForm.getRawValue();
+          this.bankForm.enable();
+        }
+
+        this.bankLoading = false;
+      },
+      error: (err: any) => {
+        console.error('get bank account error', err);
+        this.bankLoading = false;
+        this.bankError = err?.error?.message ?? err?.message ?? 'No se pudo cargar cuenta bancaria.';
+        this.bankForm.disable();
+      },
+    });
+  }
+
+  toggleBankEdit() {
+    if (this.bankLoading || this.bankSaving) return;
+
+    if (this.bankEditing) {
+      if (this.lastBankSnapshot) this.bankForm.reset(this.lastBankSnapshot);
+      this.bankForm.disable();
+      this.bankEditing = false;
       return;
     }
-    // Llama al service para poblar communes$
-    this.locationService.getCommunesByRegionId(regionId);
+
+    this.bankEditing = true;
+    this.bankForm.enable();
+  }
+
+  saveBankAccount() {
+    if (!this.currentRun) return;
+    if (this.bankForm.invalid) return;
+
+    const raw = this.bankForm.getRawValue();
+    const payload: UpsertBankAccountPayload = {
+      rutOwner: String(raw.rutOwner ?? ''),
+      bankCode: String(raw.bankCode ?? ''),
+      bankName: String(raw.bankName ?? ''),
+      accountType: String(raw.accountType ?? ''),
+      accountNumber: String(raw.accountNumber ?? ''),
+      email: String(raw.email ?? ''),
+    };
+
+    this.bankSaving = true;
+    this.bankError = '';
+    this.bankSuccess = '';
+
+    this.bankSvc.upsert(this.currentRun, payload).subscribe({
+      next: () => {
+        this.bankSaving = false;
+        this.showBankSuccess(this.bankHasAccount ? 'Cuenta bancaria actualizada' : 'Cuenta bancaria guardada');
+        this.loadBankAccount(this.currentRun);
+      },
+      error: (err: any) => {
+        console.error('save bank account error', err);
+        this.bankSaving = false;
+        this.bankError = err?.error?.message ?? err?.message ?? 'No se pudo guardar la cuenta bancaria.';
+      },
+    });
   }
 }

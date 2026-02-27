@@ -390,4 +390,59 @@ export class MySqlDapRepository implements DapRepository {
       }
     }
   }
+    async existsByIdAndUserRun(dapId: number, userRun: number): Promise<boolean> {
+    const row = await this.db
+      .selectFrom('dap')
+      .select(['id'])
+      .where('id', '=', Number(dapId))
+      .where('user_run', '=', Number(userRun))
+      .executeTakeFirst();
+
+    return !!row;
+  }
+  async adminListPendingWithAttachments(): Promise<any[]> {
+  const rows = await this.db
+    .selectFrom('dap')
+    .innerJoin('dap_attachments', 'dap_attachments.dap_id', 'dap.id')
+    .select([
+      'dap.id as id',
+      'dap.user_run as userRun',
+      'dap.status as status',
+      'dap.type as type',
+      'dap.currency_type as currencyType',
+      'dap.days as days',
+      'dap.initial_date as initialDate',
+      'dap.due_date as dueDate',
+      'dap.initial_amount as initialAmount',
+      'dap.final_amount as finalAmount',
+    ])
+    .where('dap.status', '=', DapStatus.PENDING)
+    .groupBy('dap.id')
+    .orderBy('dap.due_date', 'asc')
+    .execute();
+
+  return (rows as any[]) ?? [];
+}
+
+async adminListExpiredPending(): Promise<any[]> {
+  const rows = await this.db
+    .selectFrom('dap')
+    .select([
+      'dap.id as id',
+      'dap.user_run as userRun',
+      'dap.status as status',
+      'dap.type as type',
+      'dap.currency_type as currencyType',
+      'dap.days as days',
+      'dap.initial_date as initialDate',
+      'dap.due_date as dueDate',
+      'dap.initial_amount as initialAmount',
+      'dap.final_amount as finalAmount',
+    ])
+    .where('dap.status', '=', DapStatus.EXPIRED_PENDING)
+    .orderBy('dap.due_date', 'asc')
+    .execute();
+
+  return (rows as any[]) ?? [];
+}
 }

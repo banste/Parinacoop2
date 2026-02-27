@@ -304,4 +304,14 @@ export class PostgreSqlDapRepository implements DapRepository {
       }
     }
   }
+    async existsByIdAndUserRun(dapId: number, userRun: number): Promise<boolean> {
+    const row = await this.db
+      .selectFrom('dap')
+      .select(['id'])
+      .where('id', '=', Number(dapId))
+      .where('user_run', '=', Number(userRun))
+      .executeTakeFirst();
+
+    return !!row;
+  }
 }

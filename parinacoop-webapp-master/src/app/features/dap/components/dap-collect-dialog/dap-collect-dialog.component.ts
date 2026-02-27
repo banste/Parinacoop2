@@ -4,12 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { finalize } from 'rxjs';
 
-import { BankAccountService, GetBankAccountResponse, UpsertBankAccountPayload } from '../../services/bank-account.service';
+import {
+  BankAccountService,
+  GetBankAccountResponse,
+  UpsertBankAccountPayload,
+} from '../../services/bank-account.service';
 
 export interface DapCollectDialogData {
   run: number;
   dapId: number;
 }
+
+export type DapCollectDialogResult =
+  | { action: 'close' }
+  | { action: 'charge'; dapId: number };
 
 @Component({
   selector: 'app-dap-collect-dialog',
@@ -21,12 +29,20 @@ export interface DapCollectDialogData {
 export class DapCollectDialogComponent implements OnInit {
   loading = false;
   saving = false;
+  charging = false;
   error = '';
+  success = '';
 
   clientName = '';
   run = 0;
+  dapId = 0;
 
   hasAccount = false;
+  isEditing = false;
+
+  get canCharge(): boolean {
+    return this.hasAccount && !this.isEditing && !this.loading && !this.saving && !this.charging;
+  }
 
   form: UpsertBankAccountPayload = {
     rutOwner: '',
@@ -38,18 +54,26 @@ export class DapCollectDialogComponent implements OnInit {
   };
 
   constructor(
-    private dialogRef: MatDialogRef<DapCollectDialogComponent>,
+    private dialogRef: MatDialogRef<DapCollectDialogComponent, DapCollectDialogResult>,
     @Inject(MAT_DIALOG_DATA) public data: DapCollectDialogData,
     private bankAccountSvc: BankAccountService,
   ) {}
 
   ngOnInit(): void {
     this.run = Number(this.data?.run ?? 0);
+    this.dapId = Number(this.data?.dapId ?? 0);
     this.load();
   }
 
   close() {
-    this.dialogRef.close(false);
+    this.dialogRef.close({ action: 'close' });
+  }
+
+  private showSuccess(msg: string) {
+    this.success = msg;
+    setTimeout(() => {
+      if (this.success === msg) this.success = '';
+    }, 2500);
   }
 
   load() {
@@ -60,14 +84,17 @@ export class DapCollectDialogComponent implements OnInit {
 
     this.loading = true;
     this.error = '';
+
     this.bankAccountSvc
       .get(this.run)
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (res: GetBankAccountResponse) => {
           this.clientName = res?.clientName ?? '';
+
           if (res?.bankAccount) {
             this.hasAccount = true;
+            this.isEditing = false;
             this.form = {
               rutOwner: res.bankAccount.rutOwner ?? '',
               bankCode: res.bankAccount.bankCode ?? '',
@@ -78,6 +105,7 @@ export class DapCollectDialogComponent implements OnInit {
             };
           } else {
             this.hasAccount = false;
+            this.isEditing = true;
             this.form = {
               rutOwner: '',
               bankCode: '',
@@ -90,9 +118,23 @@ export class DapCollectDialogComponent implements OnInit {
         },
         error: (err: any) => {
           console.error('GET bank-account error', err);
-          this.error = err?.error?.message ?? err?.message ?? 'No se pudo cargar la cuenta bancaria.';
+          this.error =
+            err?.error?.message ?? err?.message ?? 'No se pudo cargar la cuenta bancaria.';
         },
       });
+  }
+
+  startEdit() {
+    if (this.loading || this.saving || this.charging) return;
+    this.error = '';
+    this.success = '';
+    this.isEditing = true;
+  }
+
+  cancelEdit() {
+    this.error = '';
+    this.success = '';
+    this.load();
   }
 
   save() {
@@ -100,19 +142,28 @@ export class DapCollectDialogComponent implements OnInit {
 
     this.saving = true;
     this.error = '';
+    this.success = '';
 
     this.bankAccountSvc
       .upsert(this.run, this.form)
       .pipe(finalize(() => (this.saving = false)))
       .subscribe({
         next: () => {
-          alert('Cuenta bancaria guardada.');
-          this.dialogRef.close(true);
+          this.showSuccess('Cuenta editada correctamente');
+          this.isEditing = false;
+          this.hasAccount = true;
+          this.load();
         },
         error: (err: any) => {
           console.error('PUT bank-account error', err);
-          this.error = err?.error?.message ?? err?.message ?? 'No se pudo guardar la cuenta bancaria.';
+          this.error =
+            err?.error?.message ?? err?.message ?? 'No se pudo guardar la cuenta bancaria.';
         },
       });
+  }
+
+  charge() {
+    if (!this.canCharge) return;
+    this.dialogRef.close({ action: 'charge', dapId: this.dapId });
   }
 }
